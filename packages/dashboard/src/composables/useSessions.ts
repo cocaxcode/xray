@@ -175,6 +175,29 @@ async function loadInitialState(): Promise<void> {
         sessions.set(session.id, reactive(session));
       }
     }
+
+    // Sync active permissions — remove stale ones
+    await syncPermissions();
+  } catch {
+    // Server not reachable
+  }
+}
+
+async function syncPermissions(): Promise<void> {
+  const { getAuthHeaders } = useAuth();
+  const { pending, removePending } = usePermissions();
+  try {
+    const res = await fetch('/api/permissions/pending', { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const activeIds: number[] = await res.json();
+    const activeSet = new Set(activeIds);
+
+    // Remove permissions from UI that are no longer active on server
+    for (const id of pending.keys()) {
+      if (!activeSet.has(id)) {
+        removePending(id);
+      }
+    }
   } catch {
     // Server not reachable
   }

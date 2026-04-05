@@ -98,6 +98,13 @@ export class PermissionHandler {
   }
 
   /**
+   * Devuelve los IDs de permisos que realmente están esperando respuesta
+   */
+  getActivePending(): number[] {
+    return Array.from(this.pending.keys());
+  }
+
+  /**
    * Limpia todos los permisos pendientes (cleanup al cerrar)
    */
   cleanup(): void {

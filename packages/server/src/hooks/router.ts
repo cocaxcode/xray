@@ -63,18 +63,24 @@ export function registerHookRoutes(
   // PermissionRequest — SINCRONO: mantiene la conexion abierta
   fastify.post('/api/hook/permission-request', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
+    try {
+      ensureSession(payload);
+      manager.transitionTo(payload.session_id as string, 'waiting_permission');
 
-    manager.transitionTo(payload.session_id as string, 'waiting_permission');
+      const response = await permissionHandler.handlePermissionRequest(
+        payload.session_id as string,
+        payload.tool_name as string,
+        (payload.tool_input as Record<string, unknown>) ?? {},
+      );
 
-    const response = await permissionHandler.handlePermissionRequest(
-      payload.session_id as string,
-      payload.tool_name as string,
-      (payload.tool_input as Record<string, unknown>) ?? {},
-    );
-
-    manager.transitionTo(payload.session_id as string, 'active');
-    return response;
+      manager.transitionTo(payload.session_id as string, 'active');
+      return response;
+    } catch (e) {
+      fastify.log.error(e, 'permission-request handler error');
+      // Restore session state on error
+      try { manager.transitionTo(payload.session_id as string, 'active'); } catch {}
+      return {};
+    }
   });
 
   fastify.post('/api/hook/notification', async (request) => {
