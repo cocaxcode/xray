@@ -89,6 +89,13 @@ function handleWSEvent(event: ServerWSEvent): void {
 
     case 'tool:activity':
       addToolEvent(event.data);
+      // Si llega actividad de una tool, cualquier permiso pendiente de esa sesion ya fue resuelto
+      if (event.data.eventType === 'PostToolUse' || event.data.eventType === 'PreToolUse') {
+        const sessionPerm = getBySession(event.data.sessionId);
+        if (sessionPerm) {
+          removePending(sessionPerm.id);
+        }
+      }
       break;
 
     case 'permission:pending':
