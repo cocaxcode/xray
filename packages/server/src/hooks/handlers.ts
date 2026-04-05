@@ -245,6 +245,9 @@ export class HookHandlers {
   }
 
   handleStop(payload: StopPayload): void {
+    // Limpiar permisos stale (ej: usuario rechazo en terminal → Stop llega)
+    this.cleanupStalePermissions(payload.session_id);
+
     // Update model if it was unknown (session auto-created mid-session)
     if (payload.model) {
       const current = this.manager.getSession(payload.session_id);

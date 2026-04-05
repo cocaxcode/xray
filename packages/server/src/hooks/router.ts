@@ -74,7 +74,7 @@ export function registerHookRoutes(
   });
 
   // PermissionRequest — SINCRONO: mantiene conexion abierta para aprobar desde xray
-  // Si Claude Code cierra la conexion (terminal approve/reject), se limpia inmediatamente
+  // Limpieza de permisos stale via eventos (PreToolUse/Stop) — no via on('close')
   fastify.post('/api/hook/permission-request', async (request) => {
     const payload = request.body as Record<string, unknown>;
     const sessionId = payload.session_id as string;
@@ -83,15 +83,6 @@ export function registerHookRoutes(
       ensureSession(payload);
       manager.transitionTo(sessionId, 'waiting_permission');
 
-      // Registrar cleanup ANTES del await — cuando Claude Code cierra la conexion
-      // (usuario aprueba/rechaza en terminal), limpiamos inmediatamente
-      request.raw.on('close', () => {
-        fastify.log.info({ sessionId }, 'PermissionRequest connection closed — cleaning up');
-        permissionHandler.cleanupBySession(sessionId);
-        try { manager.transitionTo(sessionId, 'active'); } catch {}
-      });
-
-      // Esperar decision del usuario desde el dashboard (o timeout)
       const response = await permissionHandler.handlePermissionRequest(
         sessionId,
         payload.tool_name as string,
