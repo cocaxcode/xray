@@ -33,15 +33,23 @@ export async function createServer(options: CliOptions) {
       root: dashboardPath,
       prefix: '/',
       decorateReply: true,
-      maxAge: '30d',
-      immutable: true,
     });
 
-    // SPA catch-all: serve index.html for non-API, non-WS routes
+    // Serve index.html with NO cache (so new builds load immediately)
+    fastify.get('/', async (_request, reply) => {
+      return reply.sendFile('index.html', dashboardPath, {
+        maxAge: 0,
+        immutable: false,
+        cacheControl: false,
+      });
+    });
+
+    // SPA catch-all: also no cache for index.html
     fastify.setNotFoundHandler(async (_request, reply) => {
       return reply.sendFile('index.html', dashboardPath, {
         maxAge: 0,
         immutable: false,
+        cacheControl: false,
       });
     });
   }
