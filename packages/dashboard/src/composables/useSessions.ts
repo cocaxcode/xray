@@ -68,7 +68,7 @@ function handleWSEvent(event: ServerWSEvent): void {
 
   switch (event.type) {
     case 'session:start':
-      sessions.set(event.data.id, event.data);
+      sessions.set(event.data.id, reactive(event.data));
       break;
 
     case 'session:update': {
