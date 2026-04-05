@@ -9,7 +9,25 @@ export function registerHookRoutes(
   permissionHandler: PermissionHandler,
   manager: SessionManager,
 ): void {
-  // Todas las rutas de hooks reciben POST
+  /**
+   * Ensure session exists before processing any event.
+   * If hooks were installed mid-session, the SessionStart was missed.
+   */
+  function ensureSession(payload: Record<string, unknown>): void {
+    const sessionId = payload.session_id as string;
+    if (!sessionId) return;
+    const session = manager.getSession(sessionId);
+    if (!session) {
+      // Auto-create session from available payload data
+      manager.handleSessionStart({
+        session_id: sessionId,
+        cwd: (payload.cwd as string) || 'unknown',
+        model: (payload.model as string) || 'unknown',
+        source: 'startup',
+        transcript_path: (payload.transcript_path as string) || '',
+      });
+    }
+  }
 
   fastify.post('/api/hook/session-start', async (request) => {
     const payload = request.body as Record<string, unknown>;
@@ -19,24 +37,28 @@ export function registerHookRoutes(
 
   fastify.post('/api/hook/session-end', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handleSessionEnd(payload.session_id as string);
     return {};
   });
 
   fastify.post('/api/hook/pre-tool-use', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handlePreToolUse(payload as never);
     return {};
   });
 
   fastify.post('/api/hook/post-tool-use', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handlePostToolUse(payload as never);
     return {};
   });
 
   fastify.post('/api/hook/post-tool-use-failure', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handlePostToolUseFailure(payload as never);
     return {};
   });
@@ -44,43 +66,44 @@ export function registerHookRoutes(
   // PermissionRequest — SINCRONO: mantiene la conexion abierta
   fastify.post('/api/hook/permission-request', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
 
-    // Transition session to waiting_permission
     manager.transitionTo(payload.session_id as string, 'waiting_permission');
 
-    // Await user decision (up to 9 min)
     const response = await permissionHandler.handlePermissionRequest(
       payload.session_id as string,
       payload.tool_name as string,
       (payload.tool_input as Record<string, unknown>) ?? {},
     );
 
-    // Restore session to active
     manager.transitionTo(payload.session_id as string, 'active');
-
     return response;
   });
 
   fastify.post('/api/hook/notification', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handleNotification(payload as never);
     return {};
   });
 
   fastify.post('/api/hook/subagent-start', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handleSubagentStart(payload as never);
     return {};
   });
 
   fastify.post('/api/hook/subagent-stop', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handleSubagentStop(payload as never);
     return {};
   });
 
   fastify.post('/api/hook/stop', async (request) => {
     const payload = request.body as Record<string, unknown>;
+    ensureSession(payload);
     handlers.handleStop(payload as never);
     return {};
   });

@@ -27,7 +27,7 @@ export async function createServer(options: CliOptions) {
   await fastify.register(fastifyWebSocket);
 
   // Static files (dashboard) — only if built
-  const dashboardPath = join(__dirname, '..', 'dashboard');
+  const dashboardPath = join(__dirname, 'dashboard');
   if (existsSync(dashboardPath)) {
     await fastify.register(fastifyStatic, {
       root: dashboardPath,
