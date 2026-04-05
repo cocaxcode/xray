@@ -64,7 +64,7 @@ const totals = computed(() => {
 // ── Event Handlers ──
 
 function handleWSEvent(event: ServerWSEvent): void {
-  const { addPending, removePending } = usePermissions();
+  const { addPending, removePending, getBySession } = usePermissions();
 
   switch (event.type) {
     case 'session:start':
@@ -200,7 +200,7 @@ async function syncPermissions(): Promise<void> {
     const activeSet = new Set(activeIds);
 
     // Remove permissions from UI that are no longer active on server
-    for (const id of pending.keys()) {
+    for (const id of pending.value.keys()) {
       if (!activeSet.has(id)) {
         removePending(id);
       }

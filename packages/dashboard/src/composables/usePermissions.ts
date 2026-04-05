@@ -1,13 +1,16 @@
-import { reactive, computed } from 'vue';
+import { ref, computed } from 'vue';
 import type { PendingPermission } from '../types';
 import { useAuth } from './useAuth';
 
-const pending = reactive(new Map<number, PendingPermission>());
+// Usar ref con Map — crear nuevo Map en cada mutacion para garantizar reactividad
+const pending = ref<Map<number, PendingPermission>>(new Map());
 
-const count = computed(() => pending.size);
+const count = computed(() => pending.value.size);
 
 function addPending(permission: PendingPermission): void {
-  pending.set(permission.id, permission);
+  const next = new Map(pending.value);
+  next.set(permission.id, permission);
+  pending.value = next;
 
   // Browser notification
   if ('Notification' in window && Notification.permission === 'granted') {
@@ -20,37 +23,34 @@ function addPending(permission: PendingPermission): void {
 }
 
 function removePending(id: number): void {
-  pending.delete(id);
+  if (!pending.value.has(id)) return;
+  const next = new Map(pending.value);
+  next.delete(id);
+  pending.value = next;
 }
 
 /**
- * Resolve permission via REST (reliable) + WebSocket broadcast handles the rest.
- * REST ensures the server gets the decision. The server broadcasts permission:resolved
- * via WebSocket, which other connected browsers also receive.
+ * Resolve permission via REST. Remove from UI immediately.
  */
 async function resolve(id: number, decision: 'approve' | 'deny'): Promise<void> {
   const { getAuthHeaders } = useAuth();
 
-  // Optimistic UI: remove immediately
+  // Remove from UI immediately
   removePending(id);
 
   try {
-    const res = await fetch(`/api/permissions/${id}/resolve`, {
+    await fetch(`/api/permissions/${id}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ decision }),
     });
-
-    if (!res.ok) {
-      console.warn(`Permission resolve failed: ${res.status}`);
-    }
   } catch (e) {
     console.warn('Permission resolve error:', e);
   }
 }
 
 function getBySession(sessionId: string): PendingPermission | undefined {
-  for (const perm of pending.values()) {
+  for (const perm of pending.value.values()) {
     if (perm.sessionId === sessionId) return perm;
   }
   return undefined;
