@@ -27,6 +27,9 @@ export function registerAuthMiddleware(
     // Dashboard HTML siempre pasa (la auth se hace en el frontend via PIN/QR)
     if (url === '/' || url.startsWith('/assets/')) return;
 
+    // WebSocket pasa (tiene su propia validacion de token en websocket.ts)
+    if (url.startsWith('/ws')) return;
+
     // Static files (dashboard) y WebSocket necesitan auth
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
