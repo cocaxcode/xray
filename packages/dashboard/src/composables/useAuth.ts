@@ -76,7 +76,7 @@ function getAuthHeaders(): Record<string, string> {
 async function checkAuth(): Promise<'local' | 'authenticated' | 'needs_auth'> {
   try {
     const headers: Record<string, string> = { ...getAuthHeaders() };
-    const res = await fetch('/api/health', { headers });
+    const res = await fetch('/api/projects', { headers });
 
     if (res.ok) {
       return token.value ? 'authenticated' : 'local';
