@@ -74,34 +74,37 @@ export function registerHookRoutes(
   });
 
   // PermissionRequest — SINCRONO: mantiene conexion abierta para aprobar desde xray
-  // Si Claude Code cierra la conexion (timeout, usuario aprueba en terminal), se limpia
-  fastify.post('/api/hook/permission-request', async (request, reply) => {
+  // Si Claude Code cierra la conexion (terminal approve/reject), se limpia inmediatamente
+  fastify.post('/api/hook/permission-request', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    let permissionId: number | null = null;
+    const sessionId = payload.session_id as string;
 
     try {
       ensureSession(payload);
-      manager.transitionTo(payload.session_id as string, 'waiting_permission');
+      manager.transitionTo(sessionId, 'waiting_permission');
 
+      // Registrar cleanup ANTES del await — cuando Claude Code cierra la conexion
+      // (usuario aprueba/rechaza en terminal), limpiamos inmediatamente
+      request.raw.on('close', () => {
+        fastify.log.info({ sessionId }, 'PermissionRequest connection closed — cleaning up');
+        permissionHandler.cleanupBySession(sessionId);
+        try { manager.transitionTo(sessionId, 'active'); } catch {}
+      });
+
+      // Esperar decision del usuario desde el dashboard (o timeout)
       const response = await permissionHandler.handlePermissionRequest(
-        payload.session_id as string,
+        sessionId,
         payload.tool_name as string,
         (payload.tool_input as Record<string, unknown>) ?? {},
       );
 
-      permissionId = null; // Resolved normally
-      manager.transitionTo(payload.session_id as string, 'active');
+      manager.transitionTo(sessionId, 'active');
       return response;
     } catch (e) {
       fastify.log.error(e, 'permission-request handler error');
-      try { manager.transitionTo(payload.session_id as string, 'active'); } catch {}
+      permissionHandler.cleanupBySession(sessionId);
+      try { manager.transitionTo(sessionId, 'active'); } catch {}
       return {};
-    } finally {
-      // Cleanup: when HTTP connection closes for ANY reason, clean up pending permission
-      request.raw.on('close', () => {
-        permissionHandler.cleanupBySession(payload.session_id as string);
-        try { manager.transitionTo(payload.session_id as string, 'active'); } catch {}
-      });
     }
   });
 
