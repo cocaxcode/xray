@@ -29,6 +29,16 @@ const loadingSummary = ref(false);
 // Load history on mount
 loadHistory();
 
+// Auto-refresh when new events arrive
+watch(() => props.eventCount, async (newCount, oldCount) => {
+  if (newCount > (oldCount || 0) && activeTab.value === 'history') {
+    // Reload first page to get latest events
+    events.value = [];
+    page.value = 1;
+    await loadHistory();
+  }
+});
+
 async function loadHistory(): Promise<void> {
   loadingHistory.value = true;
   const result = await fetchSessionEvents(props.sessionId, page.value);
