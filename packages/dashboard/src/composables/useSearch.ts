@@ -5,7 +5,7 @@ import type { ProjectGroup, SessionStatus } from '../types';
 
 const searchQuery = ref('');
 const selectedProject = ref<string | null>(null); // null = todos
-const statusFilter = ref<Set<SessionStatus>>(new Set(['active', 'idle', 'waiting_permission', 'waiting_input', 'error']));
+const statusFilter = ref<Set<SessionStatus>>(new Set(['active', 'idle', 'waiting_permission', 'waiting_input', 'error', 'stopped']));
 
 // Cuando se activa el filtro "stopped", recargar sesiones stopped del servidor
 watch(statusFilter, (newFilter) => {
