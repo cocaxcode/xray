@@ -21,6 +21,12 @@ export function registerAuthMiddleware(
     // PIN exchange siempre pasa (el usuario aun no tiene token)
     if (url === '/api/auth/pin') return;
 
+    // Health check siempre pasa (para monitoring y verificacion de tunel)
+    if (url === '/api/health') return;
+
+    // Dashboard HTML siempre pasa (la auth se hace en el frontend via PIN/QR)
+    if (url === '/' || url.startsWith('/assets/')) return;
+
     // Static files (dashboard) y WebSocket necesitan auth
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
