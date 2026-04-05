@@ -97,21 +97,30 @@ watch(activeTab, async (tab) => {
             <div
               v-for="event in events"
               :key="event.id"
-              class="flex items-center gap-2 text-[11px] font-mono py-1 px-2 rounded cursor-pointer transition-colors"
-              :class="selectedEvent?.id === event.id
-                ? 'bg-cyan/10 text-cyan'
-                : 'hover:bg-surface-hover'"
-              @click="selectEvent(event)"
+              class="flex items-center gap-2 text-[11px] font-mono py-1 px-2 rounded transition-colors"
+              :class="[
+                event.toolName
+                  ? (selectedEvent?.id === event.id ? 'bg-cyan/10 text-cyan cursor-pointer' : 'hover:bg-surface-hover cursor-pointer')
+                  : 'opacity-60',
+              ]"
+              @click="event.toolName ? selectEvent(event) : null"
             >
               <span class="text-muted whitespace-nowrap">{{ formatTimestamp(event.createdAt) }}</span>
-              <span :class="event.success ? 'text-green' : 'text-red'">
-                {{ getToolIcon(event.toolName, event.eventType) }}
-              </span>
-              <span v-if="event.agentType" class="text-purple text-[10px]">[{{ event.agentType }}]</span>
-              <span class="text-text truncate flex-1">
-                {{ formatToolDisplay(event.toolName, event.toolInput) }}
-              </span>
-              <span v-if="event.durationMs" class="text-muted whitespace-nowrap">{{ event.durationMs }}ms</span>
+              <!-- Lifecycle events (no tool) -->
+              <template v-if="!event.toolName">
+                <span class="text-muted">{{ event.eventType }}</span>
+              </template>
+              <!-- Tool events -->
+              <template v-else>
+                <span :class="event.success ? 'text-green' : 'text-red'">
+                  {{ getToolIcon(event.toolName, event.eventType) }}
+                </span>
+                <span v-if="event.agentType" class="text-purple text-[10px]">[{{ event.agentType }}]</span>
+                <span class="text-text truncate flex-1">
+                  {{ formatToolDisplay(event.toolName, event.toolInput) }}
+                </span>
+                <span v-if="event.durationMs" class="text-muted whitespace-nowrap">{{ event.durationMs }}ms</span>
+              </template>
             </div>
           </div>
 
