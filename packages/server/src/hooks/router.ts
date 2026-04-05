@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { HookHandlers } from './handlers.js';
 import type { PermissionHandler } from './permission.js';
 import type { SessionManager } from '../sessions/manager.js';
+import { readModelFromTranscript } from '../sessions/transcript-reader.js';
 
 export function registerHookRoutes(
   fastify: FastifyInstance,
@@ -19,17 +20,23 @@ export function registerHookRoutes(
     if (!sessionId) return;
     const session = manager.getSession(sessionId);
     if (!session) {
-      // Auto-create session from available payload data
+      // Auto-create session — try to get model from transcript if not in payload
+      let model = (payload.model as string) || null;
+      if (!model && payload.transcript_path) {
+        model = readModelFromTranscript(payload.transcript_path as string);
+      }
       manager.handleSessionStart({
         session_id: sessionId,
         cwd: (payload.cwd as string) || 'unknown',
-        model: (payload.model as string) || 'unknown',
+        model: model || 'unknown',
         source: 'startup',
         transcript_path: (payload.transcript_path as string) || '',
       });
-    } else if (session.model === 'unknown' && payload.model) {
-      // Fix unknown model from any event that carries it
-      manager.updateModel(sessionId, payload.model as string);
+    } else if (session.model === 'unknown') {
+      // Fix unknown model from payload or transcript
+      const model = (payload.model as string)
+        || (payload.transcript_path ? readModelFromTranscript(payload.transcript_path as string) : null);
+      if (model) manager.updateModel(sessionId, model);
     }
   }
 

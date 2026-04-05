@@ -1,9 +1,46 @@
-import { openSync, readSync, fstatSync, closeSync } from 'node:fs';
+import { openSync, readSync, fstatSync, closeSync, readFileSync } from 'node:fs';
 
 export interface TokenResult {
   inputTokens: number;
   outputTokens: number;
   newOffset: number;
+}
+
+/**
+ * Lee las primeras lineas del transcript para extraer el modelo.
+ * Busca campos "model" en las entradas del JSONL.
+ */
+export function readModelFromTranscript(transcriptPath: string): string | null {
+  try {
+    // Leer solo los primeros 8KB (suficiente para encontrar el modelo)
+    const fd = openSync(transcriptPath, 'r');
+    const buffer = Buffer.alloc(8192);
+    const bytesRead = readSync(fd, buffer, 0, 8192, 0);
+    closeSync(fd);
+
+    const content = buffer.toString('utf-8', 0, bytesRead);
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const entry = JSON.parse(trimmed);
+        // El modelo puede estar en varios campos segun el tipo de entrada
+        if (entry.model && typeof entry.model === 'string') {
+          return entry.model;
+        }
+        if (entry.message?.model && typeof entry.message.model === 'string') {
+          return entry.message.model;
+        }
+      } catch {
+        // Linea no JSON
+      }
+    }
+  } catch {
+    // Archivo no accesible
+  }
+  return null;
 }
 
 /**
