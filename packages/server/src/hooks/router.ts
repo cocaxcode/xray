@@ -44,22 +44,19 @@ export function registerHookRoutes(
 
   fastify.post('/api/hook/pre-tool-use', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handlePreToolUse(payload as never);
+    try { ensureSession(payload); handlers.handlePreToolUse(payload as never); } catch (e) { fastify.log.error(e, 'pre-tool-use handler error'); }
     return {};
   });
 
   fastify.post('/api/hook/post-tool-use', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handlePostToolUse(payload as never);
+    try { ensureSession(payload); handlers.handlePostToolUse(payload as never); } catch (e) { fastify.log.error(e, 'post-tool-use handler error'); }
     return {};
   });
 
   fastify.post('/api/hook/post-tool-use-failure', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handlePostToolUseFailure(payload as never);
+    try { ensureSession(payload); handlers.handlePostToolUseFailure(payload as never); } catch (e) { fastify.log.error(e, 'post-tool-use-failure handler error'); }
     return {};
   });
 
@@ -82,29 +79,25 @@ export function registerHookRoutes(
 
   fastify.post('/api/hook/notification', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handleNotification(payload as never);
+    try { ensureSession(payload); handlers.handleNotification(payload as never); } catch (e) { fastify.log.error(e, 'notification handler error'); }
     return {};
   });
 
   fastify.post('/api/hook/subagent-start', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handleSubagentStart(payload as never);
+    try { ensureSession(payload); handlers.handleSubagentStart(payload as never); } catch (e) { fastify.log.error(e, 'subagent-start handler error'); }
     return {};
   });
 
   fastify.post('/api/hook/subagent-stop', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handleSubagentStop(payload as never);
+    try { ensureSession(payload); handlers.handleSubagentStop(payload as never); } catch (e) { fastify.log.error(e, 'subagent-stop handler error'); }
     return {};
   });
 
   fastify.post('/api/hook/stop', async (request) => {
     const payload = request.body as Record<string, unknown>;
-    ensureSession(payload);
-    handlers.handleStop(payload as never);
+    try { ensureSession(payload); handlers.handleStop(payload as never); } catch (e) { fastify.log.error(e, 'stop handler error'); }
     return {};
   });
 }

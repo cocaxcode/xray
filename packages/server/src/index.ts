@@ -43,8 +43,10 @@ export async function startServer(options: CliOptions): Promise<void> {
 
   // Register WebSocket
   registerWebSocket(fastify, authState, (event: ClientWSEvent) => {
+    fastify.log.info({ wsEvent: event }, 'WebSocket client message received');
     if (event.type === 'permission:resolve') {
-      permissionHandler.resolvePermission(event.data.id, event.data.decision);
+      const resolved = permissionHandler.resolvePermission(event.data.id, event.data.decision);
+      fastify.log.info({ permissionId: event.data.id, decision: event.data.decision, resolved }, 'Permission resolved');
     }
   });
 
