@@ -1,0 +1,90 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import type { Session } from '../types';
+import { useSessions } from '../composables/useSessions';
+import { usePermissions } from '../composables/usePermissions';
+import { truncate } from '../utils/format';
+import SessionCardHeader from './SessionCardHeader.vue';
+import SessionCardMeta from './SessionCardMeta.vue';
+import SessionCardActivity from './SessionCardActivity.vue';
+import SessionCardPermission from './SessionCardPermission.vue';
+import SessionHistory from './SessionHistory.vue';
+import SessionSummary from './SessionSummary.vue';
+
+const props = defineProps<{ session: Session }>();
+
+const { getSessionActivity } = useSessions();
+const { getBySession } = usePermissions();
+
+const activity = computed(() => getSessionActivity(props.session.id));
+const pendingPermission = computed(() => getBySession(props.session.id));
+
+const borderClass = computed(() => {
+  switch (props.session.status) {
+    case 'active': return 'border-cyan/60 animate-pulse-border';
+    case 'idle': return 'border-border';
+    case 'waiting_permission': return 'border-amber/60 animate-blink-border';
+    case 'waiting_input': return 'border-purple/60';
+    case 'error': return 'border-red/60';
+    case 'stopped': return 'border-border/30 opacity-50';
+    default: return 'border-border';
+  }
+});
+</script>
+
+<template>
+  <div
+    class="rounded-xl border-2 bg-surface p-4 space-y-3 transition-all duration-300"
+    :class="borderClass"
+  >
+    <!-- ID -->
+    <div class="text-[10px] font-mono text-muted">
+      {{ props.session.id.slice(0, 12) }}
+    </div>
+
+    <!-- Header: model + context + status -->
+    <SessionCardHeader :session="props.session" />
+
+    <!-- Meta: MCPs + Skills + Agents -->
+    <SessionCardMeta
+      v-if="props.session.mcps.length > 0 || props.session.skills.length > 0 || props.session.agents.length > 0"
+      :session="props.session"
+    />
+
+    <!-- Permission (if pending) -->
+    <SessionCardPermission
+      v-if="pendingPermission"
+      :permission="pendingPermission"
+    />
+
+    <!-- Activity (tool calls) -->
+    <SessionCardActivity
+      v-if="activity.size > 0"
+      :activity="activity"
+      :agents="props.session.agents"
+    />
+
+    <!-- Last message (when idle) -->
+    <div
+      v-if="props.session.status === 'idle' && props.session.lastMessage"
+      class="text-xs text-muted italic"
+    >
+      "{{ truncate(props.session.lastMessage, 100) }}"
+    </div>
+
+    <!-- Waiting input message -->
+    <div
+      v-if="props.session.status === 'waiting_input' && props.session.lastMessage"
+      class="text-xs text-purple"
+    >
+      {{ truncate(props.session.lastMessage, 100) }}
+      <div class="text-muted mt-0.5">Cambia a esta terminal para responder</div>
+    </div>
+
+    <!-- History + Summary -->
+    <div class="flex gap-4 pt-1 border-t border-border/50">
+      <SessionHistory :session-id="props.session.id" :event-count="props.session.eventCount" />
+      <SessionSummary :session-id="props.session.id" />
+    </div>
+  </div>
+</template>

@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cyan: #00F5D4;
+  --color-purple: #8250FF;
+  --color-bg: #0A0A0E;
+  --color-surface: #141419;
+  --color-surface-hover: #1C1C23;
+  --color-text: #E4E4E7;
+  --color-muted: #71717A;
+  --color-border: #27272A;
+  --color-amber: #F59E0B;
+  --color-red: #EF4444;
+  --color-green: #22C55E;
+
+  --font-heading: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Light theme overrides */
+html:not(.dark) {
+  --color-bg: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F4F4F5;
+  --color-text: #18181B;
+  --color-muted: #71717A;
+  --color-border: #E4E4E7;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+}
+
+/* Scrollbar dark */
+.dark ::-webkit-scrollbar { width: 6px; }
+.dark ::-webkit-scrollbar-track { background: var(--color-bg); }
+.dark ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* Animations */
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--color-cyan); }
+  50% { border-color: transparent; }
+}
+
+@keyframes blink-border {
+  0%, 100% { border-color: var(--color-amber); }
+  50% { border-color: var(--color-amber) / 30%; }
+}
+
+.animate-pulse-border { animation: pulse-border 2s ease-in-out infinite; }
+.animate-blink-border { animation: blink-border 1.5s ease-in-out infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }

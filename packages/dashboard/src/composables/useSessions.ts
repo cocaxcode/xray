@@ -1,0 +1,232 @@
+import { reactive, computed } from 'vue';
+import type {
+  Session, ProjectGroup, ToolEvent, ServerWSEvent, Agent,
+  ProjectsResponse, SessionEventsResponse, SessionSummary,
+} from '../types';
+import { useAuth } from './useAuth';
+import { usePermissions } from './usePermissions';
+
+// ── State ──
+
+const sessions = reactive(new Map<string, Session>());
+const recentActivity = reactive(new Map<string, Map<string, ToolEvent[]>>());
+// recentActivity: sessionId → agentId → last 10 events
+
+const MAX_RECENT = 10;
+
+// ── Computed ──
+
+const projectGroups = computed<ProjectGroup[]>(() => {
+  const groups = new Map<string, ProjectGroup>();
+  const { getBySession } = usePermissions();
+
+  for (const session of sessions.values()) {
+    const key = session.projectPath;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        name: session.projectName,
+        path: session.projectPath,
+        sessions: [],
+        pendingPermissions: 0,
+      });
+    }
+    const group = groups.get(key)!;
+    group.sessions.push(session);
+    if (getBySession(session.id)) {
+      group.pendingPermissions++;
+    }
+  }
+
+  return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const totals = computed(() => {
+  let activeSessions = 0;
+  let idleSessions = 0;
+
+  for (const session of sessions.values()) {
+    const s = session.status;
+    if (s === 'active' || s === 'waiting_permission' || s === 'waiting_input' || s === 'error') {
+      activeSessions++;
+    } else if (s === 'idle') {
+      idleSessions++;
+    }
+  }
+
+  return {
+    projects: projectGroups.value.length,
+    activeSessions,
+    idleSessions,
+    pendingPermissions: usePermissions().count.value,
+  };
+});
+
+// ── Event Handlers ──
+
+function handleWSEvent(event: ServerWSEvent): void {
+  const { addPending, removePending } = usePermissions();
+
+  switch (event.type) {
+    case 'session:start':
+      sessions.set(event.data.id, event.data);
+      break;
+
+    case 'session:update': {
+      const existing = sessions.get(event.data.id);
+      if (existing) {
+        Object.assign(existing, event.data);
+      }
+      break;
+    }
+
+    case 'session:end': {
+      const existing = sessions.get(event.data.id);
+      if (existing) {
+        existing.status = 'stopped';
+      }
+      break;
+    }
+
+    case 'tool:activity':
+      addToolEvent(event.data);
+      break;
+
+    case 'permission:pending':
+      addPending(event.data);
+      break;
+
+    case 'permission:resolved':
+      removePending(event.data.id);
+      break;
+
+    case 'agent:start': {
+      const session = sessions.get(event.data.sessionId);
+      if (session) {
+        session.agents = [...session.agents, event.data.agent];
+      }
+      break;
+    }
+
+    case 'agent:stop': {
+      const session = sessions.get(event.data.sessionId);
+      if (session) {
+        const agent = session.agents.find(a => a.id === event.data.agentId);
+        if (agent) agent.status = 'completed';
+      }
+      break;
+    }
+
+    case 'notification': {
+      const session = sessions.get(event.data.sessionId);
+      if (session && event.data.type === 'idle_prompt') {
+        session.status = 'waiting_input';
+        session.lastMessage = event.data.message;
+      }
+      break;
+    }
+  }
+}
+
+function addToolEvent(event: ToolEvent): void {
+  const sessionId = event.sessionId;
+  const agentId = event.agentId || 'main';
+
+  if (!recentActivity.has(sessionId)) {
+    recentActivity.set(sessionId, new Map());
+  }
+
+  const sessionAgents = recentActivity.get(sessionId)!;
+  if (!sessionAgents.has(agentId)) {
+    sessionAgents.set(agentId, []);
+  }
+
+  const agentEvents = sessionAgents.get(agentId)!;
+
+  // For PostToolUse/PostToolUseFailure, update the matching PreToolUse entry
+  if (event.eventType === 'PostToolUse' || event.eventType === 'PostToolUseFailure') {
+    const preIdx = agentEvents.findIndex(
+      e => e.eventType === 'PreToolUse' && e.toolName === event.toolName
+    );
+    if (preIdx >= 0) {
+      agentEvents[preIdx] = event;
+      return;
+    }
+  }
+
+  // Add new event, keep last MAX_RECENT
+  agentEvents.unshift(event);
+  if (agentEvents.length > MAX_RECENT) {
+    agentEvents.pop();
+  }
+}
+
+// ── API Calls ──
+
+async function loadInitialState(): Promise<void> {
+  const { getAuthHeaders } = useAuth();
+  try {
+    const res = await fetch('/api/projects', { headers: getAuthHeaders() });
+    if (!res.ok) return;
+
+    const data: ProjectsResponse = await res.json();
+    sessions.clear();
+    for (const group of data.projects) {
+      for (const session of group.sessions) {
+        sessions.set(session.id, reactive(session));
+      }
+    }
+  } catch {
+    // Server not reachable
+  }
+}
+
+async function fetchSessionEvents(
+  sessionId: string,
+  page = 1,
+  pageSize = 50,
+): Promise<SessionEventsResponse | null> {
+  const { getAuthHeaders } = useAuth();
+  try {
+    const res = await fetch(
+      `/api/sessions/${sessionId}/events?page=${page}&pageSize=${pageSize}`,
+      { headers: getAuthHeaders() },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSessionSummary(sessionId: string): Promise<SessionSummary | null> {
+  const { getAuthHeaders } = useAuth();
+  try {
+    const res = await fetch(
+      `/api/sessions/${sessionId}/summary`,
+      { headers: getAuthHeaders() },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// ── Helpers ──
+
+function getSessionActivity(sessionId: string): Map<string, ToolEvent[]> {
+  return recentActivity.get(sessionId) || new Map();
+}
+
+export function useSessions() {
+  return {
+    sessions,
+    projectGroups,
+    totals,
+    handleWSEvent,
+    loadInitialState,
+    fetchSessionEvents,
+    fetchSessionSummary,
+    getSessionActivity,
+  };
+}

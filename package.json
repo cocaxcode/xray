@@ -5,7 +5,7 @@
   "license": "MIT",
   "author": "cocaxcode",
   "bin": {
-    "cxc-xray": "./packages/server/dist/bin/cxc-xray.js"
+    "cxc-xray": "./packages/server/bin/cxc-xray.js"
   },
   "scripts": {
     "build:dashboard": "pnpm --filter @cocaxcode/xray-dashboard build",
@@ -24,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/cocaxcode/cocaxcode-xray.git"
+    "url": "https://github.com/cocaxcode/xray.git"
   },
   "files": [
     "packages/server/dist/",
