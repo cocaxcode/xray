@@ -126,7 +126,7 @@ async function handleDismiss(e: Event): Promise<void> {
     <!-- Last message (idle) -->
     <div
       v-if="session.status === 'idle' && session.lastMessage"
-      class="text-[11px] text-muted italic"
+      class="text-[11px] text-muted italic cursor-pointer whitespace-pre-line"
       @click.stop="messageExpanded = !messageExpanded"
     >
       {{ messageExpanded ? stripMarkdown(session.lastMessage) : truncate(stripMarkdown(session.lastMessage), 80) }}
