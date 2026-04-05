@@ -105,6 +105,23 @@ export class PermissionHandler {
   }
 
   /**
+   * Limpia todos los permisos pendientes de una sesion.
+   * Se llama cuando la conexion HTTP se cierra (timeout, error, o Claude Code desconecta).
+   */
+  cleanupBySession(sessionId: string): void {
+    for (const [id, deferred] of this.pending) {
+      const perm = this.queries.getPendingPermission(id);
+      if (perm && perm.sessionId === sessionId) {
+        clearTimeout(deferred.timer);
+        this.pending.delete(id);
+        this.queries.updatePermission(id, 'expired');
+        this.broadcast({ type: 'permission:resolved', data: { id, decision: 'expired' } });
+        deferred.resolve({});
+      }
+    }
+  }
+
+  /**
    * Limpia todos los permisos pendientes (cleanup al cerrar)
    */
   cleanup(): void {

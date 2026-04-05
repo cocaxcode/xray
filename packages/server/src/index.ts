@@ -51,7 +51,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   });
 
   // Register routes
-  registerHookRoutes(fastify, handlers, permissionHandler, manager);
+  registerHookRoutes(fastify, handlers, permissionHandler, manager, broadcast);
   registerApiRoutes(fastify, queries, manager, permissionHandler, authState);
 
   // Staleness check every 5 minutes

@@ -52,7 +52,7 @@ export function generateHookConfig(port: number): Record<string, XrayHookConfig[
     { name: 'PreToolUse' },
     { name: 'PostToolUse' },
     { name: 'PostToolUseFailure' },
-    { name: 'PermissionRequest', timeout: 540 },
+    { name: 'PermissionRequest', timeout: 120 },
     { name: 'Notification' },
     { name: 'SubagentStart' },
     { name: 'SubagentStop' },

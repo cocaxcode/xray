@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { HookHandlers } from './handlers.js';
 import type { PermissionHandler } from './permission.js';
 import type { SessionManager } from '../sessions/manager.js';
+import type { ServerWSEvent } from '../types.js';
 import { readModelFromTranscript } from '../sessions/transcript-reader.js';
 
 export function registerHookRoutes(
@@ -9,6 +10,7 @@ export function registerHookRoutes(
   handlers: HookHandlers,
   permissionHandler: PermissionHandler,
   manager: SessionManager,
+  broadcast: (event: ServerWSEvent) => void,
 ): void {
   /**
    * Ensure session exists before processing any event.
@@ -71,9 +73,12 @@ export function registerHookRoutes(
     return {};
   });
 
-  // PermissionRequest — SINCRONO: mantiene la conexion abierta
-  fastify.post('/api/hook/permission-request', async (request) => {
+  // PermissionRequest — SINCRONO: mantiene conexion abierta para aprobar desde xray
+  // Si Claude Code cierra la conexion (timeout, usuario aprueba en terminal), se limpia
+  fastify.post('/api/hook/permission-request', async (request, reply) => {
     const payload = request.body as Record<string, unknown>;
+    let permissionId: number | null = null;
+
     try {
       ensureSession(payload);
       manager.transitionTo(payload.session_id as string, 'waiting_permission');
@@ -84,13 +89,19 @@ export function registerHookRoutes(
         (payload.tool_input as Record<string, unknown>) ?? {},
       );
 
+      permissionId = null; // Resolved normally
       manager.transitionTo(payload.session_id as string, 'active');
       return response;
     } catch (e) {
       fastify.log.error(e, 'permission-request handler error');
-      // Restore session state on error
       try { manager.transitionTo(payload.session_id as string, 'active'); } catch {}
       return {};
+    } finally {
+      // Cleanup: when HTTP connection closes for ANY reason, clean up pending permission
+      request.raw.on('close', () => {
+        permissionHandler.cleanupBySession(payload.session_id as string);
+        try { manager.transitionTo(payload.session_id as string, 'active'); } catch {}
+      });
     }
   });
 
