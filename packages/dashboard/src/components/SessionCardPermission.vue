@@ -4,9 +4,15 @@ import { formatToolDisplay } from '../utils/mcpParser';
 import { usePermissions } from '../composables/usePermissions';
 
 const props = defineProps<{ permission: PendingPermission }>();
+const emit = defineEmits<{ resolved: [] }>();
 const { resolve } = usePermissions();
 
 const displayText = formatToolDisplay(props.permission.toolName, props.permission.toolInput);
+
+async function handleResolve(decision: 'approve' | 'deny'): Promise<void> {
+  emit('resolved');
+  await resolve(props.permission.id, decision);
+}
 </script>
 
 <template>
@@ -24,13 +30,13 @@ const displayText = formatToolDisplay(props.permission.toolName, props.permissio
     </div>
     <div class="flex gap-2">
       <button
-        @click="resolve(props.permission.id, 'approve')"
+        @click="handleResolve('approve')"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded-md bg-green/20 text-green hover:bg-green/30 transition-colors"
       >
         Aprobar
       </button>
       <button
-        @click="resolve(props.permission.id, 'deny')"
+        @click="handleResolve('deny')"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded-md bg-red/20 text-red hover:bg-red/30 transition-colors"
       >
         Denegar

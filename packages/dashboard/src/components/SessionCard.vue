@@ -18,7 +18,14 @@ const { getSessionActivity } = useSessions();
 const { getBySession } = usePermissions();
 
 const activity = computed(() => getSessionActivity(props.session.id));
-const pendingPermission = computed(() => getBySession(props.session.id));
+const pendingPermission = computed(() => permissionHidden.value ? undefined : getBySession(props.session.id));
+const permissionHidden = ref(false);
+
+function onPermissionResolved(): void {
+  permissionHidden.value = true;
+  // Reset after a bit so new permissions can show
+  setTimeout(() => { permissionHidden.value = false; }, 2000);
+}
 
 const borderClass = computed(() => {
   switch (props.session.status) {
@@ -56,6 +63,7 @@ const borderClass = computed(() => {
     <SessionCardPermission
       v-if="pendingPermission"
       :permission="pendingPermission"
+      @resolved="onPermissionResolved"
     />
 
     <!-- Activity (tool calls) -->
