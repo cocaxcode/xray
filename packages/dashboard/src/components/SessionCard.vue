@@ -10,8 +10,7 @@ import SessionCardHeader from './SessionCardHeader.vue';
 import SessionCardMeta from './SessionCardMeta.vue';
 import SessionCardActivity from './SessionCardActivity.vue';
 import SessionCardPermission from './SessionCardPermission.vue';
-import SessionHistory from './SessionHistory.vue';
-import SessionSummary from './SessionSummary.vue';
+import SessionDetailPanel from './SessionDetailPanel.vue';
 
 const props = defineProps<{ session: Session }>();
 
@@ -97,10 +96,10 @@ const borderClass = computed(() => {
       <div class="text-muted mt-0.5">Cambia a esta terminal para responder</div>
     </div>
 
-    <!-- History + Summary -->
-    <div class="flex gap-4 pt-1 border-t border-border/50">
-      <SessionHistory :session-id="props.session.id" :event-count="props.session.eventCount" />
-      <SessionSummary :session-id="props.session.id" />
-    </div>
+    <!-- History + Summary (tabs with split detail panel) -->
+    <SessionDetailPanel
+      :session-id="props.session.id"
+      :event-count="props.session.eventCount"
+    />
   </div>
 </template>
