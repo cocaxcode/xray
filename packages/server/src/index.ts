@@ -40,6 +40,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   const manager = new SessionManager(queries);
   const permissionHandler = new PermissionHandler(queries, broadcast);
   const handlers = new HookHandlers(manager, queries, broadcast);
+  handlers.setPermissionHandler(permissionHandler);
 
   // Register WebSocket
   registerWebSocket(fastify, authState, (event: ClientWSEvent) => {

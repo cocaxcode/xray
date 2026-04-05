@@ -12,11 +12,13 @@ import type {
 } from '../types.js';
 import type { SessionManager } from '../sessions/manager.js';
 import type { Queries } from '../db/queries.js';
+import type { PermissionHandler } from './permission.js';
 
 export class HookHandlers {
   private manager: SessionManager;
   private queries: Queries;
   private broadcast: (event: ServerWSEvent) => void;
+  private permissionHandler: PermissionHandler | null = null;
 
   constructor(
     manager: SessionManager,
@@ -26,6 +28,20 @@ export class HookHandlers {
     this.manager = manager;
     this.queries = queries;
     this.broadcast = broadcast;
+  }
+
+  setPermissionHandler(handler: PermissionHandler): void {
+    this.permissionHandler = handler;
+  }
+
+  /**
+   * Cuando llega un PostToolUse/Failure, si hay un permiso pendiente para esa sesion, limpiarlo.
+   * Significa que Claude Code ya proceso la accion (aprobada en terminal o auto-aprobada).
+   */
+  private cleanupStalePermissions(sessionId: string): void {
+    if (this.permissionHandler) {
+      this.permissionHandler.cleanupBySession(sessionId);
+    }
   }
 
   handleSessionStart(payload: SessionStartPayload): void {
@@ -46,6 +62,9 @@ export class HookHandlers {
   }
 
   handlePreToolUse(payload: PreToolUsePayload): void {
+    // Si llega un PreToolUse, cualquier permiso pendiente de esta sesion ya fue resuelto
+    this.cleanupStalePermissions(payload.session_id);
+
     // Transition to active
     this.manager.transitionTo(payload.session_id, 'active');
 
