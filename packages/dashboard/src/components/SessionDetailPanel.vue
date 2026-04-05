@@ -119,7 +119,7 @@ watch(activeTab, async (tab) => {
                 <span class="text-text truncate flex-1">
                   {{ formatToolDisplay(event.toolName, event.toolInput) }}
                 </span>
-                <span v-if="event.durationMs" class="text-muted whitespace-nowrap">{{ formatDuration(event.durationMs) }}</span>
+                <!-- duration hidden: unreliable -->
               </template>
             </div>
           </div>
@@ -210,7 +210,7 @@ watch(activeTab, async (tab) => {
               {{ getToolIcon(selectedEvent.toolName, selectedEvent.eventType) }}
             </span>
             <span class="text-text font-semibold">{{ selectedEvent.toolName }}</span>
-            <span v-if="selectedEvent.durationMs" class="text-muted">{{ formatDuration(selectedEvent.durationMs) }}</span>
+            <!-- duration hidden: unreliable -->
           </div>
 
           <div class="text-muted mb-1">Input:</div>
