@@ -1,0 +1,42 @@
+{
+  "name": "@cocaxcode/xray",
+  "version": "0.1.0",
+  "description": "Real-time dashboard for all your Claude Code sessions across projects",
+  "license": "MIT",
+  "author": "cocaxcode",
+  "bin": {
+    "cxc-xray": "./packages/server/dist/bin/cxc-xray.js"
+  },
+  "scripts": {
+    "build:dashboard": "pnpm --filter @cocaxcode/xray-dashboard build",
+    "build:server": "pnpm --filter @cocaxcode/xray-server build",
+    "build": "pnpm build:dashboard && pnpm build:server",
+    "dev:dashboard": "pnpm --filter @cocaxcode/xray-dashboard dev",
+    "dev:server": "pnpm --filter @cocaxcode/xray-server dev",
+    "test": "pnpm --filter @cocaxcode/xray-server test"
+  },
+  "keywords": [
+    "claude-code",
+    "dashboard",
+    "monitoring",
+    "hooks",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cocaxcode/cocaxcode-xray.git"
+  },
+  "files": [
+    "packages/server/dist/",
+    "packages/server/bin/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  }
+}
