@@ -2,6 +2,9 @@ import { ref, computed } from 'vue';
 import { useAuth } from './useAuth';
 
 export interface XrayConfig {
+  server: {
+    domain: string;
+  };
   dashboard: {
     theme: 'dark' | 'light' | 'auto';
     compact: boolean;

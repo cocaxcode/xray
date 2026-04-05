@@ -1,6 +1,9 @@
 import type Database from 'better-sqlite3';
 
 export interface XrayConfig {
+  server: {
+    domain: string;
+  };
   dashboard: {
     theme: 'dark' | 'light' | 'auto';
     compact: boolean;
@@ -37,6 +40,7 @@ export interface XrayConfig {
 }
 
 const DEFAULTS: XrayConfig = {
+  server: { domain: '' },
   dashboard: { theme: 'dark', compact: false, language: 'es' },
   sessions: { stalenessMinutes: 30, autoCleanupHours: 24, maxEvents: 500, truncateResponseBytes: 1024 },
   permissions: { mode: 'intercept', timeoutSeconds: 120, sound: false, autoApprove: [] },
@@ -64,6 +68,9 @@ export function getConfig(db: Database.Database): XrayConfig {
 
   // Merge stored values with defaults
   return {
+    server: {
+      domain: stored['server.domain'] || DEFAULTS.server.domain,
+    },
     dashboard: {
       theme: (stored['dashboard.theme'] as XrayConfig['dashboard']['theme']) || DEFAULTS.dashboard.theme,
       compact: stored['dashboard.compact'] === 'true',

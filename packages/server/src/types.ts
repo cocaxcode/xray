@@ -247,6 +247,7 @@ export interface CliOptions {
   expose: boolean;
   authToken?: string;
   noOpen: boolean;
+  domain?: string;
 }
 
 // ── Hooks Config (for settings.json) ──

@@ -1,6 +1,11 @@
 import { getDb } from './db/connection.js';
 import { initSchema, purgeOldEvents, purgeOldSessions } from './db/schema.js';
-import { initConfigTable } from './db/config.js';
+import { initConfigTable, getConfig as getFullConfig } from './db/config.js';
+
+function getConfigDomain(db: import('better-sqlite3').Database): string | null {
+  const config = getFullConfig(db);
+  return config.server.domain || null;
+}
 import { registerConfigRoutes } from './api/config-routes.js';
 import { Queries } from './db/queries.js';
 import { SessionManager } from './sessions/manager.js';
@@ -79,8 +84,10 @@ export async function startServer(options: CliOptions): Promise<void> {
 
   // Display auth info (expose mode)
   if (authState && authState.pin) {
-    const protocol = 'http';
-    const url = `${protocol}://localhost:${options.port}`;
+    // Use custom domain for QR if provided, or fallback to config, or localhost
+    const url = options.domain
+      || getConfigDomain(db)
+      || `http://localhost:${options.port}`;
     displayAuthInfo(url, authState.pin, authState.token);
   }
 

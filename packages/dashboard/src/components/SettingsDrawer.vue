@@ -45,6 +45,23 @@ async function updateSetting(key: string, value: unknown): Promise<void> {
       </div>
 
       <div v-if="config" class="p-4 space-y-6">
+        <!-- Server -->
+        <section>
+          <h3 class="text-xs font-mono text-muted uppercase tracking-wider mb-3">Servidor</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-text block mb-1">Dominio publico (para QR)</label>
+              <input
+                type="text"
+                :value="config.server.domain"
+                @change="updateSetting('server.domain', ($event.target as HTMLInputElement).value)"
+                placeholder="https://xray.tudominio.dev"
+                class="w-full h-8 px-2 text-xs font-mono bg-bg border border-border rounded-md text-text placeholder:text-muted focus:border-cyan focus:outline-none"
+              />
+            </div>
+          </div>
+        </section>
+
         <!-- Dashboard -->
         <section>
           <h3 class="text-xs font-mono text-muted uppercase tracking-wider mb-3">Dashboard</h3>

@@ -40,6 +40,7 @@ export function createCli(): Command {
   program
     .option('-p, --port <number>', 'Puerto del servidor', '3333')
     .option('--expose', 'Escuchar en 0.0.0.0 (acceso remoto)')
+    .option('--domain <url>', 'Dominio publico para el QR (ej: https://xray.cocaxcode.dev)')
     .option('--auth-token <token>', 'Token de autenticacion custom (modo expose)')
     .option('--no-open', 'No abrir el browser automaticamente')
     .action(async (options) => {
@@ -79,6 +80,7 @@ export function createCli(): Command {
         expose: !!options.expose,
         authToken: options.authToken,
         noOpen: !options.open,
+        domain: options.domain,
       });
 
       // Open browser (unless --no-open or --expose)
