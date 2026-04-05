@@ -1,5 +1,5 @@
 import { getDb } from './db/connection.js';
-import { initSchema, purgeOldEvents } from './db/schema.js';
+import { initSchema, purgeOldEvents, purgeOldSessions } from './db/schema.js';
 import { Queries } from './db/queries.js';
 import { SessionManager } from './sessions/manager.js';
 import { HookHandlers } from './hooks/handlers.js';
@@ -18,6 +18,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   const db = getDb();
   initSchema(db);
   purgeOldEvents(db);
+  purgeOldSessions(db);
 
   const queries = new Queries(db);
   const fastify = await createServer(options);

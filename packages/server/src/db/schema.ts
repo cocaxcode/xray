@@ -84,3 +84,21 @@ export function purgeOldEvents(db: Database.Database, daysOld = 7): number {
   ).run(`-${daysOld} days`);
   return result.changes;
 }
+
+export function purgeOldSessions(db: Database.Database, hoursOld = 24): number {
+  // Borrar eventos de sesiones que van a ser purgadas
+  db.prepare(
+    "DELETE FROM events WHERE session_id IN (SELECT id FROM sessions WHERE status = 'stopped' AND last_event_at < datetime('now', ?))"
+  ).run(`-${hoursOld} hours`);
+
+  // Borrar permisos de esas sesiones
+  db.prepare(
+    "DELETE FROM pending_permissions WHERE session_id IN (SELECT id FROM sessions WHERE status = 'stopped' AND last_event_at < datetime('now', ?))"
+  ).run(`-${hoursOld} hours`);
+
+  // Borrar las sesiones stopped
+  const result = db.prepare(
+    "DELETE FROM sessions WHERE status = 'stopped' AND last_event_at < datetime('now', ?)"
+  ).run(`-${hoursOld} hours`);
+  return result.changes;
+}
