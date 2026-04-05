@@ -13,6 +13,7 @@
     "build": "pnpm build:dashboard && pnpm build:server",
     "dev:dashboard": "pnpm --filter @cocaxcode/xray-dashboard dev",
     "dev:server": "pnpm --filter @cocaxcode/xray-server dev",
+    "start": "node packages/server/bin/cxc-xray.js",
     "test": "pnpm --filter @cocaxcode/xray-server test"
   },
   "keywords": [
