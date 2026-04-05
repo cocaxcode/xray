@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue';
+import { ref, computed } from 'vue';
 import type {
   Session, ProjectGroup, ToolEvent, ServerWSEvent, Agent,
   ProjectsResponse, SessionEventsResponse, SessionSummary,
@@ -7,9 +7,9 @@ import { useAuth } from './useAuth';
 import { usePermissions } from './usePermissions';
 
 // ── State ──
-
-const sessions = reactive(new Map<string, Session>());
-const recentActivity = reactive(new Map<string, Map<string, ToolEvent[]>>());
+// Usar ref(Map) — crear nuevo Map en mutaciones para garantizar reactividad de computed
+const sessions = ref<Map<string, Session>>(new Map());
+const recentActivity = ref<Map<string, Map<string, ToolEvent[]>>>(new Map());
 // recentActivity: sessionId → agentId → last 10 events
 
 const MAX_RECENT = 10;
@@ -20,7 +20,7 @@ const projectGroups = computed<ProjectGroup[]>(() => {
   const groups = new Map<string, ProjectGroup>();
   const { getBySession } = usePermissions();
 
-  for (const session of sessions.values()) {
+  for (const session of sessions.value.values()) {
     const key = session.projectPath;
     if (!groups.has(key)) {
       groups.set(key, {
@@ -44,7 +44,7 @@ const totals = computed(() => {
   let activeSessions = 0;
   let idleSessions = 0;
 
-  for (const session of sessions.values()) {
+  for (const session of sessions.value.values()) {
     const s = session.status;
     if (s === 'active' || s === 'waiting_permission' || s === 'waiting_input' || s === 'error') {
       activeSessions++;
@@ -67,22 +67,28 @@ function handleWSEvent(event: ServerWSEvent): void {
   const { addPending, removePending, getBySession } = usePermissions();
 
   switch (event.type) {
-    case 'session:start':
-      sessions.set(event.data.id, reactive(event.data));
+    case 'session:start': {
+      const next = new Map(sessions.value);
+      next.set(event.data.id, event.data);
+      sessions.value = next;
       break;
+    }
 
     case 'session:update': {
-      const existing = sessions.get(event.data.id);
+      const existing = sessions.value.get(event.data.id);
       if (existing) {
         Object.assign(existing, event.data);
+        // Trigger reactivity
+        sessions.value = new Map(sessions.value);
       }
       break;
     }
 
     case 'session:end': {
-      const existing = sessions.get(event.data.id);
+      const existing = sessions.value.get(event.data.id);
       if (existing) {
         existing.status = 'stopped';
+        sessions.value = new Map(sessions.value);
       }
       break;
     }
@@ -107,7 +113,7 @@ function handleWSEvent(event: ServerWSEvent): void {
       break;
 
     case 'agent:start': {
-      const session = sessions.get(event.data.sessionId);
+      const session = sessions.value.get(event.data.sessionId);
       if (session) {
         session.agents = [...session.agents, event.data.agent];
       }
@@ -115,7 +121,7 @@ function handleWSEvent(event: ServerWSEvent): void {
     }
 
     case 'agent:stop': {
-      const session = sessions.get(event.data.sessionId);
+      const session = sessions.value.get(event.data.sessionId);
       if (session) {
         const agent = session.agents.find(a => a.id === event.data.agentId);
         if (agent) agent.status = 'completed';
@@ -124,7 +130,7 @@ function handleWSEvent(event: ServerWSEvent): void {
     }
 
     case 'notification': {
-      const session = sessions.get(event.data.sessionId);
+      const session = sessions.value.get(event.data.sessionId);
       if (session && event.data.type === 'idle_prompt') {
         session.status = 'waiting_input';
         session.lastMessage = event.data.message;
@@ -138,11 +144,11 @@ function addToolEvent(event: ToolEvent): void {
   const sessionId = event.sessionId;
   const agentId = event.agentId || 'main';
 
-  if (!recentActivity.has(sessionId)) {
-    recentActivity.set(sessionId, new Map());
+  if (!recentActivity.value.has(sessionId)) {
+    recentActivity.value.set(sessionId, new Map());
   }
 
-  const sessionAgents = recentActivity.get(sessionId)!;
+  const sessionAgents = recentActivity.value.get(sessionId)!;
   if (!sessionAgents.has(agentId)) {
     sessionAgents.set(agentId, []);
   }
@@ -176,12 +182,13 @@ async function loadInitialState(): Promise<void> {
     if (!res.ok) return;
 
     const data: ProjectsResponse = await res.json();
-    sessions.clear();
+    const next = new Map<string, Session>();
     for (const group of data.projects) {
       for (const session of group.sessions) {
-        sessions.set(session.id, reactive(session));
+        next.set(session.id, session);
       }
     }
+    sessions.value = next;
 
     // Sync active permissions — remove stale ones
     await syncPermissions();
@@ -245,7 +252,7 @@ async function fetchSessionSummary(sessionId: string): Promise<SessionSummary | 
 // ── Helpers ──
 
 function getSessionActivity(sessionId: string): Map<string, ToolEvent[]> {
-  return recentActivity.get(sessionId) || new Map();
+  return recentActivity.value.get(sessionId) || new Map();
 }
 
 export function useSessions() {
