@@ -4,6 +4,8 @@ import type { Session } from '../types';
 import { useSessions } from '../composables/useSessions';
 import { usePermissions } from '../composables/usePermissions';
 import { useAuth } from '../composables/useAuth';
+
+const { getSessionActivity, removeSession } = useSessions();
 import { truncate, stripMarkdown, formatModel, getModelColor, formatTokens, timeAgo } from '../utils/format';
 import SessionCardMeta from './SessionCardMeta.vue';
 import SessionCardActivity from './SessionCardActivity.vue';
@@ -23,7 +25,6 @@ const emit = defineEmits<{
 
 const messageExpanded = ref(false);
 
-const { getSessionActivity } = useSessions();
 const { getBySession } = usePermissions();
 
 const activity = computed(() => getSessionActivity(props.session.id));
@@ -60,6 +61,9 @@ async function handleDismiss(e: Event): Promise<void> {
       });
     }
   } catch { /* ignore */ }
+  if (props.session.status === 'stopped') {
+    removeSession(props.session.id);
+  }
   emit('dismiss', props.session.id);
 }
 </script>

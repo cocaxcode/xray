@@ -50,7 +50,7 @@ onMounted(async () => {
 function init(): void {
   connect(token.value);
   onMessage(handleWSEvent);
-  loadInitialState(true);
+  loadInitialState(false);
   loadConfig();
 }
 

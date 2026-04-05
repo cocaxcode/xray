@@ -252,6 +252,12 @@ async function fetchSessionSummary(sessionId: string): Promise<SessionSummary | 
 
 // ── Helpers ──
 
+function removeSession(sessionId: string): void {
+  const next = new Map(sessions.value);
+  next.delete(sessionId);
+  sessions.value = next;
+}
+
 function getSessionActivity(sessionId: string): Map<string, ToolEvent[]> {
   return recentActivity.value.get(sessionId) || new Map();
 }
@@ -264,6 +270,7 @@ export function useSessions() {
     handleWSEvent,
     loadInitialState,
     syncPermissions,
+    removeSession,
     fetchSessionEvents,
     fetchSessionSummary,
     getSessionActivity,
