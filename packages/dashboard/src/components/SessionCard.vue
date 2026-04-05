@@ -4,7 +4,7 @@ import type { Session } from '../types';
 import { useSessions } from '../composables/useSessions';
 import { usePermissions } from '../composables/usePermissions';
 import { useAuth } from '../composables/useAuth';
-import { truncate, formatModel, getModelColor, formatTokens, timeAgo } from '../utils/format';
+import { truncate, stripMarkdown, formatModel, getModelColor, formatTokens, timeAgo } from '../utils/format';
 import SessionCardMeta from './SessionCardMeta.vue';
 import SessionCardActivity from './SessionCardActivity.vue';
 import SessionCardPermission from './SessionCardPermission.vue';
@@ -129,7 +129,7 @@ async function handleDismiss(e: Event): Promise<void> {
       class="text-[11px] text-muted italic"
       @click.stop="messageExpanded = !messageExpanded"
     >
-      {{ messageExpanded ? session.lastMessage : truncate(session.lastMessage, 80) }}
+      {{ messageExpanded ? stripMarkdown(session.lastMessage) : truncate(stripMarkdown(session.lastMessage), 80) }}
     </div>
 
     <!-- Session ID + time ago -->

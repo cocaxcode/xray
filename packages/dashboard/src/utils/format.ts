@@ -78,6 +78,21 @@ export function formatTokens(n: number): string {
 }
 
 /**
+ * Strip markdown formatting: **bold**, *italic*, `code`, [link](url), # headers
+ */
+export function stripMarkdown(str: string): string {
+  return str
+    .replace(/\*\*(.*?)\*\*/g, '$1')      // **bold**
+    .replace(/\*(.*?)\*/g, '$1')           // *italic*
+    .replace(/`(.*?)`/g, '$1')             // `code`
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')    // [link](url)
+    .replace(/^#{1,6}\s+/gm, '')           // # headers
+    .replace(/^[-*]\s+/gm, '- ')           // bullet lists
+    .replace(/\n{2,}/g, '\n')              // multiple newlines
+    .trim();
+}
+
+/**
  * Truncate a string with ellipsis
  */
 export function truncate(str: string, max: number): string {
