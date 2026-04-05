@@ -46,10 +46,19 @@ async function handleDismiss(e: Event): Promise<void> {
   e.stopPropagation();
   const { getAuthHeaders } = useAuth();
   try {
-    await fetch(`/api/sessions/${props.session.id}/dismiss`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
+    if (props.session.status === 'stopped') {
+      // Already stopped → delete permanently
+      await fetch(`/api/sessions/${props.session.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+    } else {
+      // Active/idle → mark as stopped
+      await fetch(`/api/sessions/${props.session.id}/dismiss`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+    }
   } catch { /* ignore */ }
   emit('dismiss', props.session.id);
 }
@@ -96,9 +105,13 @@ async function handleDismiss(e: Event): Promise<void> {
       <button
         @click="handleDismiss($event)"
         class="opacity-0 group-hover:opacity-100 text-muted hover:text-red transition-all p-0.5"
-        title="Cerrar sesion"
+        :title="session.status === 'stopped' ? 'Eliminar sesion' : 'Cerrar sesion'"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Trash icon for stopped, X for active -->
+        <svg v-if="session.status === 'stopped'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
