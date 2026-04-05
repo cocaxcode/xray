@@ -81,7 +81,7 @@ export class HookHandlers {
     // Broadcast session update
     const session = this.manager.getSession(payload.session_id);
     if (session) {
-      this.broadcast({ type: 'session:update', data: { id: session.id, status: session.status, mcps: session.mcps, contextPercent: session.contextPercent } });
+      this.broadcast({ type: 'session:update', data: { id: session.id, status: session.status, mcps: session.mcps, contextPercent: session.contextPercent, eventCount: session.eventCount } });
     }
   }
 
@@ -226,6 +226,14 @@ export class HookHandlers {
   }
 
   handleStop(payload: StopPayload): void {
+    // Update model if it was unknown (session auto-created mid-session)
+    if (payload.model) {
+      const current = this.manager.getSession(payload.session_id);
+      if (current && current.model === 'unknown') {
+        this.queries.updateSession(payload.session_id, { model: payload.model });
+      }
+    }
+
     this.manager.handleStop({
       session_id: payload.session_id,
       last_assistant_message: payload.last_assistant_message,
@@ -241,7 +249,7 @@ export class HookHandlers {
 
     const session = this.manager.getSession(payload.session_id);
     if (session) {
-      this.broadcast({ type: 'session:update', data: { id: session.id, status: 'idle', lastMessage: session.lastMessage, inputTokens: session.inputTokens, outputTokens: session.outputTokens } });
+      this.broadcast({ type: 'session:update', data: { id: session.id, status: 'idle', model: session.model, lastMessage: session.lastMessage, inputTokens: session.inputTokens, outputTokens: session.outputTokens } });
     }
   }
 
