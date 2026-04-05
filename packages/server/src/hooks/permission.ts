@@ -106,18 +106,24 @@ export class PermissionHandler {
 
   /**
    * Limpia todos los permisos pendientes de una sesion.
-   * Se llama cuando la conexion HTTP se cierra (timeout, error, o Claude Code desconecta).
+   * Limpia TANTO el Map en memoria COMO la base de datos.
    */
   cleanupBySession(sessionId: string): void {
+    // 1. Limpiar del Map en memoria (deferred promises)
     for (const [id, deferred] of this.pending) {
       const perm = this.queries.getPendingPermission(id);
       if (perm && perm.sessionId === sessionId) {
         clearTimeout(deferred.timer);
         this.pending.delete(id);
-        this.queries.updatePermission(id, 'expired');
-        this.broadcast({ type: 'permission:resolved', data: { id, decision: 'expired' } });
         deferred.resolve({});
       }
+    }
+
+    // 2. Limpiar de la DB — marcar como expired y notificar al dashboard
+    const dbPending = this.queries.getPendingPermissionsBySession(sessionId);
+    for (const perm of dbPending) {
+      this.queries.updatePermission(perm.id, 'expired');
+      this.broadcast({ type: 'permission:resolved', data: { id: perm.id, decision: 'expired' } });
     }
   }
 
