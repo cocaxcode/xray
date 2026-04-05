@@ -57,7 +57,7 @@ const isCompleted = props.agent?.status === 'completed';
           {{ formatToolDisplay(event.toolName, event.toolInput) }}
         </span>
         <span v-if="event.durationMs" class="text-muted whitespace-nowrap">
-          {{ event.durationMs }}ms
+          {{ formatDuration(event.durationMs) }}
         </span>
       </div>
     </div>

@@ -28,6 +28,7 @@ const statuses = [
   { key: 'waiting_permission' as const, label: 'Permisos', color: 'bg-amber' },
   { key: 'waiting_input' as const, label: 'Input', color: 'bg-purple' },
   { key: 'error' as const, label: 'Error', color: 'bg-red' },
+  { key: 'stopped' as const, label: 'Cerradas', color: 'bg-muted/50' },
 ];
 </script>
 

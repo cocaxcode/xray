@@ -191,8 +191,8 @@ export class SessionManager {
     return this.queries.getSession(sessionId);
   }
 
-  getProjectGroups() {
-    return this.queries.getProjectGroups();
+  getProjectGroups(includeStopped = false) {
+    return this.queries.getProjectGroups(includeStopped);
   }
 
   markStaleSessions(): string[] {

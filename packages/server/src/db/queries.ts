@@ -46,15 +46,16 @@ export class Queries {
     return !!row;
   }
 
-  getAllActiveSessions(): Session[] {
-    const rows = this.db.prepare(
-      "SELECT * FROM sessions WHERE status != 'stopped' ORDER BY last_event_at DESC"
-    ).all() as Record<string, unknown>[];
+  getAllSessions(includesStopped = false): Session[] {
+    const sql = includesStopped
+      ? "SELECT * FROM sessions ORDER BY last_event_at DESC"
+      : "SELECT * FROM sessions WHERE status != 'stopped' ORDER BY last_event_at DESC";
+    const rows = this.db.prepare(sql).all() as Record<string, unknown>[];
     return rows.map(r => this.rowToSession(r));
   }
 
-  getProjectGroups(): ProjectGroup[] {
-    const sessions = this.getAllActiveSessions();
+  getProjectGroups(includeStopped = false): ProjectGroup[] {
+    const sessions = this.getAllSessions(includeStopped);
     const pendingPerms = this.db.prepare(
       "SELECT session_id, COUNT(*) as count FROM pending_permissions WHERE status = 'pending' GROUP BY session_id"
     ).all() as Array<{ session_id: string; count: number }>;

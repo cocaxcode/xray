@@ -13,8 +13,9 @@ export function registerApiRoutes(
   authState: AuthState | null,
 ): void {
   // ── Projects (agrupados) ──
-  fastify.get('/api/projects', async () => {
-    const projects = manager.getProjectGroups();
+  fastify.get('/api/projects', async (request) => {
+    const { include_stopped } = request.query as Record<string, string>;
+    const projects = manager.getProjectGroups(include_stopped === 'true');
 
     let activeSessions = 0;
     let idleSessions = 0;

@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { ToolEvent, Agent } from '../types';
 import AgentSection from './AgentSection.vue';
 import { formatToolDisplay, getToolIcon } from '../utils/mcpParser';
+import { formatDuration } from '../utils/format';
 
 const props = defineProps<{
   activity: Map<string, ToolEvent[]>;
@@ -57,7 +58,7 @@ function findAgent(agentId: string): Agent | undefined {
         {{ formatToolDisplay(event.toolName, event.toolInput) }}
       </span>
       <span v-if="event.durationMs" class="text-muted whitespace-nowrap">
-        {{ event.durationMs }}ms
+        {{ formatDuration(event.durationMs) }}
       </span>
     </div>
   </div>

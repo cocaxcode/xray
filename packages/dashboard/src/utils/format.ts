@@ -57,11 +57,14 @@ export function formatDuration(ms: number): string {
 }
 
 /**
- * ISO timestamp → "14:23:07"
+ * ISO/SQLite timestamp → "14:23:07" (local time)
+ * SQLite datetime('now') returns UTC without Z suffix — we add it
  */
 export function formatTimestamp(iso: string): string {
   try {
-    const d = new Date(iso);
+    // Add Z if it looks like a UTC datetime without timezone
+    const normalized = iso.includes('T') || iso.includes('Z') ? iso : iso + 'Z';
+    const d = new Date(normalized);
     return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   } catch {
     return iso;
@@ -104,7 +107,8 @@ export function truncate(str: string, max: number): string {
  * Relative time: "hace 2m", "hace 1h", "ahora"
  */
 export function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const normalized = iso.includes('T') || iso.includes('Z') ? iso : iso + 'Z';
+  const diff = Date.now() - new Date(normalized).getTime();
   const secs = Math.floor(diff / 1000);
   if (secs < 30) return 'ahora';
   if (secs < 60) return `hace ${secs}s`;

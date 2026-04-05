@@ -175,10 +175,11 @@ function addToolEvent(event: ToolEvent): void {
 
 // ── API Calls ──
 
-async function loadInitialState(): Promise<void> {
+async function loadInitialState(includeStopped = false): Promise<void> {
   const { getAuthHeaders } = useAuth();
   try {
-    const res = await fetch('/api/projects', { headers: getAuthHeaders() });
+    const url = includeStopped ? '/api/projects?include_stopped=true' : '/api/projects';
+    const res = await fetch(url, { headers: getAuthHeaders() });
     if (!res.ok) return;
 
     const data: ProjectsResponse = await res.json();
