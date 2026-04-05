@@ -82,6 +82,10 @@ export class SessionManager {
     });
   }
 
+  updateModel(sessionId: string, model: string): void {
+    this.queries.updateSession(sessionId, { model });
+  }
+
   handleSessionEnd(sessionId: string): void {
     this.queries.updateSession(sessionId, {
       status: 'stopped',

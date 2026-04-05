@@ -248,6 +248,7 @@ export function useSessions() {
     totals,
     handleWSEvent,
     loadInitialState,
+    syncPermissions,
     fetchSessionEvents,
     fetchSessionSummary,
     getSessionActivity,

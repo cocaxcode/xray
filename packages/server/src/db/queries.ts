@@ -291,14 +291,19 @@ export class Queries {
     };
   }
 
+  private safeJsonParse(str: string | null | undefined): Record<string, unknown> | undefined {
+    if (!str) return undefined;
+    try { return JSON.parse(str); } catch { return { raw: str }; }
+  }
+
   private rowToToolEvent(row: Record<string, unknown>): ToolEvent {
     return {
       id: row.id as number,
       sessionId: row.session_id as string,
       eventType: row.event_type as string,
-      toolName: row.tool_name as string,
-      toolInput: row.tool_input ? JSON.parse(row.tool_input as string) : {},
-      toolResponse: row.tool_response ? JSON.parse(row.tool_response as string) : undefined,
+      toolName: (row.tool_name as string) || '',
+      toolInput: this.safeJsonParse(row.tool_input as string) || {},
+      toolResponse: this.safeJsonParse(row.tool_response as string),
       agentId: row.agent_id as string | undefined,
       agentType: row.agent_type as string | undefined,
       success: row.success === 1,

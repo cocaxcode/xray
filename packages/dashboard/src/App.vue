@@ -39,7 +39,7 @@ function init(): void {
   // Listen for events
   onMessage(handleWSEvent);
 
-  // Load initial state from REST
+  // Load initial state from REST (includes one-time permission sync)
   loadInitialState();
 }
 

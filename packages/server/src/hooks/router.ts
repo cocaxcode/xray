@@ -12,6 +12,7 @@ export function registerHookRoutes(
   /**
    * Ensure session exists before processing any event.
    * If hooks were installed mid-session, the SessionStart was missed.
+   * Also updates model if it was unknown and the payload has one.
    */
   function ensureSession(payload: Record<string, unknown>): void {
     const sessionId = payload.session_id as string;
@@ -26,6 +27,9 @@ export function registerHookRoutes(
         source: 'startup',
         transcript_path: (payload.transcript_path as string) || '',
       });
+    } else if (session.model === 'unknown' && payload.model) {
+      // Fix unknown model from any event that carries it
+      manager.updateModel(sessionId, payload.model as string);
     }
   }
 

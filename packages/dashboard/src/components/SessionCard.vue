@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Session } from '../types';
 import { useSessions } from '../composables/useSessions';
 import { usePermissions } from '../composables/usePermissions';
 import { truncate } from '../utils/format';
+
+const messageExpanded = ref(false);
 import SessionCardHeader from './SessionCardHeader.vue';
 import SessionCardMeta from './SessionCardMeta.vue';
 import SessionCardActivity from './SessionCardActivity.vue';
@@ -64,20 +66,34 @@ const borderClass = computed(() => {
       :agents="props.session.agents"
     />
 
-    <!-- Last message (when idle) -->
+    <!-- Last message (when idle) — clickable to expand -->
     <div
       v-if="props.session.status === 'idle' && props.session.lastMessage"
-      class="text-xs text-muted italic"
+      class="text-xs text-muted italic cursor-pointer hover:text-text transition-colors"
+      @click="messageExpanded = !messageExpanded"
     >
-      "{{ truncate(props.session.lastMessage, 100) }}"
+      <template v-if="messageExpanded">
+        "{{ props.session.lastMessage }}"
+      </template>
+      <template v-else>
+        "{{ truncate(props.session.lastMessage, 100) }}"
+        <span v-if="props.session.lastMessage.length > 100" class="text-cyan ml-1 not-italic">...</span>
+      </template>
     </div>
 
     <!-- Waiting input message -->
     <div
       v-if="props.session.status === 'waiting_input' && props.session.lastMessage"
-      class="text-xs text-purple"
+      class="text-xs text-purple cursor-pointer"
+      @click="messageExpanded = !messageExpanded"
     >
-      {{ truncate(props.session.lastMessage, 100) }}
+      <template v-if="messageExpanded">
+        {{ props.session.lastMessage }}
+      </template>
+      <template v-else>
+        {{ truncate(props.session.lastMessage, 100) }}
+        <span v-if="props.session.lastMessage.length > 100" class="text-cyan ml-1">...</span>
+      </template>
       <div class="text-muted mt-0.5">Cambia a esta terminal para responder</div>
     </div>
 
