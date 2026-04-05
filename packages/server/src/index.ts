@@ -1,5 +1,7 @@
 import { getDb } from './db/connection.js';
 import { initSchema, purgeOldEvents, purgeOldSessions } from './db/schema.js';
+import { initConfigTable } from './db/config.js';
+import { registerConfigRoutes } from './api/config-routes.js';
 import { Queries } from './db/queries.js';
 import { SessionManager } from './sessions/manager.js';
 import { HookHandlers } from './hooks/handlers.js';
@@ -17,6 +19,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   // Init database
   const db = getDb();
   initSchema(db);
+  initConfigTable(db);
   purgeOldEvents(db);
   purgeOldSessions(db);
 
@@ -55,6 +58,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   // Register routes
   registerHookRoutes(fastify, handlers, permissionHandler, manager, broadcast);
   registerApiRoutes(fastify, queries, manager, permissionHandler, authState);
+  registerConfigRoutes(fastify, db, queries, broadcast);
 
   // Staleness check every 5 minutes
   const stalenessInterval = setInterval(() => {

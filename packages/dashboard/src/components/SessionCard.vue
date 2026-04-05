@@ -3,16 +3,25 @@ import { computed, ref } from 'vue';
 import type { Session } from '../types';
 import { useSessions } from '../composables/useSessions';
 import { usePermissions } from '../composables/usePermissions';
-import { truncate } from '../utils/format';
-
-const messageExpanded = ref(false);
-import SessionCardHeader from './SessionCardHeader.vue';
+import { useAuth } from '../composables/useAuth';
+import { truncate, formatModel, getModelColor, formatTokens, timeAgo } from '../utils/format';
 import SessionCardMeta from './SessionCardMeta.vue';
 import SessionCardActivity from './SessionCardActivity.vue';
 import SessionCardPermission from './SessionCardPermission.vue';
-import SessionDetailPanel from './SessionDetailPanel.vue';
+import StatusIndicator from './StatusIndicator.vue';
 
-const props = defineProps<{ session: Session }>();
+const props = defineProps<{
+  session: Session;
+  selected?: boolean;
+  compact?: boolean;
+}>();
+
+const emit = defineEmits<{
+  select: [id: string];
+  dismiss: [id: string];
+}>();
+
+const messageExpanded = ref(false);
 
 const { getSessionActivity } = useSessions();
 const { getBySession } = usePermissions();
@@ -21,8 +30,9 @@ const activity = computed(() => getSessionActivity(props.session.id));
 const pendingPermission = computed(() => getBySession(props.session.id));
 
 const borderClass = computed(() => {
+  if (props.selected) return 'border-cyan ring-1 ring-cyan/30';
   switch (props.session.status) {
-    case 'active': return 'border-cyan/60 animate-pulse-border';
+    case 'active': return 'border-cyan/40';
     case 'idle': return 'border-border';
     case 'waiting_permission': return 'border-amber/60 animate-blink-border';
     case 'waiting_input': return 'border-purple/60';
@@ -31,76 +41,101 @@ const borderClass = computed(() => {
     default: return 'border-border';
   }
 });
+
+async function handleDismiss(e: Event): Promise<void> {
+  e.stopPropagation();
+  const { getAuthHeaders } = useAuth();
+  try {
+    await fetch(`/api/sessions/${props.session.id}/dismiss`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  } catch { /* ignore */ }
+  emit('dismiss', props.session.id);
+}
 </script>
 
 <template>
   <div
-    class="rounded-xl border-2 bg-surface p-4 space-y-3 transition-all duration-300"
+    class="rounded-xl border bg-surface p-3 space-y-2 transition-all duration-200 cursor-pointer hover:bg-surface-hover group"
     :class="borderClass"
+    @click="emit('select', props.session.id)"
   >
-    <!-- ID -->
-    <div class="text-[10px] font-mono text-muted">
-      {{ props.session.id.slice(0, 12) }}
+    <!-- Header row: model + context + status + dismiss -->
+    <div class="flex items-center gap-2">
+      <!-- Model badge -->
+      <span
+        class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-full"
+        :style="{ backgroundColor: getModelColor(session.model) + '20', color: getModelColor(session.model) }"
+      >
+        {{ formatModel(session.model) }}
+      </span>
+
+      <!-- Context bar -->
+      <div class="flex-1 h-1 rounded-full bg-border overflow-hidden">
+        <div
+          class="h-full rounded-full transition-all duration-500"
+          :class="session.contextPercent > 80 ? 'bg-red' : session.contextPercent > 50 ? 'bg-amber' : 'bg-cyan'"
+          :style="{ width: Math.min(session.contextPercent, 100) + '%' }"
+        />
+      </div>
+      <span class="text-[9px] font-mono text-muted">~{{ Math.round(session.contextPercent) }}%</span>
+
+      <!-- Tokens -->
+      <span
+        v-if="session.inputTokens > 0"
+        class="text-[9px] font-mono text-muted"
+      >
+        ↑{{ formatTokens(session.inputTokens) }} ↓{{ formatTokens(session.outputTokens) }}
+      </span>
+
+      <!-- Status -->
+      <StatusIndicator :status="session.status" />
+
+      <!-- Dismiss button -->
+      <button
+        @click="handleDismiss($event)"
+        class="opacity-0 group-hover:opacity-100 text-muted hover:text-red transition-all p-0.5"
+        title="Cerrar sesion"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
-    <!-- Header: model + context + status -->
-    <SessionCardHeader :session="props.session" />
-
-    <!-- Meta: MCPs + Skills + Agents -->
+    <!-- Meta: MCPs + Skills (compact) -->
     <SessionCardMeta
-      v-if="props.session.mcps.length > 0 || props.session.skills.length > 0 || props.session.agents.length > 0"
-      :session="props.session"
+      v-if="!compact && (session.mcps.length > 0 || session.skills.length > 0 || session.agents.length > 0)"
+      :session="session"
     />
 
     <!-- Permission (if pending) -->
     <SessionCardPermission
       v-if="pendingPermission"
       :permission="pendingPermission"
-      @resolved="() => {}"
     />
 
-    <!-- Activity (tool calls) -->
+    <!-- Activity (last tool calls, compact shows fewer) -->
     <SessionCardActivity
-      v-if="activity.size > 0"
+      v-if="!compact && activity.size > 0"
       :activity="activity"
-      :agents="props.session.agents"
+      :agents="session.agents"
     />
 
-    <!-- Last message (when idle) — clickable to expand -->
+    <!-- Last message (idle) -->
     <div
-      v-if="props.session.status === 'idle' && props.session.lastMessage"
-      class="text-xs text-muted italic cursor-pointer hover:text-text transition-colors"
-      @click="messageExpanded = !messageExpanded"
+      v-if="session.status === 'idle' && session.lastMessage"
+      class="text-[11px] text-muted italic"
+      @click.stop="messageExpanded = !messageExpanded"
     >
-      <template v-if="messageExpanded">
-        "{{ props.session.lastMessage }}"
-      </template>
-      <template v-else>
-        "{{ truncate(props.session.lastMessage, 100) }}"
-        <span v-if="props.session.lastMessage.length > 100" class="text-cyan ml-1 not-italic">...</span>
-      </template>
+      {{ messageExpanded ? session.lastMessage : truncate(session.lastMessage, 80) }}
     </div>
 
-    <!-- Waiting input message -->
-    <div
-      v-if="props.session.status === 'waiting_input' && props.session.lastMessage"
-      class="text-xs text-purple cursor-pointer"
-      @click="messageExpanded = !messageExpanded"
-    >
-      <template v-if="messageExpanded">
-        {{ props.session.lastMessage }}
-      </template>
-      <template v-else>
-        {{ truncate(props.session.lastMessage, 100) }}
-        <span v-if="props.session.lastMessage.length > 100" class="text-cyan ml-1">...</span>
-      </template>
-      <div class="text-muted mt-0.5">Cambia a esta terminal para responder</div>
+    <!-- Session ID + time ago -->
+    <div class="flex items-center justify-between text-[9px] font-mono text-muted/60">
+      <span>{{ session.id.slice(0, 10) }}</span>
+      <span>{{ timeAgo(session.lastEventAt) }}</span>
     </div>
-
-    <!-- History + Summary (tabs with split detail panel) -->
-    <SessionDetailPanel
-      :session-id="props.session.id"
-      :event-count="props.session.eventCount"
-    />
   </div>
 </template>

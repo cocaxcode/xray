@@ -96,6 +96,12 @@ export class Queries {
     return ids;
   }
 
+  deleteSession(id: string): void {
+    this.db.prepare('DELETE FROM events WHERE session_id = ?').run(id);
+    this.db.prepare('DELETE FROM pending_permissions WHERE session_id = ?').run(id);
+    this.db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+  }
+
   updateSessionTokens(id: string, inputTokens: number, outputTokens: number, transcriptOffset: number): void {
     this.db.prepare(
       'UPDATE sessions SET input_tokens = ?, output_tokens = ?, transcript_offset = ? WHERE id = ?'
