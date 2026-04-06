@@ -125,6 +125,7 @@ export interface Session {
   mcps: McpServer[];
   agents: Agent[];
   lastMessage: string | null;
+  topic: string | null;
   eventCount: number;
   inputTokens: number;
   outputTokens: number;

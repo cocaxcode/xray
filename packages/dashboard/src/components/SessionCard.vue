@@ -121,6 +121,11 @@ async function handleDismiss(e: Event): Promise<void> {
       </button>
     </div>
 
+    <!-- Topic -->
+    <div v-if="session.topic" class="text-[11px] font-mono text-text truncate">
+      {{ session.topic }}
+    </div>
+
     <!-- Meta: MCPs + Skills (compact) -->
     <SessionCardMeta
       v-if="!compact && (session.mcps.length > 0 || session.skills.length > 0 || session.agents.length > 0)"

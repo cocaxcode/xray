@@ -44,6 +44,47 @@ export function readModelFromTranscript(transcriptPath: string): string | null {
 }
 
 /**
+ * Lee el transcript para extraer el tema/titulo de la conversacion.
+ * Busca el primer mensaje del usuario (type: human) y lo usa como topic.
+ */
+export function readTopicFromTranscript(transcriptPath: string): string | null {
+  try {
+    const fd = openSync(transcriptPath, 'r');
+    const buffer = Buffer.alloc(16384); // 16KB para encontrar el primer mensaje
+    const bytesRead = readSync(fd, buffer, 0, 16384, 0);
+    closeSync(fd);
+
+    const content = buffer.toString('utf-8', 0, bytesRead);
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const entry = JSON.parse(trimmed);
+        // Buscar mensaje del usuario
+        if (entry.type === 'human' && entry.message?.content) {
+          const text = typeof entry.message.content === 'string'
+            ? entry.message.content
+            : Array.isArray(entry.message.content)
+              ? entry.message.content.find((c: { type: string; text?: string }) => c.type === 'text')?.text || ''
+              : '';
+          if (text) {
+            // Truncar a 100 chars y quitar saltos de linea
+            return text.replace(/\n/g, ' ').trim().slice(0, 100);
+          }
+        }
+      } catch {
+        // Linea no JSON
+      }
+    }
+  } catch {
+    // Archivo no accesible
+  }
+  return null;
+}
+
+/**
  * Lee nuevas lineas del transcript JSONL desde el offset dado
  * y extrae tokens de uso acumulados.
  */

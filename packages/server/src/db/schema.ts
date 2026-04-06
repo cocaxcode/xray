@@ -16,6 +16,7 @@ export function initSchema(db: Database.Database): void {
       mcps TEXT DEFAULT '[]',
       agents TEXT DEFAULT '[]',
       last_message TEXT,
+      topic TEXT,
       event_count INTEGER DEFAULT 0,
       input_tokens INTEGER DEFAULT 0,
       output_tokens INTEGER DEFAULT 0,

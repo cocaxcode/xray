@@ -86,6 +86,10 @@ export class SessionManager {
     this.queries.updateSession(sessionId, { model });
   }
 
+  updateTopic(sessionId: string, topic: string): void {
+    this.queries.updateSession(sessionId, { topic });
+  }
+
   handleSessionEnd(sessionId: string): void {
     this.queries.updateSession(sessionId, {
       status: 'stopped',

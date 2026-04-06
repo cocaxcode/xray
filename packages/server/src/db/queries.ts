@@ -25,7 +25,7 @@ export class Queries {
 
   private static ALLOWED_SESSION_COLUMNS = new Set([
     'model', 'status', 'context_percent', 'context_units', 'last_event_at',
-    'last_message', 'event_count', 'skills', 'mcps', 'agents',
+    'last_message', 'topic', 'event_count', 'skills', 'mcps', 'agents',
     'transcript_path', 'transcript_offset', 'input_tokens', 'output_tokens',
   ]);
 
@@ -314,6 +314,7 @@ export class Queries {
       mcps: JSON.parse((row.mcps as string) || '[]'),
       agents: JSON.parse((row.agents as string) || '[]'),
       lastMessage: row.last_message as string | null,
+      topic: row.topic as string | null,
       eventCount: row.event_count as number,
       inputTokens: row.input_tokens as number,
       outputTokens: row.output_tokens as number,

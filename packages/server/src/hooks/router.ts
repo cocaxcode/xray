@@ -3,7 +3,7 @@ import type { HookHandlers } from './handlers.js';
 import type { PermissionHandler } from './permission.js';
 import type { SessionManager } from '../sessions/manager.js';
 import type { ServerWSEvent } from '../types.js';
-import { readModelFromTranscript } from '../sessions/transcript-reader.js';
+import { readModelFromTranscript, readTopicFromTranscript } from '../sessions/transcript-reader.js';
 
 export function registerHookRoutes(
   fastify: FastifyInstance,
@@ -27,13 +27,23 @@ export function registerHookRoutes(
       if (!model && payload.transcript_path) {
         model = readModelFromTranscript(payload.transcript_path as string);
       }
-      manager.handleSessionStart({
+      const newSession = manager.handleSessionStart({
         session_id: sessionId,
         cwd: (payload.cwd as string) || 'unknown',
         model: model || 'unknown',
         source: 'startup',
         transcript_path: (payload.transcript_path as string) || '',
       });
+      // Leer topic del transcript
+      if (payload.transcript_path) {
+        const topic = readTopicFromTranscript(payload.transcript_path as string);
+        if (topic) {
+          manager.updateTopic(sessionId, topic);
+          newSession.topic = topic;
+        }
+      }
+      // Broadcast para que el dashboard muestre la sesion inmediatamente
+      broadcast({ type: 'session:start', data: newSession });
     } else if (session.model === 'unknown') {
       // Fix unknown model from payload or transcript
       const model = (payload.model as string)
