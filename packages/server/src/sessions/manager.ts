@@ -132,6 +132,16 @@ export class SessionManager {
     });
   }
 
+  /**
+   * Actualiza el transcript_path si falta en la DB
+   */
+  fixTranscriptPath(sessionId: string, transcriptPath: string): void {
+    const info = this.queries.getSessionTranscriptInfo(sessionId);
+    if (!info && transcriptPath) {
+      this.queries.updateSession(sessionId, { transcript_path: transcriptPath });
+    }
+  }
+
   updateTokens(sessionId: string): void {
     const info = this.queries.getSessionTranscriptInfo(sessionId);
     if (!info) return;

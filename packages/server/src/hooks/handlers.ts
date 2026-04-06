@@ -271,7 +271,14 @@ export class HookHandlers {
 
     const session = this.manager.getSession(payload.session_id);
     if (session) {
-      this.broadcast({ type: 'session:update', data: { id: session.id, status: 'idle', model: session.model, lastMessage: session.lastMessage, inputTokens: session.inputTokens, outputTokens: session.outputTokens } });
+      // Guardar snapshot de tokens al momento del Stop para calcular delta
+      session.inputTokensAtStop = session.inputTokens;
+      session.outputTokensAtStop = session.outputTokens;
+      this.broadcast({ type: 'session:update', data: {
+        id: session.id, status: 'idle', model: session.model, lastMessage: session.lastMessage,
+        inputTokens: session.inputTokens, outputTokens: session.outputTokens,
+        inputTokensAtStop: session.inputTokensAtStop, outputTokensAtStop: session.outputTokensAtStop,
+      } });
     }
   }
 

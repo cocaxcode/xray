@@ -42,13 +42,26 @@ export function registerHookRoutes(
           newSession.topic = topic;
         }
       }
+      // Leer tokens acumulados del transcript
+      manager.updateTokens(sessionId);
+      const updated = manager.getSession(sessionId);
+      if (updated) {
+        newSession.inputTokens = updated.inputTokens;
+        newSession.outputTokens = updated.outputTokens;
+      }
       // Broadcast para que el dashboard muestre la sesion inmediatamente
       broadcast({ type: 'session:start', data: newSession });
-    } else if (session.model === 'unknown') {
+    } else {
       // Fix unknown model from payload or transcript
-      const model = (payload.model as string)
-        || (payload.transcript_path ? readModelFromTranscript(payload.transcript_path as string) : null);
-      if (model) manager.updateModel(sessionId, model);
+      if (session.model === 'unknown') {
+        const model = (payload.model as string)
+          || (payload.transcript_path ? readModelFromTranscript(payload.transcript_path as string) : null);
+        if (model) manager.updateModel(sessionId, model);
+      }
+      // Fix missing transcript_path y leer tokens
+      if (payload.transcript_path) {
+        manager.fixTranscriptPath(sessionId, payload.transcript_path as string);
+      }
     }
   }
 

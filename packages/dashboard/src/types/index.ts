@@ -35,6 +35,8 @@ export interface Session {
   eventCount: number;
   inputTokens: number;
   outputTokens: number;
+  inputTokensAtStop: number;
+  outputTokensAtStop: number;
 }
 
 export interface PendingPermission {

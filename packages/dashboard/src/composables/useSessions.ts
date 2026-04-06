@@ -12,7 +12,7 @@ const sessions = ref<Map<string, Session>>(new Map());
 const recentActivity = ref<Map<string, Map<string, ToolEvent[]>>>(new Map());
 // recentActivity: sessionId → agentId → last 10 events
 
-const MAX_RECENT = 10;
+const MAX_RECENT = 5;
 
 // ── Computed ──
 
@@ -162,6 +162,7 @@ function addToolEvent(event: ToolEvent): void {
     );
     if (preIdx >= 0) {
       agentEvents[preIdx] = event;
+      recentActivity.value = new Map(recentActivity.value);
       return;
     }
   }
@@ -171,6 +172,9 @@ function addToolEvent(event: ToolEvent): void {
   if (agentEvents.length > MAX_RECENT) {
     agentEvents.pop();
   }
+
+  // Trigger reactivity — crear nuevo Map
+  recentActivity.value = new Map(recentActivity.value);
 }
 
 // ── API Calls ──

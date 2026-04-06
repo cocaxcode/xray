@@ -66,6 +66,14 @@ function selectSession(id: string): void {
 function dismissSession(id: string): void {
   if (selectedSessionId.value === id) selectedSessionId.value = null;
 }
+
+function handleGridClick(e: MouseEvent): void {
+  // Close detail panel if click is not inside a session card
+  const target = e.target as HTMLElement;
+  if (!target.closest('[data-session-card]')) {
+    selectedSessionId.value = null;
+  }
+}
 </script>
 
 <template>
@@ -109,7 +117,7 @@ function dismissSession(id: string): void {
       <!-- Content -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Session grid -->
-        <div class="flex-1 overflow-y-auto p-4">
+        <div class="flex-1 overflow-y-auto p-4" @click="handleGridClick">
           <EmptyState v-if="filteredGroups.length === 0" />
 
           <template v-else>

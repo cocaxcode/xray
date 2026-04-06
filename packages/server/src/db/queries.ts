@@ -318,6 +318,8 @@ export class Queries {
       eventCount: row.event_count as number,
       inputTokens: row.input_tokens as number,
       outputTokens: row.output_tokens as number,
+      inputTokensAtStop: 0,
+      outputTokensAtStop: 0,
     };
   }
 

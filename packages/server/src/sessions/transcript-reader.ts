@@ -123,9 +123,10 @@ export function readNewTokens(transcriptPath: string, lastOffset: number): Token
 
       try {
         const entry = JSON.parse(trimmed);
-        if (entry.usage) {
-          inputTokens += entry.usage.input_tokens ?? 0;
-          outputTokens += entry.usage.output_tokens ?? 0;
+        const usage = entry.usage || entry.message?.usage;
+        if (usage) {
+          inputTokens += usage.input_tokens ?? 0;
+          outputTokens += usage.output_tokens ?? 0;
         }
       } catch {
         // Linea incompleta o no JSON — ignorar

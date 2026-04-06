@@ -26,15 +26,76 @@ const emit = defineEmits<{
 const messageExpanded = ref(false);
 
 function formatMessage(md: string): string {
-  return md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') // escape HTML
+  // 1. Extraer bloques de codigo para no procesarlos como markdown
+  const codeBlocks: string[] = [];
+  let processed = md.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
+    const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').trimEnd();
+    const langBadge = lang ? `<span class="absolute top-1 right-1.5 text-[8px] text-muted/50 uppercase">${lang}</span>` : '';
+    codeBlocks.push(
+      `<div class="relative my-1 rounded bg-bg border border-border/50 overflow-x-auto">${langBadge}<pre class="p-2 text-[10px] font-mono text-cyan/90 whitespace-pre leading-relaxed">${escaped}</pre></div>`
+    );
+    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+  });
+
+  // 2. Escape HTML del resto
+  processed = processed.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // 3. Detectar tablas markdown
+  processed = processed.replace(/((?:^\|.+\|$\n?){2,})/gm, (tableBlock) => {
+    const rows = tableBlock.trim().split('\n').filter(r => r.trim());
+    // Filtrar la fila separadora (|---|---|)
+    const dataRows = rows.filter(r => !/^\|[\s\-:|]+\|$/.test(r));
+    if (dataRows.length === 0) return tableBlock;
+
+    const parseRow = (row: string) =>
+      row.split('|').slice(1, -1).map(c => c.trim());
+
+    const headerCells = parseRow(dataRows[0]);
+    const isHeader = rows.length > dataRows.length; // hay fila separadora = tiene header
+
+    let html = '<div class="my-1 overflow-x-auto rounded border border-border/50"><table class="w-full text-[10px] font-mono">';
+
+    if (isHeader) {
+      html += '<thead><tr>';
+      headerCells.forEach(c => { html += `<th class="px-2 py-1 text-left text-text font-semibold bg-border/30 border-b border-border/50">${c}</th>`; });
+      html += '</tr></thead><tbody>';
+      dataRows.slice(1).forEach(row => {
+        html += '<tr>';
+        parseRow(row).forEach(c => { html += `<td class="px-2 py-0.5 text-muted border-b border-border/30">${c}</td>`; });
+        html += '</tr>';
+      });
+    } else {
+      html += '<tbody>';
+      dataRows.forEach(row => {
+        html += '<tr>';
+        parseRow(row).forEach(c => { html += `<td class="px-2 py-0.5 text-muted border-b border-border/30">${c}</td>`; });
+        html += '</tr>';
+      });
+    }
+
+    html += '</tbody></table></div>';
+    return html;
+  });
+
+  // 4. Inline markdown
+  processed = processed
     .replace(/\*\*(.*?)\*\*/g, '<strong class="text-text font-semibold">$1</strong>')
     .replace(/`(.*?)`/g, '<code class="text-cyan/80 bg-border/30 px-0.5 rounded text-[10px]">$1</code>')
-    .replace(/^[-*]\s+/gm, '  &bull; ')  // bullet lists
+    .replace(/^[-*]\s+/gm, '  &bull; ')
     .replace(/^#{1,6}\s+(.*)/gm, '<strong class="text-text">$1</strong>');
+
+  // 5. Restaurar bloques de codigo
+  codeBlocks.forEach((block, i) => {
+    processed = processed.replace(`__CODE_BLOCK_${i}__`, block);
+  });
+
+  return processed;
 }
 
 const { getBySession } = usePermissions();
+
+const deltaInput = computed(() => props.session.inputTokens - (props.session.inputTokensAtStop || 0));
+const deltaOutput = computed(() => props.session.outputTokens - (props.session.outputTokensAtStop || 0));
 
 const activity = computed(() => getSessionActivity(props.session.id));
 const pendingPermission = computed(() => getBySession(props.session.id));
@@ -79,6 +140,7 @@ async function handleDismiss(e: Event): Promise<void> {
 
 <template>
   <div
+    data-session-card
     class="rounded-xl border bg-surface p-3 space-y-2 transition-all duration-200 cursor-pointer hover:bg-surface-hover group"
     :class="borderClass"
     @click="emit('select', props.session.id)"
@@ -103,12 +165,12 @@ async function handleDismiss(e: Event): Promise<void> {
       </div>
       <span class="text-[9px] font-mono text-muted">~{{ Math.round(session.contextPercent) }}%</span>
 
-      <!-- Tokens -->
+      <!-- Tokens (delta since last stop) -->
       <span
-        v-if="session.inputTokens > 0"
+        v-if="deltaInput > 0 || deltaOutput > 0"
         class="text-[9px] font-mono text-muted"
       >
-        ↑{{ formatTokens(session.inputTokens) }} ↓{{ formatTokens(session.outputTokens) }}
+        ↑{{ formatTokens(deltaInput) }} ↓{{ formatTokens(deltaOutput) }}
       </span>
 
       <!-- Status -->

@@ -129,6 +129,8 @@ export interface Session {
   eventCount: number;
   inputTokens: number;
   outputTokens: number;
+  inputTokensAtStop: number;
+  outputTokensAtStop: number;
 }
 
 export interface McpServer {
@@ -227,19 +229,20 @@ export interface SessionEventsResponse {
 // ── Context Estimation ──
 
 export const CONTEXT_WEIGHTS: Record<string, number> = {
-  Read: 0.3,
-  Grep: 0.2,
-  Glob: 0.1,
-  Edit: 0.5,
-  Write: 0.8,
-  Bash: 1.0,
-  Agent: 2.0,
-  WebFetch: 0.8,
-  WebSearch: 0.5,
-  default: 0.4,
+  Read: 0.15,
+  Grep: 0.08,
+  Glob: 0.03,
+  Edit: 0.1,
+  Write: 0.2,
+  Bash: 0.3,
+  Agent: 1.5,
+  WebFetch: 0.4,
+  WebSearch: 0.3,
+  TodoWrite: 0.02,
+  default: 0.1,
 };
 
-export const CONTEXT_MAX_UNITS = 250;
+export const CONTEXT_MAX_UNITS = 800;
 export const CONTEXT_COMPACT_RESET = 20;
 
 // ── CLI Config ──
