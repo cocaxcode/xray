@@ -73,8 +73,9 @@ export function registerAuthMiddleware(
     // Health check siempre pasa
     if (url === '/api/health') return;
 
-    // Dashboard HTML/assets siempre pasan (auth via PIN en el frontend)
-    if (url === '/' || url.startsWith('/assets/')) return;
+    // Dashboard HTML/assets siempre pasan (auth via PIN/QR en el frontend)
+    // url puede ser / o /?auth=TOKEN (QR scan)
+    if (url === '/' || url.startsWith('/?') || url.startsWith('/assets/')) return;
 
     // WebSocket pasa (tiene su propia validacion de token)
     if (url.startsWith('/ws')) return;
