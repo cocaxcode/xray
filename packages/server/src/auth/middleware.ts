@@ -73,6 +73,15 @@ export function registerAuthMiddleware(
     // Health check siempre pasa
     if (url === '/api/health') return;
 
+    // Acceso local no requiere auth (solo remoto)
+    // Si hay X-Forwarded-For, viene de un proxy/tunel → es remoto
+    const forwarded = request.headers['x-forwarded-for'];
+    if (!forwarded) {
+      const ip = request.ip;
+      const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+      if (isLocal) return;
+    }
+
     // Dashboard HTML/assets siempre pasan (auth via PIN/QR en el frontend)
     // url puede ser / o /?auth=TOKEN (QR scan)
     if (url === '/' || url.startsWith('/?') || url.startsWith('/assets/')) return;

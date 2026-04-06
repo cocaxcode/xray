@@ -63,14 +63,14 @@ export class PermissionHandler {
   /**
    * Resuelve un permiso pendiente. First-wins: si ya fue resuelto, ignora.
    */
-  resolvePermission(permissionId: number, decision: 'approve' | 'deny'): boolean {
+  resolvePermission(permissionId: number, decision: 'approve' | 'deny' | 'allowAlways'): boolean {
     const deferred = this.pending.get(permissionId);
     if (!deferred) return false;
 
     clearTimeout(deferred.timer);
     this.pending.delete(permissionId);
 
-    const status = decision === 'approve' ? 'approved' : 'denied';
+    const status = decision === 'deny' ? 'denied' : 'approved';
     this.queries.updatePermission(permissionId, status);
 
     this.broadcast({
@@ -78,21 +78,18 @@ export class PermissionHandler {
       data: { id: permissionId, decision: status },
     });
 
-    if (decision === 'approve') {
-      deferred.resolve({
-        hookSpecificOutput: {
-          hookEventName: 'PermissionRequest',
-          decision: { behavior: 'allow' },
-        },
-      });
-    } else {
-      deferred.resolve({
-        hookSpecificOutput: {
-          hookEventName: 'PermissionRequest',
-          decision: { behavior: 'deny' },
-        },
-      });
-    }
+    const behaviorMap: Record<string, 'allow' | 'deny' | 'allowAlways'> = {
+      approve: 'allow',
+      allowAlways: 'allowAlways',
+      deny: 'deny',
+    };
+
+    deferred.resolve({
+      hookSpecificOutput: {
+        hookEventName: 'PermissionRequest',
+        decision: { behavior: behaviorMap[decision] },
+      },
+    });
 
     return true;
   }

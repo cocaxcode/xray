@@ -5,12 +5,15 @@ import { validateToken } from './auth/token.js';
 
 export function registerWebSocket(
   fastify: FastifyInstance,
-  authState: AuthState | null,
+  authState: AuthState,
   onClientMessage: (event: ClientWSEvent) => void
 ): void {
   fastify.get('/ws', { websocket: true }, (socket: WebSocket, request) => {
-    // Auth validation in expose mode
-    if (authState) {
+    // Auth validation — bypass para conexiones locales sin proxy
+    const forwarded = request.headers['x-forwarded-for'];
+    const ip = request.ip;
+    const isLocal = !forwarded && (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1');
+    if (!isLocal) {
       const url = new URL(request.url, `http://${request.headers.host}`);
       const token = url.searchParams.get('token');
       if (!token || !validateToken(token, authState)) {

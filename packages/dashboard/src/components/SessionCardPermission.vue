@@ -9,7 +9,7 @@ const { resolve } = usePermissions();
 
 const displayText = formatToolDisplay(props.permission.toolName, props.permission.toolInput);
 
-async function handleResolve(decision: 'approve' | 'deny'): Promise<void> {
+async function handleResolve(decision: 'approve' | 'deny' | 'allowAlways'): Promise<void> {
   emit('resolved');
   await resolve(props.permission.id, decision);
 }
@@ -28,14 +28,14 @@ async function handleResolve(decision: 'approve' | 'deny'): Promise<void> {
         </div>
       </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2" @click.stop>
       <button
         @click="handleResolve('approve')"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded-md bg-green/20 text-green hover:bg-green/30 transition-colors"
       >
         Aprobar
       </button>
-      <button
+<button
         @click="handleResolve('deny')"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded-md bg-red/20 text-red hover:bg-red/30 transition-colors"
       >

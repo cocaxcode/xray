@@ -6,7 +6,7 @@ import { usePermissions } from '../composables/usePermissions';
 import { useAuth } from '../composables/useAuth';
 
 const { getSessionActivity, removeSession } = useSessions();
-import { truncate, stripMarkdown, formatModel, getModelColor, formatTokens, timeAgo } from '../utils/format';
+import { formatModel, getModelColor, formatTokens, timeAgo } from '../utils/format';
 import SessionCardMeta from './SessionCardMeta.vue';
 import SessionCardActivity from './SessionCardActivity.vue';
 import SessionCardPermission from './SessionCardPermission.vue';
@@ -24,6 +24,15 @@ const emit = defineEmits<{
 }>();
 
 const messageExpanded = ref(false);
+
+function formatMessage(md: string): string {
+  return md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') // escape HTML
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-text font-semibold">$1</strong>')
+    .replace(/`(.*?)`/g, '<code class="text-cyan/80 bg-border/30 px-0.5 rounded text-[10px]">$1</code>')
+    .replace(/^[-*]\s+/gm, '  &bull; ')  // bullet lists
+    .replace(/^#{1,6}\s+(.*)/gm, '<strong class="text-text">$1</strong>');
+}
 
 const { getBySession } = usePermissions();
 
@@ -145,13 +154,14 @@ async function handleDismiss(e: Event): Promise<void> {
       :agents="session.agents"
     />
 
-    <!-- Last message (idle) -->
+    <!-- Last message -->
     <div
-      v-if="session.status === 'idle' && session.lastMessage"
-      class="text-[11px] text-muted italic cursor-pointer whitespace-pre-line"
+      v-if="session.lastMessage"
+      class="text-[11px] text-muted cursor-pointer overflow-hidden"
+      :class="messageExpanded ? 'max-h-48 overflow-y-auto' : 'max-h-[4.5em]'"
       @click.stop="messageExpanded = !messageExpanded"
     >
-      {{ messageExpanded ? stripMarkdown(session.lastMessage) : truncate(stripMarkdown(session.lastMessage), 80) }}
+      <div class="whitespace-pre-line break-words" v-html="formatMessage(session.lastMessage)" />
     </div>
 
     <!-- Session ID + time ago -->

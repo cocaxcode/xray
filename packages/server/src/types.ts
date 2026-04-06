@@ -97,7 +97,7 @@ export interface PermissionResponse {
   hookSpecificOutput: {
     hookEventName: 'PermissionRequest';
     decision: {
-      behavior: 'allow' | 'deny';
+      behavior: 'allow' | 'deny' | 'allowAlways';
     };
   };
 }

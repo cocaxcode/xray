@@ -11,7 +11,7 @@ export function registerApiRoutes(
   queries: Queries,
   manager: SessionManager,
   permissionHandler: PermissionHandler,
-  authState: AuthState | null,
+  authState: AuthState,
 ): void {
   // ── Projects (agrupados) ──
   fastify.get('/api/projects', async (request) => {
@@ -78,10 +78,10 @@ export function registerApiRoutes(
   // ── Permission resolve ──
   fastify.post('/api/permissions/:id/resolve', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { decision } = request.body as { decision: 'approve' | 'deny' };
+    const { decision } = request.body as { decision: 'approve' | 'deny' | 'allowAlways' };
 
-    if (!decision || !['approve', 'deny'].includes(decision)) {
-      return reply.status(400).send({ error: 'Invalid decision. Must be "approve" or "deny".' });
+    if (!decision || !['approve', 'deny', 'allowAlways'].includes(decision)) {
+      return reply.status(400).send({ error: 'Invalid decision. Must be "approve", "deny" or "allowAlways".' });
     }
 
     const resolved = permissionHandler.resolvePermission(parseInt(id), decision);
@@ -93,12 +93,8 @@ export function registerApiRoutes(
     return permissionHandler.getActivePending();
   });
 
-  // ── PIN exchange (for remote auth) ──
+  // ── PIN exchange ──
   fastify.post('/api/auth/pin', async (request, reply) => {
-    if (!authState) {
-      return reply.status(404).send({ error: 'Auth not enabled (local mode)' });
-    }
-
     const { pin } = request.body as { pin: string };
     if (!pin) {
       return reply.status(400).send({ error: 'PIN required' });
@@ -123,10 +119,6 @@ export function registerApiRoutes(
 
   // ── PIN rotation (called by CLI `cxc-xray pin`) ──
   fastify.post('/api/auth/rotate-pin', async (_request, reply) => {
-    if (!authState) {
-      return reply.status(404).send({ error: 'Auth not enabled' });
-    }
-
     const newState = rotatePin(authState);
     // Mutate in place (authState is shared reference)
     authState.pin = newState.pin;

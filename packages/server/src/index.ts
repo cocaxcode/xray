@@ -34,16 +34,9 @@ export async function startServer(options: CliOptions): Promise<void> {
   // Create broadcast function
   const broadcast = createBroadcast(fastify);
 
-  // Auth state (only in expose mode)
-  let authState: AuthState | null = null;
-  if (options.expose) {
-    authState = createAuthState(options.authToken);
-  }
-
-  // Register auth middleware (expose mode only)
-  if (authState) {
-    registerAuthMiddleware(fastify, authState);
-  }
+  // Auth state — siempre activo para proteger contra proxies/tuneles
+  const authState = createAuthState(options.authToken);
+  registerAuthMiddleware(fastify, authState);
 
   // Init managers
   const manager = new SessionManager(queries);
@@ -82,16 +75,18 @@ export async function startServer(options: CliOptions): Promise<void> {
     process.exit(1);
   }
 
-  // Display auth info (expose mode)
-  if (authState && authState.pin) {
-    // Use custom domain for QR if provided, or fallback to config, or localhost
-    const url = options.domain
-      || getConfigDomain(db)
-      || `http://localhost:${options.port}`;
-    displayAuthInfo(url, authState.pin, authState.token);
-  }
+  // Display auth info
+  const domain = options.domain || getConfigDomain(db);
+  const localUrl = `http://localhost:${options.port}`;
 
-  console.log(`\n  xray corriendo en ${host}:${options.port}\n`);
+  if (domain) {
+    // Hay dominio remoto configurado: QR + PIN + URL local
+    displayAuthInfo(domain, authState.pin!, authState.token);
+    console.log(`  Local: ${localUrl}\n`);
+  } else {
+    // Solo local
+    console.log(`\n  xray corriendo en ${localUrl}\n`);
+  }
 
   // Graceful shutdown
   const shutdown = async () => {

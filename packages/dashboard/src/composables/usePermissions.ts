@@ -32,7 +32,7 @@ function removePending(id: number): void {
 /**
  * Resolve permission via REST. Remove from UI immediately.
  */
-async function resolve(id: number, decision: 'approve' | 'deny'): Promise<void> {
+async function resolve(id: number, decision: 'approve' | 'deny' | 'allowAlways'): Promise<void> {
   const { getAuthHeaders } = useAuth();
 
   // Remove from UI immediately
