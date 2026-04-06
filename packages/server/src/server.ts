@@ -18,6 +18,7 @@ export async function createServer(options: CliOptions) {
         options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname' },
       },
     },
+    bodyLimit: 102400, // 100KB max body (protege contra payloads enormes)
   });
 
   // CORS

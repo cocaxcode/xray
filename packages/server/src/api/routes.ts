@@ -4,6 +4,7 @@ import type { SessionManager } from '../sessions/manager.js';
 import type { PermissionHandler } from '../hooks/permission.js';
 import type { AuthState } from '../types.js';
 import { validatePin, rotatePin } from '../auth/token.js';
+import { recordFailedPinAttempt, clearPinAttempts } from '../auth/middleware.js';
 
 export function registerApiRoutes(
   fastify: FastifyInstance,
@@ -105,12 +106,17 @@ export function registerApiRoutes(
 
     const token = validatePin(pin, authState);
     if (!token) {
+      // Registrar intento fallido para rate limiting
+      recordFailedPinAttempt(request.ip);
       const isExpired = authState.pin && Date.now() > authState.pinExpiresAt;
       const message = isExpired
         ? 'PIN expirado. Ejecuta "cxc-xray pin" para generar uno nuevo.'
         : 'PIN incorrecto';
       return reply.status(401).send({ error: message });
     }
+
+    // PIN correcto: limpiar intentos
+    clearPinAttempts(request.ip);
 
     return { token };
   });
