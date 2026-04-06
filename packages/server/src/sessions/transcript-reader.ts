@@ -62,15 +62,16 @@ export function readTopicFromTranscript(transcriptPath: string): string | null {
       if (!trimmed) continue;
       try {
         const entry = JSON.parse(trimmed);
-        // Buscar mensaje del usuario
-        if (entry.type === 'human' && entry.message?.content) {
-          const text = typeof entry.message.content === 'string'
-            ? entry.message.content
-            : Array.isArray(entry.message.content)
-              ? entry.message.content.find((c: { type: string; text?: string }) => c.type === 'text')?.text || ''
-              : '';
+        // Buscar mensaje del usuario (type: "user" con message.role: "user")
+        if ((entry.type === 'user' || entry.type === 'human') && entry.message?.content) {
+          let text = '';
+          if (typeof entry.message.content === 'string') {
+            text = entry.message.content;
+          } else if (Array.isArray(entry.message.content)) {
+            const textBlock = entry.message.content.find((c: { type: string; text?: string }) => c.type === 'text');
+            text = textBlock?.text || '';
+          }
           if (text) {
-            // Truncar a 100 chars y quitar saltos de linea
             return text.replace(/\n/g, ' ').trim().slice(0, 100);
           }
         }
