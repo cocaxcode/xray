@@ -76,8 +76,13 @@ function send(event: ClientWSEvent): void {
   }
 }
 
-function onMessage(handler: MessageHandler): void {
+function onMessage(handler: MessageHandler): () => void {
   messageHandlers.push(handler);
+  // Return cleanup function
+  return () => {
+    const idx = messageHandlers.indexOf(handler);
+    if (idx >= 0) messageHandlers.splice(idx, 1);
+  };
 }
 
 function disconnect(): void {

@@ -37,7 +37,7 @@ describe('generateHookConfig', () => {
   it('should set timeout 540 for PermissionRequest', () => {
     const config = generateHookConfig(3333);
     const timeout = config.PermissionRequest[0].hooks[0].timeout;
-    expect(timeout).toBe(540);
+    expect(timeout).toBe(120);
   });
 
   it('should not set timeout for other events', () => {

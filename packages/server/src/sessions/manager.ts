@@ -129,29 +129,17 @@ export class SessionManager {
   }
 
   updateTokens(sessionId: string): void {
-    const session = this.queries.getSession(sessionId);
-    if (!session) return;
+    const info = this.queries.getSessionTranscriptInfo(sessionId);
+    if (!info) return;
 
-    // transcript_path stored in DB — retrieve from raw row
-    const raw = this.queries.getSession(sessionId);
-    if (!raw) return;
-
-    // We need the transcript_path and offset from the DB directly
-    const db = (this.queries as unknown as { db: { prepare: (sql: string) => { get: (id: string) => Record<string, unknown> | undefined } } }).db;
-    const row = db.prepare('SELECT transcript_path, transcript_offset, input_tokens, output_tokens FROM sessions WHERE id = ?').get(sessionId);
-    if (!row || !row.transcript_path) return;
-
-    const result = readNewTokens(
-      row.transcript_path as string,
-      (row.transcript_offset as number) || 0
-    );
+    const result = readNewTokens(info.transcriptPath, info.transcriptOffset);
 
     if (result.inputTokens > 0 || result.outputTokens > 0) {
       this.queries.updateSessionTokens(
         sessionId,
-        (row.input_tokens as number) + result.inputTokens,
-        (row.output_tokens as number) + result.outputTokens,
-        result.newOffset
+        info.inputTokens + result.inputTokens,
+        info.outputTokens + result.outputTokens,
+        result.newOffset,
       );
     }
   }

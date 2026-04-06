@@ -23,10 +23,19 @@ export class Queries {
     `).run(session.id, session.projectPath, session.projectName, session.model, session.transcriptPath);
   }
 
+  private static ALLOWED_SESSION_COLUMNS = new Set([
+    'model', 'status', 'context_percent', 'context_units', 'last_event_at',
+    'last_message', 'event_count', 'skills', 'mcps', 'agents',
+    'transcript_path', 'transcript_offset', 'input_tokens', 'output_tokens',
+  ]);
+
   updateSession(id: string, fields: Record<string, unknown>): void {
     const sets: string[] = [];
     const values: unknown[] = [];
     for (const [key, value] of Object.entries(fields)) {
+      if (!Queries.ALLOWED_SESSION_COLUMNS.has(key)) {
+        continue; // Silently skip invalid columns
+      }
       sets.push(`${key} = ?`);
       values.push(value);
     }
@@ -101,6 +110,19 @@ export class Queries {
     this.db.prepare('DELETE FROM events WHERE session_id = ?').run(id);
     this.db.prepare('DELETE FROM pending_permissions WHERE session_id = ?').run(id);
     this.db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+  }
+
+  getSessionTranscriptInfo(id: string): { transcriptPath: string; transcriptOffset: number; inputTokens: number; outputTokens: number } | null {
+    const row = this.db.prepare(
+      'SELECT transcript_path, transcript_offset, input_tokens, output_tokens FROM sessions WHERE id = ?'
+    ).get(id) as Record<string, unknown> | undefined;
+    if (!row || !row.transcript_path) return null;
+    return {
+      transcriptPath: row.transcript_path as string,
+      transcriptOffset: (row.transcript_offset as number) || 0,
+      inputTokens: (row.input_tokens as number) || 0,
+      outputTokens: (row.output_tokens as number) || 0,
+    };
   }
 
   updateSessionTokens(id: string, inputTokens: number, outputTokens: number, transcriptOffset: number): void {

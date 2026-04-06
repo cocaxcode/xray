@@ -256,6 +256,11 @@ function removeSession(sessionId: string): void {
   const next = new Map(sessions.value);
   next.delete(sessionId);
   sessions.value = next;
+
+  // Limpiar actividad asociada
+  const nextActivity = new Map(recentActivity.value);
+  nextActivity.delete(sessionId);
+  recentActivity.value = nextActivity;
 }
 
 function getSessionActivity(sessionId: string): Map<string, ToolEvent[]> {

@@ -23,21 +23,11 @@ export function formatToolDisplay(toolName: string, toolInput: Record<string, un
   let detail = '';
 
   switch (toolName) {
-    case 'Edit': {
-      const file = shortPath(toolInput.file_path as string);
-      detail = file;
+    case 'Edit':
+    case 'Write':
+    case 'Read':
+      detail = shortPath(toolInput.file_path as string);
       break;
-    }
-    case 'Write': {
-      const file = shortPath(toolInput.file_path as string);
-      detail = file;
-      break;
-    }
-    case 'Read': {
-      const file = shortPath(toolInput.file_path as string);
-      detail = file;
-      break;
-    }
     case 'Bash': {
       const cmd = toolInput.command as string;
       detail = cmd ? truncateCmd(cmd, 40) : '';

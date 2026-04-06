@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type { XrayHookConfig } from '../types.js';
@@ -25,12 +25,7 @@ function writeSettings(settings: Record<string, unknown>): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  // Atomic write: write to tmp, then rename
-  const tmpPath = path + '.tmp';
-  writeFileSync(tmpPath, JSON.stringify(settings, null, 2), 'utf-8');
-  // On Windows, rename may fail if target exists, so write directly
   writeFileSync(path, JSON.stringify(settings, null, 2), 'utf-8');
-  try { /* cleanup tmp */ require('node:fs').unlinkSync(tmpPath); } catch {}
 }
 
 function backupSettings(): void {

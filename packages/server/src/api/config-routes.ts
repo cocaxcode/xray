@@ -22,7 +22,7 @@ export function registerConfigRoutes(
     const newConfig = getConfig(db);
 
     // Broadcast config update to all connected dashboards
-    broadcast({ type: 'config:updated', data: newConfig } as never);
+    broadcast({ type: 'config:updated', data: newConfig as unknown as Record<string, unknown> });
 
     return newConfig;
   });

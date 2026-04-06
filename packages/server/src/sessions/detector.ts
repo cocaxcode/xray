@@ -24,23 +24,28 @@ export function updateMcps(
   const parsed = parseMcpToolName(toolName);
   if (!parsed) return currentMcps;
 
-  const mcps = [...currentMcps];
-  const existing = mcps.find(m => m.name === parsed.server);
+  const existingIdx = currentMcps.findIndex(m => m.name === parsed.server);
 
-  if (existing) {
-    if (!existing.toolsUsed.includes(parsed.tool)) {
-      existing.toolsUsed.push(parsed.tool);
-    }
-    if (!success) {
-      existing.status = 'error';
-    }
-  } else {
-    mcps.push({
-      name: parsed.server,
-      status: success ? 'connected' : 'error',
-      toolsUsed: [parsed.tool],
-    });
+  if (existingIdx >= 0) {
+    const existing = currentMcps[existingIdx];
+    const updated: McpServer = {
+      name: existing.name,
+      toolsUsed: existing.toolsUsed.includes(parsed.tool)
+        ? [...existing.toolsUsed]
+        : [...existing.toolsUsed, parsed.tool],
+      status: !success ? 'error' : existing.status,
+    };
+    const mcps = [...currentMcps];
+    mcps[existingIdx] = updated;
+    return mcps;
   }
+
+  const mcps = [...currentMcps];
+  mcps.push({
+    name: parsed.server,
+    status: success ? 'connected' : 'error',
+    toolsUsed: [parsed.tool],
+  });
 
   return mcps;
 }

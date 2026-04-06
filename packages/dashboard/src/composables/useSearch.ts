@@ -7,10 +7,15 @@ const searchQuery = ref('');
 const selectedProject = ref<string | null>(null); // null = todos
 const statusFilter = ref<Set<SessionStatus>>(new Set(['active', 'idle', 'waiting_permission', 'waiting_input', 'error']));
 
-// Cuando se activa el filtro "stopped", recargar sesiones stopped del servidor
+// Solo recargar del servidor cuando cambia el filtro "stopped"
+let lastIncludedStopped = false;
 watch(statusFilter, (newFilter) => {
-  const { loadInitialState } = useSessions();
-  loadInitialState(newFilter.has('stopped'));
+  const includeStopped = newFilter.has('stopped');
+  if (includeStopped !== lastIncludedStopped) {
+    lastIncludedStopped = includeStopped;
+    const { loadInitialState } = useSessions();
+    loadInitialState(includeStopped);
+  }
 }, { deep: true });
 
 const filteredGroups = computed<ProjectGroup[]>(() => {

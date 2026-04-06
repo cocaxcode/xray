@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { Agent, ToolEvent } from '../types';
 import { formatDuration } from '../utils/format';
 import { formatToolDisplay, getToolIcon } from '../utils/mcpParser';
@@ -12,8 +12,8 @@ const props = defineProps<{
 
 const collapsed = ref(false);
 
-const agentLabel = props.agent?.type || (props.agentId === 'main' ? 'main' : props.agentId);
-const isCompleted = props.agent?.status === 'completed';
+const agentLabel = computed(() => props.agent?.type || (props.agentId === 'main' ? 'main' : props.agentId));
+const isCompleted = computed(() => props.agent?.status === 'completed');
 </script>
 
 <template>
