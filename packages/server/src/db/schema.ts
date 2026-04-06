@@ -1,6 +1,37 @@
 import type Database from 'better-sqlite3';
 
+const CURRENT_VERSION = 2;
+
+/**
+ * Sistema de migraciones para SQLite.
+ * Cada version añade cambios incrementales al schema.
+ * Nunca hay que borrar la DB manualmente.
+ */
 export function initSchema(db: Database.Database): void {
+  // Crear tabla de version si no existe
+  db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`);
+
+  const row = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
+  const currentVersion = row?.version ?? 0;
+
+  if (currentVersion === 0) {
+    // Primera instalacion: crear todo desde cero
+    createTablesV1(db);
+    migrateToV2(db);
+    db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
+  } else {
+    // Migraciones incrementales
+    if (currentVersion < 2) migrateToV2(db);
+
+    // Actualizar version
+    if (currentVersion < CURRENT_VERSION) {
+      db.prepare('UPDATE schema_version SET version = ?').run(CURRENT_VERSION);
+    }
+  }
+}
+
+/** Schema original v1 */
+function createTablesV1(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -16,7 +47,6 @@ export function initSchema(db: Database.Database): void {
       mcps TEXT DEFAULT '[]',
       agents TEXT DEFAULT '[]',
       last_message TEXT,
-      topic TEXT,
       event_count INTEGER DEFAULT 0,
       input_tokens INTEGER DEFAULT 0,
       output_tokens INTEGER DEFAULT 0,
@@ -63,7 +93,7 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_permissions_status ON pending_permissions(status);
   `);
 
-  // FTS5 — create only if not exists (no IF NOT EXISTS for virtual tables)
+  // FTS5
   const ftsExists = db.prepare(
     "SELECT name FROM sqlite_master WHERE type='table' AND name='events_fts'"
   ).get();
@@ -76,6 +106,17 @@ export function initSchema(db: Database.Database): void {
         content_rowid='id'
       );
     `);
+  }
+}
+
+/** v2: añade columna topic a sessions */
+function migrateToV2(db: Database.Database): void {
+  // Verificar si la columna ya existe (por si la DB fue creada con el schema nuevo)
+  const columns = db.prepare("PRAGMA table_info('sessions')").all() as Array<{ name: string }>;
+  const hasTopicColumn = columns.some(c => c.name === 'topic');
+
+  if (!hasTopicColumn) {
+    db.exec('ALTER TABLE sessions ADD COLUMN topic TEXT');
   }
 }
 
