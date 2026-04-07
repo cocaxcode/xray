@@ -130,6 +130,24 @@ onUnmounted(() => {
   resizeObs?.disconnect();
 });
 
+// ── Dismiss Session ──
+
+function onDismissSession(sessionId: string): void {
+  // Remove main character + all companions + their enemies from the engine
+  if (!gameState.value) return;
+  const toRemove: string[] = [];
+  for (const [id, char] of gameState.value.characters) {
+    if (char.sessionId === sessionId) {
+      char.enemies = [];
+      char.markedForRemoval = true;
+      toRemove.push(id);
+    }
+  }
+  for (const id of toRemove) {
+    gameState.value.characters.delete(id);
+  }
+}
+
 // ── Canvas Events ──
 
 function onWheel(e: WheelEvent): void {
@@ -252,6 +270,7 @@ function onFocusSession(sessionId: string): void {
       :sessions="sessions"
       :game-state="gameState"
       :tick="tick"
+      @dismiss-session="onDismissSession"
     />
 
 

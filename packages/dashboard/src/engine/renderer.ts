@@ -77,7 +77,7 @@ export function render(
         }
         for (const enemy of char.enemies) {
           if (!enemy.markedForRemoval) {
-            drawEnemy(ctx, images, template, enemy, tileSize);
+            drawEnemy(ctx, images, template, enemy, tileSize, char.x);
           }
         }
         // MCP crystals floating around character
@@ -266,6 +266,7 @@ function drawEnemy(
   template: TemplateConfig,
   enemy: EnemyState,
   tileSize: number,
+  targetX?: number,
 ): void {
   const sprite = template.sprites[enemy.spriteKey];
   if (!sprite) {
@@ -322,13 +323,18 @@ function drawEnemy(
   // Enemies render at 80% of tile size
   const enemySize = tileSize * 0.8;
 
-  ctx.drawImage(
-    srcImg,
-    srcX, srcY, frameW, frameH,
-    enemy.x - enemySize / 2,
-    enemy.y - enemySize / 2,
-    enemySize, enemySize,
-  );
+  // Flip to face the warrior — sprites face right by default
+  const flipX = targetX !== undefined && targetX < enemy.x;
+
+  ctx.save();
+  if (flipX) {
+    ctx.translate(enemy.x, enemy.y);
+    ctx.scale(-1, 1);
+    ctx.drawImage(srcImg, srcX, srcY, frameW, frameH, -enemySize / 2, -enemySize / 2, enemySize, enemySize);
+  } else {
+    ctx.drawImage(srcImg, srcX, srcY, frameW, frameH, enemy.x - enemySize / 2, enemy.y - enemySize / 2, enemySize, enemySize);
+  }
+  ctx.restore();
 }
 
 // ── Environmental (MCPs) ──
