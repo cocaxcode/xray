@@ -11,7 +11,7 @@ const emit = defineEmits<{ openSettings: [] }>();
 
 const { filteredGroups } = useSearch();
 
-const sidebarOpen = ref(true);
+const sidebarOpen = ref(typeof window !== 'undefined' && window.innerWidth >= 1024);
 const selectedSessionId = ref<string | null>(null);
 
 const selectedSession = computed(() => {
