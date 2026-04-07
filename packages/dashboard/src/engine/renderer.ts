@@ -66,6 +66,28 @@ export function render(
     });
   }
 
+  // Goblin houses (behind goblin groups, drawn before characters)
+  for (const char of characters.values()) {
+    if (!char.isCompanion && char.enemies.length > 0) {
+      // Place house behind the goblin group center
+      let gx = 0, gy = 0;
+      for (const e of char.enemies) { gx += e.baseX; gy += e.baseY; }
+      gx /= char.enemies.length;
+      gy /= char.enemies.length;
+      const houseImg = images.get('sprite:goblin-house');
+      if (houseImg) {
+        const houseW = tileSize * 2;
+        const houseH = tileSize * 3;
+        drawables.push({
+          y: gy - tileSize,
+          draw: () => {
+            ctx.drawImage(houseImg, 0, 0, 128, 192, gx - houseW / 2, gy - houseH - tileSize * 0.5, houseW, houseH);
+          },
+        });
+      }
+    }
+  }
+
   // Characters + their enemies + environment
   for (const char of characters.values()) {
     drawables.push({
@@ -140,7 +162,13 @@ function drawTileMap(
 
       const img = images.get(`tile:${tileId}`);
       if (img) {
-        ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize);
+        if (tileDef.region) {
+          // Draw sub-region from tilemap sheet
+          const [rx, ry] = tileDef.region;
+          ctx.drawImage(img, rx, ry, 64, 64, col * tileSize, row * tileSize, tileSize, tileSize);
+        } else {
+          ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize);
+        }
       } else {
         ctx.fillStyle = '#4a7c59';
         ctx.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);

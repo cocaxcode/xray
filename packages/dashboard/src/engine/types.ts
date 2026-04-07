@@ -41,6 +41,7 @@ export interface TileDef {
   sheet: string;
   frameSize?: [number, number];
   frames?: number;
+  region?: [number, number]; // [x, y] offset in tilemap sheet (64x64 sub-tile)
 }
 
 export interface SpriteDef {

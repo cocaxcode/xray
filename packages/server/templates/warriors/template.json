@@ -5,362 +5,2692 @@
   "version": "1.0.0",
   "description": "Campo de batalla RPG — guerreros vs goblins. Sprites: Tiny Swords (Pixel Frog)",
   "tileSize": 64,
-
   "maps": {
     "small": {
-      "mapSize": [16, 10],
+      "mapSize": [
+        16,
+        10
+      ],
       "map": [
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        [
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          4
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          7,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          9
+        ]
       ],
       "walkable": [
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
       ],
       "zones": {
         "work": [
-          {"x": 5, "y": 3}, {"x": 8, "y": 3}, {"x": 11, "y": 3},
-          {"x": 5, "y": 7}, {"x": 8, "y": 7}, {"x": 11, "y": 7}
+          {
+            "x": 5,
+            "y": 3
+          },
+          {
+            "x": 8,
+            "y": 3
+          },
+          {
+            "x": 11,
+            "y": 3
+          },
+          {
+            "x": 5,
+            "y": 7
+          },
+          {
+            "x": 8,
+            "y": 7
+          },
+          {
+            "x": 11,
+            "y": 7
+          }
         ],
         "rest": [
-          {"x": 1, "y": 1}, {"x": 2, "y": 1},
-          {"x": 1, "y": 8}, {"x": 2, "y": 8},
-          {"x": 14, "y": 1}, {"x": 14, "y": 8}
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 2,
+            "y": 1
+          },
+          {
+            "x": 1,
+            "y": 8
+          },
+          {
+            "x": 2,
+            "y": 8
+          },
+          {
+            "x": 13,
+            "y": 1
+          },
+          {
+            "x": 13,
+            "y": 8
+          }
         ],
-        "spawn": [{"x": 2, "y": 5}],
-        "exit": [{"x": 14, "y": 5}]
+        "spawn": [
+          {
+            "x": 2,
+            "y": 5
+          }
+        ],
+        "exit": [
+          {
+            "x": 14,
+            "y": 5
+          }
+        ]
       }
     },
     "medium": {
-      "mapSize": [20, 12],
+      "mapSize": [
+        20,
+        12
+      ],
       "map": [
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        [
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          4
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          7,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          9
+        ]
       ],
       "walkable": [
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
       ],
       "zones": {
         "work": [
-          {"x": 6, "y": 2}, {"x": 8, "y": 2}, {"x": 10, "y": 2}, {"x": 12, "y": 2},
-          {"x": 6, "y": 4}, {"x": 8, "y": 4}, {"x": 10, "y": 4}, {"x": 12, "y": 4},
-          {"x": 6, "y": 6}, {"x": 8, "y": 6}, {"x": 10, "y": 6}, {"x": 12, "y": 6},
-          {"x": 7, "y": 3}, {"x": 9, "y": 5}
+          {
+            "x": 6,
+            "y": 2
+          },
+          {
+            "x": 8,
+            "y": 2
+          },
+          {
+            "x": 10,
+            "y": 2
+          },
+          {
+            "x": 12,
+            "y": 2
+          },
+          {
+            "x": 6,
+            "y": 4
+          },
+          {
+            "x": 8,
+            "y": 4
+          },
+          {
+            "x": 10,
+            "y": 4
+          },
+          {
+            "x": 12,
+            "y": 4
+          },
+          {
+            "x": 6,
+            "y": 6
+          },
+          {
+            "x": 8,
+            "y": 6
+          },
+          {
+            "x": 10,
+            "y": 6
+          },
+          {
+            "x": 12,
+            "y": 6
+          },
+          {
+            "x": 7,
+            "y": 3
+          },
+          {
+            "x": 9,
+            "y": 5
+          }
         ],
         "rest": [
-          {"x": 1, "y": 1}, {"x": 2, "y": 1}, {"x": 1, "y": 10}, {"x": 2, "y": 10},
-          {"x": 17, "y": 1}, {"x": 17, "y": 10}
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 2,
+            "y": 1
+          },
+          {
+            "x": 1,
+            "y": 10
+          },
+          {
+            "x": 2,
+            "y": 10
+          },
+          {
+            "x": 17,
+            "y": 1
+          },
+          {
+            "x": 17,
+            "y": 10
+          }
         ],
-        "spawn": [{"x": 0, "y": 11}],
-        "exit": [{"x": 19, "y": 11}]
+        "spawn": [
+          {
+            "x": 2,
+            "y": 6
+          }
+        ],
+        "exit": [
+          {
+            "x": 18,
+            "y": 6
+          }
+        ]
       }
     },
     "large": {
-      "mapSize": [24, 14],
+      "mapSize": [
+        24,
+        14
+      ],
       "map": [
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        [
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          4
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          7,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          9
+        ]
       ],
       "walkable": [
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
-        [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
       ],
       "zones": {
         "work": [
-          {"x": 7, "y": 2}, {"x": 9, "y": 2}, {"x": 11, "y": 2}, {"x": 13, "y": 2}, {"x": 15, "y": 2},
-          {"x": 7, "y": 4}, {"x": 9, "y": 4}, {"x": 11, "y": 4}, {"x": 13, "y": 4}, {"x": 15, "y": 4},
-          {"x": 7, "y": 6}, {"x": 9, "y": 6}, {"x": 11, "y": 6}, {"x": 13, "y": 6}, {"x": 15, "y": 6},
-          {"x": 7, "y": 8}, {"x": 9, "y": 8}, {"x": 11, "y": 8}, {"x": 13, "y": 8}, {"x": 15, "y": 8},
-          {"x": 8, "y": 3}, {"x": 10, "y": 5}, {"x": 12, "y": 7}, {"x": 14, "y": 3}
+          {
+            "x": 7,
+            "y": 2
+          },
+          {
+            "x": 9,
+            "y": 2
+          },
+          {
+            "x": 11,
+            "y": 2
+          },
+          {
+            "x": 13,
+            "y": 2
+          },
+          {
+            "x": 15,
+            "y": 2
+          },
+          {
+            "x": 7,
+            "y": 4
+          },
+          {
+            "x": 9,
+            "y": 4
+          },
+          {
+            "x": 11,
+            "y": 4
+          },
+          {
+            "x": 13,
+            "y": 4
+          },
+          {
+            "x": 15,
+            "y": 4
+          },
+          {
+            "x": 7,
+            "y": 6
+          },
+          {
+            "x": 9,
+            "y": 6
+          },
+          {
+            "x": 11,
+            "y": 6
+          },
+          {
+            "x": 13,
+            "y": 6
+          },
+          {
+            "x": 15,
+            "y": 6
+          },
+          {
+            "x": 7,
+            "y": 8
+          },
+          {
+            "x": 9,
+            "y": 8
+          },
+          {
+            "x": 11,
+            "y": 8
+          },
+          {
+            "x": 13,
+            "y": 8
+          },
+          {
+            "x": 15,
+            "y": 8
+          },
+          {
+            "x": 8,
+            "y": 3
+          },
+          {
+            "x": 10,
+            "y": 5
+          },
+          {
+            "x": 12,
+            "y": 7
+          },
+          {
+            "x": 14,
+            "y": 3
+          }
         ],
         "rest": [
-          {"x": 1, "y": 1}, {"x": 2, "y": 1}, {"x": 3, "y": 1},
-          {"x": 1, "y": 12}, {"x": 2, "y": 12}, {"x": 3, "y": 12},
-          {"x": 20, "y": 1}, {"x": 21, "y": 1},
-          {"x": 20, "y": 12}, {"x": 21, "y": 12}
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 2,
+            "y": 1
+          },
+          {
+            "x": 3,
+            "y": 1
+          },
+          {
+            "x": 1,
+            "y": 12
+          },
+          {
+            "x": 2,
+            "y": 12
+          },
+          {
+            "x": 3,
+            "y": 12
+          },
+          {
+            "x": 20,
+            "y": 1
+          },
+          {
+            "x": 21,
+            "y": 1
+          },
+          {
+            "x": 20,
+            "y": 12
+          },
+          {
+            "x": 21,
+            "y": 12
+          }
         ],
-        "spawn": [{"x": 0, "y": 13}],
-        "exit": [{"x": 23, "y": 13}]
+        "spawn": [
+          {
+            "x": 2,
+            "y": 7
+          }
+        ],
+        "exit": [
+          {
+            "x": 22,
+            "y": 7
+          }
+        ]
       }
     }
   },
-
   "tiles": {
-    "0": { "sheet": "tiles/grass.png" },
-    "1": { "sheet": "tiles/arena.png" },
-    "2": { "sheet": "tiles/stone.png" }
+    "0": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        64,
+        64
+      ]
+    },
+    "1": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        384,
+        64
+      ]
+    },
+    "2": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        0,
+        0
+      ]
+    },
+    "3": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        64,
+        0
+      ]
+    },
+    "4": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        128,
+        0
+      ]
+    },
+    "5": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        0,
+        64
+      ]
+    },
+    "6": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        128,
+        64
+      ]
+    },
+    "7": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        0,
+        128
+      ]
+    },
+    "8": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        64,
+        128
+      ]
+    },
+    "9": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        128,
+        128
+      ]
+    },
+    "10": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        320,
+        0
+      ]
+    },
+    "11": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        384,
+        0
+      ]
+    },
+    "12": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        448,
+        0
+      ]
+    },
+    "13": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        320,
+        64
+      ]
+    },
+    "14": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        448,
+        64
+      ]
+    },
+    "15": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        320,
+        128
+      ]
+    },
+    "16": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        384,
+        128
+      ]
+    },
+    "17": {
+      "sheet": "tiles/tilemap.png",
+      "region": [
+        448,
+        128
+      ]
+    }
   },
-
   "sprites": {
     "warrior-1": {
       "sheet": "characters/warrior-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":     { "row": 0, "frames": 8, "speed": 0.15, "sheet": "characters/warrior-idle.png" },
-        "walk":     { "row": 0, "frames": 6, "speed": 0.12, "sheet": "characters/warrior-walk.png" },
-        "attack":   { "row": 0, "frames": 4, "speed": 0.10, "sheet": "characters/warrior-attack.png" },
-        "attack_2": { "row": 0, "frames": 4, "speed": 0.10, "sheet": "characters/warrior-attack2.png" },
-        "attack_3": { "row": 0, "frames": 6, "speed": 0.10, "sheet": "characters/warrior-guard.png" },
-        "death":    { "row": 0, "frames": 4, "speed": 0.15, "loop": false, "sheet": "characters/warrior-attack.png" }
+        "idle": {
+          "row": 0,
+          "frames": 8,
+          "speed": 0.15,
+          "sheet": "characters/warrior-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.12,
+          "sheet": "characters/warrior-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.1,
+          "sheet": "characters/warrior-attack.png"
+        },
+        "attack_2": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.1,
+          "sheet": "characters/warrior-attack2.png"
+        },
+        "attack_3": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.1,
+          "sheet": "characters/warrior-guard.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.15,
+          "loop": false,
+          "sheet": "characters/warrior-attack.png"
+        }
       }
     },
     "warrior-2": {
       "sheet": "characters/warrior2-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 8, "speed": 0.15, "sheet": "characters/warrior2-idle.png" },
-        "walk":   { "row": 0, "frames": 6, "speed": 0.12, "sheet": "characters/warrior2-walk.png" },
-        "attack": { "row": 0, "frames": 4, "speed": 0.10, "sheet": "characters/warrior2-attack.png" },
-        "death":  { "row": 0, "frames": 4, "speed": 0.15, "loop": false, "sheet": "characters/warrior2-attack.png" }
+        "idle": {
+          "row": 0,
+          "frames": 8,
+          "speed": 0.15,
+          "sheet": "characters/warrior2-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.12,
+          "sheet": "characters/warrior2-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.1,
+          "sheet": "characters/warrior2-attack.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.15,
+          "loop": false,
+          "sheet": "characters/warrior2-attack.png"
+        }
       }
     },
     "lancer": {
       "sheet": "characters/lancer-idle.png",
-      "frameSize": [320, 320],
+      "frameSize": [
+        320,
+        320
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 12, "speed": 0.12, "sheet": "characters/lancer-idle.png" },
-        "walk":   { "row": 0, "frames": 6, "speed": 0.12, "sheet": "characters/lancer-walk.png" },
-        "attack": { "row": 0, "frames": 3, "speed": 0.10, "sheet": "characters/lancer-attack.png" },
-        "death":  { "row": 0, "frames": 3, "speed": 0.15, "loop": false, "sheet": "characters/lancer-attack.png" }
+        "idle": {
+          "row": 0,
+          "frames": 12,
+          "speed": 0.12,
+          "sheet": "characters/lancer-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.12,
+          "sheet": "characters/lancer-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 3,
+          "speed": 0.1,
+          "sheet": "characters/lancer-attack.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 3,
+          "speed": 0.15,
+          "loop": false,
+          "sheet": "characters/lancer-attack.png"
+        }
       }
     },
     "archer": {
       "sheet": "characters/archer-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 6, "speed": 0.15, "sheet": "characters/archer-idle.png" },
-        "walk":   { "row": 0, "frames": 4, "speed": 0.12, "sheet": "characters/archer-walk.png" },
-        "attack": { "row": 0, "frames": 5, "speed": 0.12, "sheet": "characters/archer-attack.png" },
-        "death":  { "row": 0, "frames": 4, "speed": 0.15, "loop": false, "sheet": "characters/archer-walk.png" }
+        "idle": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.15,
+          "sheet": "characters/archer-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.12,
+          "sheet": "characters/archer-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 5,
+          "speed": 0.12,
+          "sheet": "characters/archer-attack.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.15,
+          "loop": false,
+          "sheet": "characters/archer-walk.png"
+        }
       }
     },
     "mage": {
       "sheet": "characters/mage-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 6, "speed": 0.15, "sheet": "characters/mage-idle.png" },
-        "walk":   { "row": 0, "frames": 4, "speed": 0.12, "sheet": "characters/mage-walk.png" },
-        "attack": { "row": 0, "frames": 11, "speed": 0.10, "sheet": "characters/mage-attack.png" },
-        "death":  { "row": 0, "frames": 4, "speed": 0.15, "loop": false, "sheet": "characters/mage-walk.png" }
+        "idle": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.15,
+          "sheet": "characters/mage-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.12,
+          "sheet": "characters/mage-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 11,
+          "speed": 0.1,
+          "sheet": "characters/mage-attack.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.15,
+          "loop": false,
+          "sheet": "characters/mage-walk.png"
+        }
       }
     },
     "goblin": {
       "sheet": "enemies/torch-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 7, "speed": 0.15, "sheet": "enemies/torch-idle.png" },
-        "walk":   { "row": 0, "frames": 7, "speed": 0.12, "sheet": "enemies/torch-walk.png" },
-        "attack": { "row": 0, "frames": 6, "speed": 0.10, "sheet": "enemies/torch-attack.png" },
-        "death":  { "row": 0, "frames": 7, "speed": 0.12, "loop": false, "sheet": "enemies/torch-death.png" }
+        "idle": {
+          "row": 0,
+          "frames": 7,
+          "speed": 0.15,
+          "sheet": "enemies/torch-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 7,
+          "speed": 0.12,
+          "sheet": "enemies/torch-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.1,
+          "sheet": "enemies/torch-attack.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 7,
+          "speed": 0.12,
+          "loop": false,
+          "sheet": "enemies/torch-death.png"
+        }
       }
     },
     "goblin-barrel": {
       "sheet": "enemies/barrel-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 4, "speed": 0.15, "sheet": "enemies/barrel-idle.png" },
-        "walk":   { "row": 0, "frames": 4, "speed": 0.12, "sheet": "enemies/barrel-idle.png" },
-        "attack": { "row": 0, "frames": 4, "speed": 0.10, "sheet": "enemies/barrel-idle.png" },
-        "death":  { "row": 0, "frames": 4, "speed": 0.12, "loop": false, "sheet": "enemies/barrel-idle.png" }
+        "idle": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.15,
+          "sheet": "enemies/barrel-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.12,
+          "sheet": "enemies/barrel-idle.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.1,
+          "sheet": "enemies/barrel-idle.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 4,
+          "speed": 0.12,
+          "loop": false,
+          "sheet": "enemies/barrel-idle.png"
+        }
       }
     },
     "goblin-tnt": {
       "sheet": "enemies/tnt-idle.png",
-      "frameSize": [192, 192],
+      "frameSize": [
+        192,
+        192
+      ],
       "animations": {
-        "idle":   { "row": 0, "frames": 6, "speed": 0.15, "sheet": "enemies/tnt-idle.png" },
-        "walk":   { "row": 0, "frames": 6, "speed": 0.12, "sheet": "enemies/tnt-walk.png" },
-        "attack": { "row": 0, "frames": 6, "speed": 0.10, "sheet": "enemies/tnt-attack.png" },
-        "death":  { "row": 0, "frames": 6, "speed": 0.12, "loop": false, "sheet": "enemies/tnt-attack.png" }
+        "idle": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.15,
+          "sheet": "enemies/tnt-idle.png"
+        },
+        "walk": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.12,
+          "sheet": "enemies/tnt-walk.png"
+        },
+        "attack": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.1,
+          "sheet": "enemies/tnt-attack.png"
+        },
+        "death": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.12,
+          "loop": false,
+          "sheet": "enemies/tnt-attack.png"
+        }
       }
     },
     "sword-short": {
       "sheet": "equipment/sword-short.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "sword-big": {
       "sheet": "equipment/sword-big.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "shield": {
       "sheet": "equipment/shield.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "telescope": {
       "sheet": "equipment/telescope.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "scroll": {
       "sheet": "equipment/scroll.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "bow": {
       "sheet": "equipment/bow.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "crystal-blue": {
       "sheet": "environment/crystal-blue.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "crystal-red": {
       "sheet": "environment/crystal-red.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "crystal-green": {
       "sheet": "environment/crystal-green.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "crystal-purple": {
       "sheet": "environment/crystal-purple.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "portal": {
       "sheet": "environment/portal.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     },
     "tree": {
       "sheet": "props/tree.png",
-      "frameSize": [256, 256],
-      "animations": { "idle": { "row": 0, "frames": 6, "speed": 0.3, "sheet": "props/tree.png" } }
+      "frameSize": [
+        256,
+        256
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 6,
+          "speed": 0.3,
+          "sheet": "props/tree.png"
+        }
+      }
     },
     "rock": {
       "sheet": "props/rock.png",
-      "frameSize": [36, 33],
-      "animations": { "idle": { "row": 0, "frames": 1, "speed": 1 } }
+      "frameSize": [
+        36,
+        33
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "goblin-house": {
+      "sheet": "props/goblin-house.png",
+      "frameSize": [
+        128,
+        192
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     }
   },
-
   "props": [],
-
   "stateMap": {
-    "active":             { "anim": "attack", "zone": "work", "spawnEnemy": true, "enemySprite": "goblin" },
-    "idle":               { "anim": "idle",   "zone": "rest" },
-    "waiting_permission": { "anim": "idle",   "bubble": "shield" },
-    "waiting_input":      { "anim": "idle",   "bubble": "question" },
-    "error":              { "anim": "idle" },
-    "stopped":            { "anim": "death" }
+    "active": {
+      "anim": "attack",
+      "zone": "work",
+      "spawnEnemy": true,
+      "enemySprite": "goblin"
+    },
+    "idle": {
+      "anim": "idle",
+      "zone": "rest"
+    },
+    "waiting_permission": {
+      "anim": "idle",
+      "bubble": "shield"
+    },
+    "waiting_input": {
+      "anim": "idle",
+      "bubble": "question"
+    },
+    "error": {
+      "anim": "idle"
+    },
+    "stopped": {
+      "anim": "death"
+    }
   },
-
   "toolAnimations": {
-    "Read":      "idle",
-    "Grep":      "idle",
-    "Glob":      "idle",
-    "Edit":      "attack",
-    "Write":     "attack",
-    "Bash":      "attack_2",
-    "Agent":     "attack_3",
-    "WebFetch":  "attack_2",
+    "Read": "idle",
+    "Grep": "idle",
+    "Glob": "idle",
+    "Edit": "attack",
+    "Write": "attack",
+    "Bash": "attack_2",
+    "Agent": "attack_3",
+    "WebFetch": "attack_2",
     "WebSearch": "idle",
-    "default":   "attack"
+    "default": "attack"
   },
-
   "agentTypes": {
-    "general-purpose":        { "name": "Escudero",    "sprite": "lancer" },
-    "Explore":                { "name": "Explorador",  "sprite": "archer" },
-    "Plan":                   { "name": "Estratega",   "sprite": "mage" },
-    "best-practices-advisor": { "name": "Sabio",       "sprite": "mage" },
-    "seo-spanish-copywriter": { "name": "Escriba",     "sprite": "archer" },
-    "default":                { "name": "Aliado",      "sprite": "warrior-2" }
+    "general-purpose": {
+      "name": "Escudero",
+      "sprite": "lancer"
+    },
+    "Explore": {
+      "name": "Explorador",
+      "sprite": "archer"
+    },
+    "Plan": {
+      "name": "Estratega",
+      "sprite": "mage"
+    },
+    "best-practices-advisor": {
+      "name": "Sabio",
+      "sprite": "mage"
+    },
+    "seo-spanish-copywriter": {
+      "name": "Escriba",
+      "sprite": "archer"
+    },
+    "default": {
+      "name": "Aliado",
+      "sprite": "warrior-2"
+    }
   },
-
   "equipmentMap": {
-    "sdd-apply":   "sword-big",
+    "sdd-apply": "sword-big",
     "sdd-explore": "telescope",
-    "sdd-verify":  "shield",
-    "sdd-spec":    "scroll",
-    "sdd-design":  "scroll",
+    "sdd-verify": "shield",
+    "sdd-spec": "scroll",
+    "sdd-design": "scroll",
     "copywriting": "bow",
-    "default":     "sword-short"
+    "default": "sword-short"
   },
-
   "environmentMap": {
-    "database":    "crystal-blue",
+    "database": "crystal-blue",
     "api-testing": "crystal-red",
-    "logbook":     "crystal-green",
-    "devflow":     "crystal-purple",
-    "default":     "portal"
+    "logbook": "crystal-green",
+    "devflow": "crystal-purple",
+    "default": "portal"
   },
-
   "enemyScaling": {
     "metric": "totalTokens",
     "thresholds": [
-      { "tokens": 0,      "enemies": 3, "sprite": "goblin" },
-      { "tokens": 20000,  "enemies": 4, "sprite": "goblin" },
-      { "tokens": 40000,  "enemies": 5, "sprite": "goblin" },
-      { "tokens": 60000,  "enemies": 6, "sprite": "goblin" },
-      { "tokens": 100000, "enemies": 8, "sprite": "goblin" }
+      {
+        "tokens": 0,
+        "enemies": 3,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 20000,
+        "enemies": 4,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 40000,
+        "enemies": 5,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 60000,
+        "enemies": 6,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 100000,
+        "enemies": 8,
+        "sprite": "goblin"
+      }
     ]
   }
 }
