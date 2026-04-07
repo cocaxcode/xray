@@ -471,15 +471,11 @@ export function updateEnemies(
     const pseudoRand = Math.sin(seed * 13 + idx * 7) * 0.5 + 0.5;
     const pseudoRand2 = Math.sin(seed * 17 + idx * 11) * 0.5 + 0.5;
     // Direction based on seed (some sessions have goblins right, others left)
-    // Goblins cluster in a tight formation to one side of the seat
-    const dirX = (seed % 2 === 0) ? 1 : -1;
-    // Formation: tight cluster, 3-4 tiles away, spread ~1 tile between each
-    const formationX = 3.5 * dirX; // center of group
-    const formationY = 0;
+    // Goblins always to the right of the seat in a tight formation
     const col = idx % 3;
     const row = Math.floor(idx / 3);
-    const offsetX = formationX + (col - 1) * 0.8 * dirX + (pseudoRand - 0.5) * 0.3;
-    const offsetY = formationY + (row - 0.5) * 1.0 + (pseudoRand2 - 0.5) * 0.3;
+    const offsetX = 3 + col * 0.9 + pseudoRand * 0.4;
+    const offsetY = (row - 0.5) * 1.1 + (pseudoRand2 - 0.5) * 0.4;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
     // Clamp to map bounds (keep 1 tile margin)
