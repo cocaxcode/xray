@@ -154,7 +154,7 @@ export function updateCharacter(
 
         // Warrior advances 80% toward goblin group center directly
         char.x = homeX + (groupBaseX - homeX) * 0.8 * combatPhase;
-        char.y = homeY + (groupBaseY - homeY) * 0.5 * combatPhase;
+        char.y = homeY + (groupBaseY - homeY) * 0.8 * combatPhase;
 
         // Face toward goblins
         char.facing = groupBaseX > homeX ? 'right' : 'left';
@@ -174,7 +174,7 @@ export function updateCharacter(
 
           // Group advances toward warrior home position
           const groupX = groupBaseX + (homeX - groupBaseX) * 0.5 * combatPhase;
-          const groupY = groupBaseY + (homeY - groupBaseY) * 0.3 * combatPhase;
+          const groupY = groupBaseY + (homeY - groupBaseY) * 0.5 * combatPhase;
 
           enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
           enemy.y = groupY + offsetFromGroupY * 0.6;
