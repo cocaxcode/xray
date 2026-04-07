@@ -152,10 +152,8 @@ export function updateCharacter(
         // Combat phase: warrior charges toward goblin group center then retreats
         const combatPhase = (Math.sin(Date.now() / 1500) + 1) / 2;
 
-        // Warrior starts 30% toward goblins and oscillates to 60%
-        const baseAdvance = 0.3;
-        const swingRange = 0.3;
-        const advance = baseAdvance + swingRange * combatPhase;
+        // Warrior oscillates 40-70% toward goblins (stays close)
+        const advance = 0.4 + 0.3 * combatPhase;
         char.x = homeX + (groupBaseX - homeX) * advance;
         char.y = homeY + (groupBaseY - homeY) * advance;
 
@@ -176,8 +174,8 @@ export function updateCharacter(
           const stagger = Math.sin(Date.now() / 800 + ei * 1.5) * tileSize * 0.15;
 
           // Group advances toward warrior home position
-          const groupX = groupBaseX + (homeX - groupBaseX) * 0.2 * combatPhase;
-          const groupY = groupBaseY + (homeY - groupBaseY) * 0.2 * combatPhase;
+          const groupX = groupBaseX + (homeX - groupBaseX) * 0.3 * combatPhase;
+          const groupY = groupBaseY + (homeY - groupBaseY) * 0.3 * combatPhase;
 
           enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
           enemy.y = groupY + offsetFromGroupY * 0.6;
@@ -471,11 +469,11 @@ export function updateEnemies(
     const pseudoRand = Math.sin(seed * 13 + idx * 7) * 0.5 + 0.5;
     const pseudoRand2 = Math.sin(seed * 17 + idx * 11) * 0.5 + 0.5;
     // Direction based on seed (some sessions have goblins right, others left)
-    // Goblins always to the right of the seat in a tight formation
+    // Goblins 2 tiles to the right of seat — compact formation within 3 tiles
     const col = idx % 3;
     const row = Math.floor(idx / 3);
-    const offsetX = 3 + col * 0.9 + pseudoRand * 0.4;
-    const offsetY = (row - 0.5) * 1.1 + (pseudoRand2 - 0.5) * 0.4;
+    const offsetX = 2 + col * 0.5 + pseudoRand * 0.3;
+    const offsetY = (row - 0.5) * 0.8 + (pseudoRand2 - 0.5) * 0.3;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
     // Clamp to map bounds (keep 1 tile margin) — use largest available map
