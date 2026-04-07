@@ -95,10 +95,23 @@ export function render(
           if (pattern) {
             ctx.save();
             ctx.beginPath();
-            // Smooth ellipse with slight wobble
             const rx = tileSize * 2.2;
             const ry = tileSize * 1.5;
-            ctx.ellipse(gx, gy, rx, ry, 0, 0, Math.PI * 2);
+            // Irregular edge using many points with noise
+            const points = 40;
+            for (let i = 0; i <= points; i++) {
+              const angle = (i / points) * Math.PI * 2;
+              // Noise per point for bumpy edge
+              const seed = Math.sin(gx * 0.1 + angle * 3) * 0.15
+                         + Math.sin(gy * 0.1 + angle * 5) * 0.1
+                         + Math.sin(angle * 7) * 0.08;
+              const r = 1 + seed;
+              const px = gx + Math.cos(angle) * rx * r;
+              const py = gy + Math.sin(angle) * ry * r;
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
             ctx.fillStyle = pattern;
             ctx.fill();
             ctx.restore();
