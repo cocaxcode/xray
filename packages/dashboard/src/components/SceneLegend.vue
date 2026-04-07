@@ -144,17 +144,43 @@ function stateLabel(state: CharacterState): string {
     default: return '';
   }
 }
+
+// Legend collapsed state — starts collapsed on mobile
+const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+const legendOpen = ref(!isMobile);
 </script>
 
 <template>
+  <!-- Collapsed: small toggle button -->
+  <button
+    v-if="!legendOpen"
+    @click="legendOpen = true"
+    class="absolute top-14 left-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5
+           bg-surface/90 backdrop-blur-sm border border-border rounded-lg shadow-lg
+           text-[10px] font-mono text-muted hover:text-text transition-colors"
+  >
+    <span>▶</span>
+    <span>Leyenda</span>
+    <span class="text-cyan font-semibold">{{ visibleEntries.length }}</span>
+  </button>
+
+  <!-- Expanded panel -->
   <div
-    class="absolute top-14 left-2 z-20 w-64 max-h-[calc(100vh-100px)] overflow-y-auto
+    v-if="legendOpen"
+    class="absolute top-14 left-2 z-20 w-64 max-w-[calc(100vw-24px)] max-h-[calc(100vh-100px)] overflow-y-auto
            bg-surface/90 backdrop-blur-sm border border-border rounded-lg shadow-lg"
   >
-    <!-- Header -->
+    <!-- Header with close button -->
     <div class="px-3 py-2 border-b border-border/50 flex items-center justify-between">
       <span class="text-[11px] font-mono font-semibold text-text">Leyenda</span>
-      <span class="text-[9px] font-mono text-muted">{{ entries.length }} proyecto{{ entries.length !== 1 ? 's' : '' }}</span>
+      <div class="flex items-center gap-2">
+        <span class="text-[9px] font-mono text-muted">{{ visibleEntries.length }}</span>
+        <button @click="legendOpen = false" class="text-muted hover:text-text p-0.5" title="Ocultar">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Active Entries -->
