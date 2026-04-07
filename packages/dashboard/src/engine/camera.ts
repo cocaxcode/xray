@@ -52,7 +52,9 @@ export function worldToScreen(worldX: number, worldY: number, camera: Camera): P
  * delta > 0 = zoom in, delta < 0 = zoom out.
  */
 export function zoomAt(camera: Camera, screenX: number, screenY: number, delta: number): void {
-  const zoomFactor = delta > 0 ? 1.1 : 0.9;
+  // Scale factor proportional to delta magnitude — smoother for touch pinch
+  const sensitivity = 0.003;
+  const zoomFactor = 1 + Math.min(Math.abs(delta) * sensitivity, 0.15) * Math.sign(delta);
   const newZoom = Math.max(camera.minZoom, Math.min(camera.maxZoom, camera.zoom * zoomFactor));
 
   if (newZoom === camera.zoom) return;
