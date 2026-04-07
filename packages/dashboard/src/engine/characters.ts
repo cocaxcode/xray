@@ -91,7 +91,7 @@ export function updateCharacter(
     case CharacterState.IDLE:
       char.wanderTimer -= dt;
       if (char.wanderTimer <= 0) {
-        const target = pickRandomWalkableTile(activeMap, occupied);
+        const target = pickRandomWalkableTile(activeMap, occupied, char.tileX, char.tileY);
         if (target) {
           const path = findPath(activeMap.walkable, { x: char.tileX, y: char.tileY }, target, occupied);
           if (path.length > 0) {
@@ -562,12 +562,21 @@ function randomRange(min: number, max: number): number {
 function pickRandomWalkableTile(
   activeMap: MapDef,
   occupied: Set<string>,
+  nearX?: number,
+  nearY?: number,
 ): Position | null {
   const [cols, rows] = activeMap.mapSize;
   const candidates: Position[] = [];
+  const WANDER_RADIUS = 5;
 
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
+  // If near position provided, only pick tiles within radius
+  const minX = nearX !== undefined ? Math.max(1, nearX - WANDER_RADIUS) : 1;
+  const maxX = nearX !== undefined ? Math.min(cols - 2, nearX + WANDER_RADIUS) : cols - 2;
+  const minY = nearY !== undefined ? Math.max(1, nearY - WANDER_RADIUS) : 1;
+  const maxY = nearY !== undefined ? Math.min(rows - 2, nearY + WANDER_RADIUS) : rows - 2;
+
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
       if (activeMap.walkable[y]?.[x] && !occupied.has(`${x},${y}`)) {
         candidates.push({ x, y });
       }
