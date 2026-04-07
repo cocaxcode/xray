@@ -83,6 +83,8 @@ export function updateCharacter(
       if (char.spawnTimer <= 0) {
         char.state = CharacterState.IDLE;
         char.currentAnim = 'idle';
+        char.animFrame = 0;
+        char.animTimer = 0;
       }
       break;
 
@@ -98,6 +100,8 @@ export function updateCharacter(
             char.state = CharacterState.WALKING;
             char.targetState = CharacterState.IDLE;
             char.currentAnim = 'walk';
+            char.animFrame = 0;
+            char.animTimer = 0;
           }
         }
         char.wanderTimer = randomRange(WANDER_MIN, WANDER_MAX);
@@ -244,6 +248,8 @@ export function transitionToActive(
       char.state = CharacterState.WALKING;
       char.targetState = CharacterState.WORKING;
       char.currentAnim = 'walk';
+      char.animFrame = 0;
+      char.animTimer = 0;
     } else {
       // Can't pathfind — just teleport
       char.tileX = seat.x;
@@ -252,11 +258,15 @@ export function transitionToActive(
       char.y = seat.y * tileSize + tileSize / 2;
       char.state = CharacterState.WORKING;
       char.currentAnim = toolAnim || 'attack';
+      char.animFrame = 0;
+      char.animTimer = 0;
     }
   } else {
     // No seats available — stay where we are, play working anim anyway
     char.state = CharacterState.WORKING;
     char.currentAnim = toolAnim || 'attack';
+    char.animFrame = 0;
+    char.animTimer = 0;
   }
 }
 
@@ -270,9 +280,9 @@ export function transitionToIdle(
   }
   char.state = CharacterState.IDLE;
   char.currentAnim = 'idle';
-  char.wanderTimer = randomRange(WANDER_MIN, WANDER_MAX);
   char.animFrame = 0;
   char.animTimer = 0;
+  char.wanderTimer = randomRange(WANDER_MIN, WANDER_MAX);
 
   // Despawn enemies
   for (const enemy of char.enemies) {
@@ -302,6 +312,8 @@ export function transitionToStopped(
       char.state = CharacterState.WALKING;
       char.targetState = CharacterState.DYING;
       char.currentAnim = 'walk';
+      char.animFrame = 0;
+      char.animTimer = 0;
     } else {
       // Can't pathfind to exit — die in place
       char.state = CharacterState.DYING;
@@ -358,6 +370,11 @@ export function updateAnimation(char: Character, dt: number, template: TemplateC
 
   const anim = sprite.animations[char.currentAnim];
   if (!anim) return;
+
+  // Safety clamp — prevent frame from exceeding animation length
+  if (char.animFrame >= anim.frames) {
+    char.animFrame = 0;
+  }
 
   char.animTimer += dt;
   if (char.animTimer >= anim.speed) {
