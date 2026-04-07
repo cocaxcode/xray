@@ -41,8 +41,8 @@ export async function startServer(options: CliOptions): Promise<void> {
   // Create broadcast function
   const broadcast = createBroadcast(fastify);
 
-  // Auth state — siempre activo para proteger contra proxies/tuneles
-  const authState = createAuthState(options.authToken);
+  // Auth state — token persiste en DB para sobrevivir reinicios
+  const authState = createAuthState(options.authToken, db);
   registerAuthMiddleware(fastify, authState);
 
   // Init managers

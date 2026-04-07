@@ -18,11 +18,42 @@ export function generatePin(): string {
 }
 
 /**
- * Crea un nuevo AuthState con token y PIN
+ * Crea un nuevo AuthState con token y PIN.
+ * Si se pasa una DB, intenta reutilizar el token persistido.
+ * Si no existe, genera uno nuevo y lo guarda.
  */
-export function createAuthState(customToken?: string): AuthState {
+export function createAuthState(customToken?: string, db?: import('better-sqlite3').Database): AuthState {
+  let token = customToken;
+
+  if (!token && db) {
+    // Try to load persisted token
+    try {
+      const row = db.prepare('SELECT value FROM config WHERE key = ?').get('auth.token') as { value: string } | undefined;
+      if (row?.value) {
+        token = row.value;
+      }
+    } catch {
+      // Config table might not exist yet
+    }
+  }
+
+  if (!token) {
+    token = generateToken();
+  }
+
+  // Persist token to DB for reuse across restarts
+  if (db) {
+    try {
+      db.prepare(
+        "INSERT INTO config (key, value, updated_at) VALUES ('auth.token', ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')"
+      ).run(token, token);
+    } catch {
+      // Config table might not exist yet
+    }
+  }
+
   return {
-    token: customToken || generateToken(),
+    token,
     pin: generatePin(),
     pinExpiresAt: Date.now() + PIN_TTL_MS,
   };
