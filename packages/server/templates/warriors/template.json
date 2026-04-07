@@ -191,7 +191,7 @@
       "animations": {
         "idle":   { "row": 0, "frames": 6, "speed": 0.15, "sheet": "characters/archer-idle.png" },
         "walk":   { "row": 0, "frames": 4, "speed": 0.12, "sheet": "characters/archer-walk.png" },
-        "attack": { "row": 0, "frames": 8, "speed": 0.10, "sheet": "characters/archer-attack.png" },
+        "attack": { "row": 0, "frames": 5, "speed": 0.12, "sheet": "characters/archer-attack.png" },
         "death":  { "row": 0, "frames": 4, "speed": 0.15, "loop": false, "sheet": "characters/archer-walk.png" }
       }
     },

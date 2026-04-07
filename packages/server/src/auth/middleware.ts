@@ -82,9 +82,9 @@ export function registerAuthMiddleware(
       if (isLocal) return;
     }
 
-    // Dashboard HTML/assets siempre pasan (auth via PIN/QR en el frontend)
+    // Dashboard HTML/assets/templates siempre pasan (auth via PIN/QR en el frontend)
     // url puede ser / o /?auth=TOKEN (QR scan)
-    if (url === '/' || url.startsWith('/?') || url.startsWith('/assets/')) return;
+    if (url === '/' || url.startsWith('/?') || url.startsWith('/assets/') || url.startsWith('/templates/')) return;
 
     // WebSocket pasa (tiene su propia validacion de token)
     if (url.startsWith('/ws')) return;
