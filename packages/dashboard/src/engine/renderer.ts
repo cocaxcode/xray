@@ -76,8 +76,8 @@ export function render(
       gy /= char.enemies.length;
       const houseImg = images.get('sprite:goblin-house');
       if (houseImg) {
-        const houseW = tileSize * 2;
-        const houseH = tileSize * 3;
+        const houseW = tileSize * 1.2;
+        const houseH = tileSize * 1.8;
         drawables.push({
           y: gy - tileSize,
           draw: () => {
