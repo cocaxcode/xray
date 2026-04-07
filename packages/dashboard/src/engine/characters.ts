@@ -150,10 +150,10 @@ export function updateCharacter(
         groupBaseY /= char.enemies.length;
 
         // Combat phase: warrior charges toward goblin group center then retreats
-        const combatPhase = (Math.sin(Date.now() / 1500) + 1) / 2;
+        const combatPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
 
-        // Warrior oscillates 40-70% toward goblins (stays close)
-        const advance = 0.4 + 0.3 * combatPhase;
+        // Warrior oscillates 70-90% toward goblins — fights close
+        const advance = 0.7 + 0.2 * combatPhase;
         char.x = homeX + (groupBaseX - homeX) * advance;
         char.y = homeY + (groupBaseY - homeY) * advance;
 
@@ -174,8 +174,8 @@ export function updateCharacter(
           const stagger = Math.sin(Date.now() / 800 + ei * 1.5) * tileSize * 0.15;
 
           // Group advances toward warrior home position
-          const groupX = groupBaseX + (homeX - groupBaseX) * 0.3 * combatPhase;
-          const groupY = groupBaseY + (homeY - groupBaseY) * 0.3 * combatPhase;
+          const groupX = groupBaseX + (homeX - groupBaseX) * 0.4 * combatPhase;
+          const groupY = groupBaseY + (homeY - groupBaseY) * 0.4 * combatPhase;
 
           enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
           enemy.y = groupY + offsetFromGroupY * 0.6;
