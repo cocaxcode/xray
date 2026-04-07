@@ -30,6 +30,7 @@ const tick = ref(0); // Incremented each frame to force legend reactivity
 
 // Track session index for hue shift assignment
 let sessionCounter = 0;
+const idleTimers = new Map<string, number>(); // charId → setTimeout ID
 const sessionHueShifts = new Map<string, number>();
 
 // ── Init ──
@@ -243,8 +244,27 @@ function onSessionUpdate(session: Session): void {
     const toolAnim = getToolAnimation(state.template, session.activeTool?.toolName);
     transitionToActive(char, state.template, state.activeMap, state.occupiedSeats, state.template.tileSize, toolAnim);
   } else if ((session.status === 'idle' || session.status === 'waiting_input') && prevWorking) {
-    transitionToIdle(char, state.occupiedSeats);
-  } else if (session.status === 'stopped') {
+    // Delay idle transition — between tool calls there's a brief idle gap
+    // Only transition if still idle after 2 seconds
+    const charId = char.id;
+    if (!idleTimers.has(charId)) {
+      idleTimers.set(charId, window.setTimeout(() => {
+        idleTimers.delete(charId);
+        const currentChar = gameState.value?.characters.get(charId);
+        if (currentChar && currentChar.state === CharacterState.WORKING) {
+          const sess = useSessions().sessions.value.get(currentChar.sessionId);
+          if (sess && (sess.status === 'idle' || sess.status === 'waiting_input')) {
+            transitionToIdle(currentChar, gameState.value!.occupiedSeats);
+          }
+        }
+      }, 2000));
+    }
+  } else if (session.status === 'active' && idleTimers.has(char.id)) {
+    // Cancel pending idle transition — session is active again
+    clearTimeout(idleTimers.get(char.id));
+    idleTimers.delete(char.id);
+  }
+  if (session.status === 'stopped') {
     transitionToStopped(char, state.activeMap, state.occupiedSeats, state.template.tileSize);
   }
 
@@ -427,6 +447,9 @@ function destroy(): void {
   selectedSessionId.value = null;
   sessionCounter = 0;
   sessionHueShifts.clear();
+  // Clean up idle timers
+  for (const timer of idleTimers.values()) clearTimeout(timer);
+  idleTimers.clear();
 }
 
 // ── Helpers ──
