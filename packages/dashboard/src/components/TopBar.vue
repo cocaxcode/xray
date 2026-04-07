@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useTheme } from '../composables/useTheme';
 import { useWebSocket } from '../composables/useWebSocket';
 import { useSessions } from '../composables/useSessions';
@@ -14,40 +15,61 @@ const { totals } = useSessions();
 const { searchQuery, clearSearch } = useSearch();
 const { count: permissionCount } = usePermissions();
 const { current: viewMode, availableTemplates, setView } = useViewMode();
+
+const searchOpen = ref(false);
+
+function toggleSearch(): void {
+  searchOpen.value = !searchOpen.value;
+  if (!searchOpen.value) clearSearch();
+}
 </script>
 
 <template>
-  <header class="h-12 flex items-center gap-3 px-4 bg-surface border-b border-border flex-shrink-0">
-    <!-- Search -->
-    <div class="flex-1 max-w-md relative">
-      <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Buscar proyecto, sesion, modelo..."
-        class="w-full h-8 pl-8 pr-8 text-xs font-mono bg-bg border border-border rounded-md text-text placeholder:text-muted focus:border-cyan focus:outline-none"
-      />
+  <header class="h-12 flex items-center gap-2 px-3 bg-surface border-b border-border flex-shrink-0">
+    <!-- Search: icon on mobile, full input on desktop -->
+    <div class="relative" :class="searchOpen ? 'flex-1 max-w-md' : ''">
+      <!-- Mobile: search icon button -->
       <button
-        v-if="searchQuery"
-        @click="clearSearch"
-        class="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-text"
+        v-if="!searchOpen"
+        @click="toggleSearch"
+        class="sm:hidden text-muted hover:text-text p-1"
+        title="Buscar"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </button>
+
+      <!-- Desktop: always show input. Mobile: show only when open -->
+      <div :class="searchOpen ? 'block' : 'hidden sm:block'" class="relative flex-1 max-w-md">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar..."
+          class="w-full h-8 pl-8 pr-8 text-xs font-mono bg-bg border border-border rounded-md text-text placeholder:text-muted focus:border-cyan focus:outline-none"
+        />
+        <button
+          @click="toggleSearch"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-text"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats (hide on small) -->
     <div class="hidden md:flex items-center gap-3 text-[11px] font-mono text-muted">
       <span>{{ totals.activeSessions }} activas</span>
       <span v-if="totals.idleSessions > 0">{{ totals.idleSessions }} idle</span>
     </div>
 
-    <!-- View Switcher -->
-    <div class="hidden sm:flex items-center gap-1 border border-border rounded-md p-0.5">
+    <!-- View Switcher (always visible) -->
+    <div v-if="!searchOpen" class="flex items-center gap-1 border border-border rounded-md p-0.5">
       <button
         @click="setView('panel')"
         class="text-[10px] font-mono px-2 py-1 rounded transition-colors"
@@ -66,10 +88,13 @@ const { current: viewMode, availableTemplates, setView } = useViewMode();
       </button>
     </div>
 
+    <!-- Spacer -->
+    <div class="flex-1" />
+
     <!-- Permissions badge -->
     <button
       v-if="permissionCount > 0"
-      class="relative text-amber hover:text-amber/80 transition-colors"
+      class="relative text-amber hover:text-amber/80 transition-colors shrink-0"
       title="Permisos pendientes"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +108,7 @@ const { current: viewMode, availableTemplates, setView } = useViewMode();
     <!-- Settings -->
     <button
       @click="emit('openSettings')"
-      class="text-muted hover:text-text transition-colors p-1"
+      class="text-muted hover:text-text transition-colors p-1 shrink-0"
       title="Configuracion"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,10 +117,10 @@ const { current: viewMode, availableTemplates, setView } = useViewMode();
       </svg>
     </button>
 
-    <!-- Theme toggle -->
+    <!-- Theme toggle (hide on very small) -->
     <button
       @click="toggleTheme"
-      class="text-muted hover:text-text transition-colors p-1"
+      class="hidden sm:block text-muted hover:text-text transition-colors p-1 shrink-0"
       :title="isDark ? 'Modo claro' : 'Modo oscuro'"
     >
       <svg v-if="isDark" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +132,7 @@ const { current: viewMode, availableTemplates, setView } = useViewMode();
     </button>
 
     <!-- Connection status -->
-    <span class="flex items-center gap-1">
+    <span class="flex items-center shrink-0">
       <span
         class="h-2 w-2 rounded-full"
         :class="connected ? 'bg-green' : reconnecting ? 'bg-amber animate-pulse' : 'bg-red'"

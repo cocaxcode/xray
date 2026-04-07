@@ -217,6 +217,94 @@ function onCanvasClick(e: MouseEvent): void {
   }
 }
 
+// ── Touch Events (mobile) ──
+
+let lastTouchDist = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let isTouchDragging = false;
+
+function onTouchStart(e: TouchEvent): void {
+  if (!gameState.value) return;
+  e.preventDefault();
+
+  if (e.touches.length === 1) {
+    // Single finger — pan
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    startDrag(gameState.value.camera, touchStartX, touchStartY);
+    isTouchDragging = true;
+  } else if (e.touches.length === 2) {
+    // Two fingers — pinch zoom
+    isTouchDragging = false;
+    endDrag(gameState.value.camera);
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+  }
+}
+
+function onTouchMove(e: TouchEvent): void {
+  if (!gameState.value) return;
+  e.preventDefault();
+
+  if (e.touches.length === 1 && isTouchDragging) {
+    // Pan
+    updateDrag(gameState.value.camera, e.touches[0].clientX, e.touches[0].clientY);
+  } else if (e.touches.length === 2) {
+    // Pinch zoom
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (lastTouchDist > 0) {
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = canvasRef.value!.getBoundingClientRect();
+      const delta = (dist - lastTouchDist) * 2;
+      zoomAt(gameState.value.camera, centerX - rect.left, centerY - rect.top, delta);
+    }
+
+    lastTouchDist = dist;
+  }
+}
+
+function onTouchEnd(e: TouchEvent): void {
+  if (!gameState.value) return;
+
+  if (e.touches.length === 0) {
+    if (isTouchDragging) {
+      // Check if it was a tap (no significant movement)
+      const moved = e.changedTouches[0] ?
+        Math.abs(e.changedTouches[0].clientX - touchStartX) + Math.abs(e.changedTouches[0].clientY - touchStartY) : 999;
+
+      if (moved < 10) {
+        // Tap — check character hit
+        const rect = canvasRef.value!.getBoundingClientRect();
+        const x = (e.changedTouches[0]?.clientX || touchStartX) - rect.left;
+        const y = (e.changedTouches[0]?.clientY || touchStartY) - rect.top;
+        const char = getCharacterAtPixel(x, y);
+        if (char) {
+          selectCharacter(char.sessionId);
+          focusCharacter(char.sessionId);
+        } else {
+          selectCharacter(null);
+          focusedSessionId.value = null;
+        }
+      }
+
+      endDrag(gameState.value.camera);
+      isTouchDragging = false;
+    }
+    lastTouchDist = 0;
+  } else if (e.touches.length === 1) {
+    // Went from 2 to 1 finger — start panning
+    lastTouchDist = 0;
+    startDrag(gameState.value.camera, e.touches[0].clientX, e.touches[0].clientY);
+    isTouchDragging = true;
+  }
+}
+
 function onFocusSession(sessionId: string): void {
   focusCharacter(sessionId);
 
@@ -235,6 +323,7 @@ function onFocusSession(sessionId: string): void {
     <canvas
       ref="canvasRef"
       class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"
+      style="touch-action: none;"
       @wheel.prevent="onWheel"
       @mousedown="onMouseDown"
       @mousemove="onMouseMove"
@@ -242,6 +331,9 @@ function onFocusSession(sessionId: string): void {
       @mouseleave="onMouseUp"
       @click="onCanvasClick"
       @dblclick="onDblClick"
+      @touchstart="onTouchStart"
+      @touchmove="onTouchMove"
+      @touchend="onTouchEnd"
     />
 
     <!-- Scene Overlay (activity + permission bubbles) -->
