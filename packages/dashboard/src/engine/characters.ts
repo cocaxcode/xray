@@ -130,9 +130,10 @@ export function updateCharacter(
     case CharacterState.WORKING:
       updateAnimation(char, dt, template);
       if (char.enemies.length > 0) {
-        // Use BASE positions for all calculations (no feedback loops)
-        const homeX = char.tileX * tileSize + tileSize / 2;
-        const homeY = char.tileY * tileSize + tileSize / 2;
+        // Home = assigned seat position (not current tile which may be mid-walk)
+        const seat = char.assignedSeat || { x: char.tileX, y: char.tileY };
+        const homeX = seat.x * tileSize + tileSize / 2;
+        const homeY = seat.y * tileSize + tileSize / 2;
 
         // Find nearest enemy BASE position (not animated position)
         let nearestEnemy = char.enemies[0];
