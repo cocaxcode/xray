@@ -307,7 +307,8 @@ function onAgentStop(_sessionId: string, agentId: string): void {
   const char = state.characters.get(agentId);
   if (!char) return;
 
-  transitionToStopped(char, state.activeMap, state.occupiedSeats, state.template.tileSize);
+  // Companion stays on map — goes to idle (resting), doesn't disappear
+  transitionToIdle(char, state.occupiedSeats);
 }
 
 function onToolActivity(event: ToolEvent): void {
