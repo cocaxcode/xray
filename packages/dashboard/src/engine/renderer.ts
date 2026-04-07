@@ -71,14 +71,42 @@ export function render(
     drawProp(ctx, images, template, prop, tileSize);
   }
 
-  // Goblin houses (behind goblin groups, drawn before characters)
+  // Goblin camps: dirt patch + house (drawn before characters)
   for (const char of characters.values()) {
     if (!char.isCompanion && char.enemies.length > 0) {
-      // Place house behind the goblin group center
       let gx = 0, gy = 0;
       for (const e of char.enemies) { gx += e.baseX; gy += e.baseY; }
       gx /= char.enemies.length;
       gy /= char.enemies.length;
+
+      // Draw dirt/sand patch in oval around goblin area
+      const tilemapImg = images.get('tile:1'); // sand center tile
+      if (tilemapImg) {
+        const sandRegion = template.tiles['1']?.region;
+        if (sandRegion) {
+          // Oval pattern: tiles within radius from goblin center
+          const centerTileX = Math.floor(gx / tileSize);
+          const centerTileY = Math.floor(gy / tileSize);
+          const radiusX = 2.5;
+          const radiusY = 1.8;
+
+          for (let dy = -3; dy <= 3; dy++) {
+            for (let dx = -3; dx <= 3; dx++) {
+              const tx = centerTileX + dx;
+              const ty = centerTileY + dy;
+              // Ellipse check
+              const ex = dx / radiusX;
+              const ey = dy / radiusY;
+              if (ex * ex + ey * ey <= 1) {
+                ctx.drawImage(tilemapImg, sandRegion[0], sandRegion[1], 64, 64,
+                  tx * tileSize, ty * tileSize, tileSize, tileSize);
+              }
+            }
+          }
+        }
+      }
+
+      // Draw goblin house above
       const houseImg = images.get('sprite:goblin-house');
       if (houseImg) {
         const houseW = tileSize * 1.2;
