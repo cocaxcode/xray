@@ -454,8 +454,8 @@ export function updateEnemies(
     const pseudoRand2 = Math.sin(seed * 17 + idx * 11) * 0.5 + 0.5;
     // Direction based on seed (some sessions have goblins right, others left)
     const dirX = (seed % 2 === 0) ? 1 : -1;
-    const offsetX = (2 + pseudoRand * 1.5) * dirX;
-    const offsetY = (pseudoRand2 - 0.5) * 2;
+    const offsetX = (2.5 + pseudoRand * 3) * dirX;
+    const offsetY = (pseudoRand2 - 0.5) * 4;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
     // Clamp to map bounds (keep 1 tile margin)
