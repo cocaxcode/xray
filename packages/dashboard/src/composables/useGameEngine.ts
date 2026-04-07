@@ -332,6 +332,17 @@ function update(dt: number): void {
     sessionHueShifts.delete(id);
   }
 
+  // Companions face toward parent's enemies
+  for (const char of state.characters.values()) {
+    if (char.isCompanion && (char.state === CharacterState.WORKING || char.state === CharacterState.IDLE)) {
+      const parent = state.characters.get(char.sessionId);
+      if (parent && parent.enemies.length > 0) {
+        const enemyCenterX = parent.enemies.reduce((s, e) => s + e.x, 0) / parent.enemies.length;
+        char.facing = enemyCenterX > char.x ? 'right' : 'left';
+      }
+    }
+  }
+
   // Tick counter for legend reactivity (every 30 frames ≈ 0.5s)
   tick.value++;
 }
