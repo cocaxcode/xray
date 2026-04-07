@@ -57,13 +57,18 @@ export function render(
   // 2. Collect drawables (props + characters + enemies + environment)
   const drawables: Drawable[] = [];
 
-  // Props
+  // Static props
   for (const prop of template.props) {
     const py = prop.y * tileSize;
     drawables.push({
       y: py,
       draw: () => drawProp(ctx, images, template, prop, tileSize),
     });
+  }
+
+  // Random decorations (drawn on ground — characters walk OVER them)
+  for (const prop of state.randomProps) {
+    drawProp(ctx, images, template, prop, tileSize);
   }
 
   // Goblin houses (behind goblin groups, drawn before characters)

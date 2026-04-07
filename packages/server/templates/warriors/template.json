@@ -2580,6 +2580,202 @@
           "speed": 1
         }
       }
+    },
+    "mushroom-s": {
+      "sheet": "props/deco-01.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "mushroom-m": {
+      "sheet": "props/deco-02.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "mushroom-l": {
+      "sheet": "props/deco-03.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "rock-s": {
+      "sheet": "props/deco-04.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "rock-m": {
+      "sheet": "props/deco-05.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "rock-l": {
+      "sheet": "props/deco-06.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "bush-s": {
+      "sheet": "props/deco-07.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "bush-m": {
+      "sheet": "props/deco-08.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "bush-l": {
+      "sheet": "props/deco-09.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "plant-s": {
+      "sheet": "props/deco-10.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "plant-m": {
+      "sheet": "props/deco-11.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "pumpkin-s": {
+      "sheet": "props/deco-12.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "bone-l": {
+      "sheet": "props/deco-14.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
+    },
+    "bone-s": {
+      "sheet": "props/deco-15.png",
+      "frameSize": [
+        64,
+        64
+      ],
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": 1,
+          "speed": 1
+        }
+      }
     }
   },
   "props": [],
@@ -2692,5 +2888,24 @@
         "sprite": "goblin"
       }
     ]
+  },
+  "decorations": {
+    "sprites": [
+      "mushroom-s",
+      "mushroom-m",
+      "mushroom-l",
+      "rock-s",
+      "rock-m",
+      "rock-l",
+      "bush-s",
+      "bush-m",
+      "plant-s",
+      "plant-m",
+      "pumpkin-s",
+      "bone-l",
+      "bone-s"
+    ],
+    "count": 15,
+    "margin": 1
   }
 }

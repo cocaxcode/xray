@@ -23,6 +23,7 @@ export interface TemplateConfig {
   equipmentMap: Record<string, string>;
   environmentMap: Record<string, string>;
   enemyScaling: EnemyScaling;
+  decorations?: DecorationConfig;
 }
 
 export interface MapDef {
@@ -63,6 +64,12 @@ export interface PropDef {
   x: number;
   y: number;
   animation?: string;
+}
+
+export interface DecorationConfig {
+  sprites: string[];   // sprite keys to randomly pick from
+  count: number;       // how many to place
+  margin: number;      // tiles from edge to avoid
 }
 
 export interface Position {
@@ -189,6 +196,7 @@ export interface GameState {
   occupiedSeats: Set<string>; // "x,y" strings
   seatQueue: string[];        // character IDs waiting for a seat
   camera: Camera;
+  randomProps: PropDef[];  // randomly generated decorations
 }
 
 // ── Template Metadata (from GET /api/templates) ──

@@ -40,6 +40,9 @@ function init(
 ): void {
   const activeMap = selectMap(template, currentSessions.length);
 
+  // Generate random decorations
+  const randomProps = generateRandomDecorations(template, activeMap);
+
   const state: GameState = {
     characters: new Map(),
     template,
@@ -48,6 +51,7 @@ function init(
     occupiedSeats: new Set(),
     seatQueue: [],
     camera: createCamera(),
+    randomProps,
   };
 
   gameState.value = state;
@@ -388,6 +392,63 @@ function destroy(): void {
 }
 
 // ── Helpers ──
+
+function generateRandomDecorations(template: TemplateConfig, activeMap: MapDef): import('../engine/types').PropDef[] {
+  const config = template.decorations;
+  if (!config) return [];
+
+  const [cols, rows] = activeMap.mapSize;
+  const margin = config.margin || 1;
+  const props: import('../engine/types').PropDef[] = [];
+  const used = new Set<string>();
+
+  // Groups: place clusters of 2-3 similar items near each other
+  // More rocks/plants, fewer bones/pumpkins
+  const weighted = [
+    ...config.sprites.filter(s => s.includes('rock')),
+    ...config.sprites.filter(s => s.includes('rock')),   // rocks appear more
+    ...config.sprites.filter(s => s.includes('plant')),
+    ...config.sprites.filter(s => s.includes('plant')),  // plants appear more
+    ...config.sprites.filter(s => s.includes('bush')),
+    ...config.sprites.filter(s => s.includes('mushroom')),
+    ...config.sprites.filter(s => s.includes('bone')),
+    ...config.sprites.filter(s => s.includes('pumpkin')),
+  ];
+
+  let placed = 0;
+  let attempts = 0;
+
+  while (placed < config.count && attempts < 200) {
+    attempts++;
+    // Pick random position inside walkable area
+    const x = margin + Math.floor(Math.random() * (cols - margin * 2));
+    const y = margin + Math.floor(Math.random() * (rows - margin * 2));
+    const key = `${x},${y}`;
+
+    if (used.has(key) || !activeMap.walkable[y]?.[x]) continue;
+
+    // Pick random sprite from weighted list
+    const sprite = weighted[Math.floor(Math.random() * weighted.length)];
+    props.push({ sprite, x, y });
+    used.add(key);
+    placed++;
+
+    // 50% chance to place a neighbor (cluster)
+    if (Math.random() < 0.5 && placed < config.count) {
+      const nx = x + (Math.random() > 0.5 ? 1 : -1);
+      const ny = y + (Math.random() > 0.5 ? 1 : 0);
+      const nkey = `${nx},${ny}`;
+      if (!used.has(nkey) && nx >= margin && nx < cols - margin && activeMap.walkable[ny]?.[nx]) {
+        const nsprite = weighted[Math.floor(Math.random() * weighted.length)];
+        props.push({ sprite: nsprite, x: nx, y: ny });
+        used.add(nkey);
+        placed++;
+      }
+    }
+  }
+
+  return props;
+}
 
 function getMainSpriteKey(template: TemplateConfig): string {
   // Use the first sprite key that has a walk animation, or just the first sprite
