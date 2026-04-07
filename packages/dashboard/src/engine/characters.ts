@@ -174,8 +174,8 @@ export function updateCharacter(
           const stagger = Math.sin(Date.now() / 800 + ei * 1.5) * tileSize * 0.15;
 
           // Group advances toward warrior home position
-          const groupX = groupBaseX + (homeX - groupBaseX) * 0.4 * combatPhase;
-          const groupY = groupBaseY + (homeY - groupBaseY) * 0.4 * combatPhase;
+          const groupX = groupBaseX + (homeX - groupBaseX) * 0.15 * combatPhase;
+          const groupY = groupBaseY + (homeY - groupBaseY) * 0.15 * combatPhase;
 
           enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
           enemy.y = groupY + offsetFromGroupY * 0.6;
