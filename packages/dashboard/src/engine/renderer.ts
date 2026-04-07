@@ -96,8 +96,8 @@ export function render(
             ctx.save();
             ctx.beginPath();
             // Smooth ellipse with slight wobble
-            const rx = tileSize * 2.8;
-            const ry = tileSize * 1.8;
+            const rx = tileSize * 1.5;
+            const ry = tileSize * 1.2;
             ctx.ellipse(gx, gy, rx, ry, 0, 0, Math.PI * 2);
             ctx.fillStyle = pattern;
             ctx.fill();
