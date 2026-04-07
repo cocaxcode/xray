@@ -51,8 +51,12 @@ onMounted(async () => {
     // Load template
     const { config, images } = await load(props.templateName);
 
-    // Wait a tick for sessions to be populated from loadInitialState
-    await new Promise(r => setTimeout(r, 500));
+    // Wait for sessions to load (max 3s, check every 100ms)
+    let attempts = 0;
+    while (sessions.value.size === 0 && attempts < 30) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
 
     const currentSessions = Array.from(sessions.value.values());
     init(config, images, currentSessions);
@@ -94,8 +98,10 @@ onMounted(async () => {
       }
     });
 
-    // Update canvas dimensions for overlay positioning
+    // ResizeObserver for overlay positioning
     updateCanvasRect();
+    resizeObs = new ResizeObserver(updateCanvasRect);
+    resizeObs.observe(canvasRef.value);
   } catch (err) {
     console.error('Error loading template:', err);
   }
@@ -106,6 +112,8 @@ onUnmounted(() => {
   gameLoop = null;
   wsCleanup?.();
   wsCleanup = null;
+  resizeObs?.disconnect();
+  resizeObs = null;
   destroy();
 });
 
@@ -118,17 +126,8 @@ function updateCanvasRect(): void {
   canvasHeight.value = rect.height;
 }
 
-// ResizeObserver for overlay positioning
+// ResizeObserver — created in main onMounted, cleaned up in onUnmounted
 let resizeObs: ResizeObserver | null = null;
-onMounted(() => {
-  if (canvasRef.value) {
-    resizeObs = new ResizeObserver(updateCanvasRect);
-    resizeObs.observe(canvasRef.value);
-  }
-});
-onUnmounted(() => {
-  resizeObs?.disconnect();
-});
 
 // ── Dismiss Session ──
 

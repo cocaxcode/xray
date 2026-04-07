@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "xray-dashboard",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:dashboard"],
+      "port": 5173
+    }
+  ]
+}

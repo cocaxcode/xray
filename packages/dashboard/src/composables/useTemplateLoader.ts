@@ -9,9 +9,8 @@ const progress = ref(0);
 const cache = new Map<string, { config: TemplateConfig; images: Map<string, HTMLImageElement> }>();
 
 async function load(name: string): Promise<{ config: TemplateConfig; images: Map<string, HTMLImageElement> }> {
-  // Disable cache during development — always reload
-  // const cached = cache.get(name);
-  // if (cached) return cached;
+  const cached = cache.get(name);
+  if (cached) return cached;
 
   loading.value = true;
   error.value = null;

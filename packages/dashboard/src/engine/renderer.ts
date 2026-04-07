@@ -270,14 +270,7 @@ function drawEnemy(
   targetX?: number,
 ): void {
   const sprite = template.sprites[enemy.spriteKey];
-  if (!sprite) {
-    // Fallback: draw red circle to show enemy exists but sprite is missing
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-    ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y, tileSize * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    return;
-  }
+  if (!sprite) return;
 
   const anim = sprite.animations[enemy.currentAnim] || sprite.animations.idle;
   if (!anim) return;
@@ -303,19 +296,6 @@ function drawEnemy(
   }
 
   if (!srcImg) {
-    // Debug: log what we're looking for
-    if (Math.random() < 0.01) { // Log once per ~100 frames to avoid spam
-      console.warn('[drawEnemy] Missing image for', enemy.spriteKey, 'anim:', enemy.currentAnim, 'available keys:', Array.from(images.keys()).filter(k => k.includes('goblin')));
-    }
-    // Still no image — draw placeholder
-    ctx.fillStyle = 'rgba(255, 100, 0, 0.6)';
-    ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y, tileSize * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = '8px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(enemy.spriteKey, enemy.x, enemy.y - tileSize * 0.4);
     return;
   }
 

@@ -52,8 +52,6 @@ export async function preloadAll(
   const total = entries.length;
   let loaded = 0;
 
-  // Debug: log all sprite keys being loaded
-  console.log('[spriteLoader] Loading', total, 'sprites:', Array.from(urls.keys()).join(', '));
 
   const promises = entries.map(async ([key, url]) => {
     const img = await loadImage(url);
