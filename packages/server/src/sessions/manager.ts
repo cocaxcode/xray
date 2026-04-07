@@ -1,13 +1,28 @@
 import { Queries } from '../db/queries.js';
-import type { Session, SessionStatus, Agent } from '../types.js';
+import type { Session, SessionStatus, Agent, ActiveToolInfo } from '../types.js';
 import { updateMcps, calculateContextIncrement, getCompactResetPercent, detectSkills } from './detector.js';
 import { readNewTokens } from './transcript-reader.js';
 
 export class SessionManager {
   private queries: Queries;
+  private activeTools = new Map<string, ActiveToolInfo>();
 
   constructor(queries: Queries) {
     this.queries = queries;
+  }
+
+  // ── Active Tool (in-memory) ──
+
+  setActiveTool(sessionId: string, info: ActiveToolInfo): void {
+    this.activeTools.set(sessionId, info);
+  }
+
+  clearActiveTool(sessionId: string): void {
+    this.activeTools.delete(sessionId);
+  }
+
+  getActiveTool(sessionId: string): ActiveToolInfo | null {
+    return this.activeTools.get(sessionId) ?? null;
   }
 
   /**
@@ -194,7 +209,13 @@ export class SessionManager {
   }
 
   getProjectGroups(includeStopped = false) {
-    return this.queries.getProjectGroups(includeStopped);
+    const groups = this.queries.getProjectGroups(includeStopped);
+    for (const group of groups) {
+      for (const session of group.sessions) {
+        session.activeTool = this.getActiveTool(session.id);
+      }
+    }
+    return groups;
   }
 
   markStaleSessions(): string[] {

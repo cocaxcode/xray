@@ -320,6 +320,7 @@ export class Queries {
       outputTokens: row.output_tokens as number,
       inputTokensAtStop: 0,
       outputTokensAtStop: 0,
+      activeTool: null, // In-memory only — injected by SessionManager.getProjectGroups()
     };
   }
 

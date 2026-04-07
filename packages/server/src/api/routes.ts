@@ -5,6 +5,12 @@ import type { PermissionHandler } from '../hooks/permission.js';
 import type { AuthState } from '../types.js';
 import { validatePin, rotatePin } from '../auth/token.js';
 import { recordFailedPinAttempt, clearPinAttempts } from '../auth/middleware.js';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { homedir } from 'node:os';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export function registerApiRoutes(
   fastify: FastifyInstance,
@@ -125,6 +131,43 @@ export function registerApiRoutes(
     authState.pinExpiresAt = newState.pinExpiresAt;
 
     return { pin: newState.pin, expiresIn: '5 minutes' };
+  });
+
+  // ── Templates ──
+  fastify.get('/api/templates', async () => {
+    const builtInDir = join(__dirname, '..', '..', 'templates');
+    const communityDir = join(homedir(), '.xray', 'templates');
+    const templates: Array<{ name: string; author: string; version: string; description: string; tileSize: number; preview: string }> = [];
+    const seen = new Set<string>();
+
+    // Community first (priority override)
+    for (const dir of [communityDir, builtInDir]) {
+      if (!existsSync(dir)) continue;
+      let entries: string[];
+      try { entries = readdirSync(dir); } catch { continue; }
+
+      for (const name of entries) {
+        if (seen.has(name)) continue;
+        const jsonPath = join(dir, name, 'template.json');
+        if (!existsSync(jsonPath)) continue;
+        try {
+          const config = JSON.parse(readFileSync(jsonPath, 'utf-8'));
+          templates.push({
+            name: config.name || name,
+            author: config.author || 'unknown',
+            version: config.version || '0.0.0',
+            description: config.description || '',
+            tileSize: config.tileSize || 64,
+            preview: `/templates/${name}/preview.png`,
+          });
+          seen.add(name);
+        } catch {
+          // Invalid JSON — skip
+        }
+      }
+    }
+
+    return templates;
   });
 
   // ── Health ──

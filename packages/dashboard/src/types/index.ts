@@ -3,6 +3,21 @@
 
 export type SessionStatus = 'active' | 'idle' | 'waiting_permission' | 'waiting_input' | 'error' | 'stopped';
 
+export interface ActiveToolInfo {
+  toolName: string;
+  toolUseId: string;
+  agentId: string | null;
+}
+
+export interface TemplateMeta {
+  name: string;
+  author: string;
+  version: string;
+  description: string;
+  tileSize: number;
+  preview: string;
+}
+
 export interface McpServer {
   name: string;
   status: 'connected' | 'error';
@@ -37,6 +52,7 @@ export interface Session {
   outputTokens: number;
   inputTokensAtStop: number;
   outputTokensAtStop: number;
+  activeTool: ActiveToolInfo | null;
 }
 
 export interface PendingPermission {

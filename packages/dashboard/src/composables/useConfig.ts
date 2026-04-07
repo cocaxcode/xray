@@ -38,6 +38,11 @@ export interface XrayConfig {
     retentionEventsDays: number;
     retentionSessionsHours: number;
   };
+  avatar: {
+    name: string;
+    sprite?: string;
+  };
+  agentTypeNames: Record<string, string>;
 }
 
 const config = ref<XrayConfig | null>(null);

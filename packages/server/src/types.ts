@@ -102,6 +102,14 @@ export interface PermissionResponse {
   };
 }
 
+// ── Active Tool (in-memory only, not persisted to DB) ──
+
+export interface ActiveToolInfo {
+  toolName: string;
+  toolUseId: string;
+  agentId: string | null;
+}
+
 // ── Domain Models ──
 
 export type SessionStatus =
@@ -131,6 +139,7 @@ export interface Session {
   outputTokens: number;
   inputTokensAtStop: number;
   outputTokensAtStop: number;
+  activeTool: ActiveToolInfo | null;
 }
 
 export interface McpServer {

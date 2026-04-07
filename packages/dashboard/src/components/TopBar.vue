@@ -4,25 +4,20 @@ import { useWebSocket } from '../composables/useWebSocket';
 import { useSessions } from '../composables/useSessions';
 import { useSearch } from '../composables/useSearch';
 import { usePermissions } from '../composables/usePermissions';
+import { useViewMode } from '../composables/useViewMode';
 
-const emit = defineEmits<{ toggleSidebar: []; openSettings: [] }>();
+const emit = defineEmits<{ openSettings: [] }>();
 
 const { isDark, toggle: toggleTheme } = useTheme();
 const { connected, reconnecting } = useWebSocket();
 const { totals } = useSessions();
 const { searchQuery, clearSearch } = useSearch();
 const { count: permissionCount } = usePermissions();
+const { current: viewMode, availableTemplates, setView } = useViewMode();
 </script>
 
 <template>
-  <header class="h-12 flex items-center gap-3 px-4 bg-surface border-b border-border">
-    <!-- Hamburger (mobile) -->
-    <button @click="emit('toggleSidebar')" class="lg:hidden text-muted hover:text-text">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
-
+  <header class="h-12 flex items-center gap-3 px-4 bg-surface border-b border-border flex-shrink-0">
     <!-- Search -->
     <div class="flex-1 max-w-md relative">
       <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,6 +46,26 @@ const { count: permissionCount } = usePermissions();
       <span v-if="totals.idleSessions > 0">{{ totals.idleSessions }} idle</span>
     </div>
 
+    <!-- View Switcher -->
+    <div class="hidden sm:flex items-center gap-1 border border-border rounded-md p-0.5">
+      <button
+        @click="setView('panel')"
+        class="text-[10px] font-mono px-2 py-1 rounded transition-colors"
+        :class="viewMode === 'panel' ? 'bg-cyan/20 text-cyan' : 'text-muted hover:text-text'"
+      >
+        Panel
+      </button>
+      <button
+        v-for="template in availableTemplates"
+        :key="template.name"
+        @click="setView(template.name.toLowerCase().replace(/\s+/g, '-'))"
+        class="text-[10px] font-mono px-2 py-1 rounded transition-colors"
+        :class="viewMode === template.name.toLowerCase().replace(/\s+/g, '-') ? 'bg-cyan/20 text-cyan' : 'text-muted hover:text-text'"
+      >
+        {{ template.name }}
+      </button>
+    </div>
+
     <!-- Permissions badge -->
     <button
       v-if="permissionCount > 0"
@@ -63,6 +78,18 @@ const { count: permissionCount } = usePermissions();
       <span class="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-[9px] font-bold bg-amber text-bg rounded-full">
         {{ permissionCount }}
       </span>
+    </button>
+
+    <!-- Settings -->
+    <button
+      @click="emit('openSettings')"
+      class="text-muted hover:text-text transition-colors p-1"
+      title="Configuracion"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
     </button>
 
     <!-- Theme toggle -->

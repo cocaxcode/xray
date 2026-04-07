@@ -5,6 +5,7 @@ import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { homedir } from 'node:os';
 import type { CliOptions } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,6 +27,22 @@ export async function createServer(options: CliOptions) {
 
   // WebSocket
   await fastify.register(fastifyWebSocket);
+
+  // Static files: templates (served BEFORE dashboard to avoid SPA catch-all)
+  const builtInTemplatesPath = join(__dirname, '..', 'templates');
+  const communityTemplatesPath = join(homedir(), '.xray', 'templates');
+
+  const templateRoots: string[] = [];
+  if (existsSync(communityTemplatesPath)) templateRoots.push(communityTemplatesPath);
+  if (existsSync(builtInTemplatesPath)) templateRoots.push(builtInTemplatesPath);
+
+  if (templateRoots.length > 0) {
+    await fastify.register(fastifyStatic, {
+      root: templateRoots,
+      prefix: '/templates/',
+      decorateReply: false,
+    });
+  }
 
   // Static files (dashboard) — only if built
   const dashboardPath = join(__dirname, 'dashboard');

@@ -1,3 +1,6 @@
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { getDb } from './db/connection.js';
 import { initSchema, purgeOldEvents, purgeOldSessions } from './db/schema.js';
 import { initConfigTable, getConfig as getFullConfig } from './db/config.js';
@@ -27,6 +30,10 @@ export async function startServer(options: CliOptions): Promise<void> {
   initConfigTable(db);
   purgeOldEvents(db);
   purgeOldSessions(db);
+
+  // Ensure community templates directory exists
+  const communityTemplatesPath = join(homedir(), '.xray', 'templates');
+  mkdirSync(communityTemplatesPath, { recursive: true });
 
   const queries = new Queries(db);
   const fastify = await createServer(options);

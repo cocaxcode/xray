@@ -65,6 +65,13 @@ export class HookHandlers {
     // Si llega un PreToolUse, cualquier permiso pendiente de esta sesion ya fue resuelto
     this.cleanupStalePermissions(payload.session_id);
 
+    // Track active tool (in-memory for animated views)
+    this.manager.setActiveTool(payload.session_id, {
+      toolName: payload.tool_name,
+      toolUseId: payload.tool_use_id,
+      agentId: null,
+    });
+
     // Transition to active
     this.manager.transitionTo(payload.session_id, 'active');
 
@@ -100,11 +107,14 @@ export class HookHandlers {
     // Broadcast session update
     const session = this.manager.getSession(payload.session_id);
     if (session) {
-      this.broadcast({ type: 'session:update', data: { id: session.id, status: session.status, mcps: session.mcps, contextPercent: session.contextPercent, eventCount: session.eventCount } });
+      this.broadcast({ type: 'session:update', data: { id: session.id, status: session.status, mcps: session.mcps, contextPercent: session.contextPercent, eventCount: session.eventCount, activeTool: this.manager.getActiveTool(session.id) } });
     }
   }
 
   handlePostToolUse(payload: PostToolUsePayload): void {
+    // Clear active tool
+    this.manager.clearActiveTool(payload.session_id);
+
     // Calculate duration from PreToolUse
     const preTimestamp = this.queries.getPreToolTimestamp(payload.session_id, payload.tool_use_id);
     const durationMs = preTimestamp ? Date.now() - new Date(preTimestamp).getTime() : undefined;
@@ -141,11 +151,12 @@ export class HookHandlers {
     // Broadcast updated tokens
     const session = this.manager.getSession(payload.session_id);
     if (session) {
-      this.broadcast({ type: 'session:update', data: { id: session.id, inputTokens: session.inputTokens, outputTokens: session.outputTokens } });
+      this.broadcast({ type: 'session:update', data: { id: session.id, inputTokens: session.inputTokens, outputTokens: session.outputTokens, activeTool: null } });
     }
   }
 
   handlePostToolUseFailure(payload: PostToolUseFailurePayload): void {
+    this.manager.clearActiveTool(payload.session_id);
     this.manager.transitionTo(payload.session_id, 'error');
     this.manager.updateMcpsFromToolCall(payload.session_id, payload.tool_name, false);
 
@@ -245,6 +256,9 @@ export class HookHandlers {
   }
 
   handleStop(payload: StopPayload): void {
+    // Clear active tool
+    this.manager.clearActiveTool(payload.session_id);
+
     // Limpiar permisos stale (ej: usuario rechazo en terminal → Stop llega)
     this.cleanupStalePermissions(payload.session_id);
 
@@ -283,6 +297,7 @@ export class HookHandlers {
   }
 
   handleSessionEnd(sessionId: string): void {
+    this.manager.clearActiveTool(sessionId);
     this.manager.handleSessionEnd(sessionId);
 
     this.queries.insertEvent({

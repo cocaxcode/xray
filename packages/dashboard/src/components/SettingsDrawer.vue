@@ -169,6 +169,24 @@ async function updateSetting(key: string, value: unknown): Promise<void> {
           </div>
         </section>
 
+        <!-- Avatar (Animated Views) -->
+        <section>
+          <h3 class="text-xs font-mono text-muted uppercase tracking-wider mb-3">Avatar</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-text block mb-1">Nombre del agente principal</label>
+              <input
+                type="text"
+                :value="config.avatar?.name || 'Agent'"
+                @change="updateSetting('avatar.name', ($event.target as HTMLInputElement).value)"
+                placeholder="Agent"
+                class="w-full h-8 px-2 text-xs font-mono bg-bg border border-border rounded-md text-text placeholder:text-muted focus:border-cyan focus:outline-none"
+              />
+              <p class="text-[9px] text-muted mt-1">Nombre que aparece sobre tu personaje en las vistas animadas</p>
+            </div>
+          </div>
+        </section>
+
         <!-- Data -->
         <section>
           <h3 class="text-xs font-mono text-muted uppercase tracking-wider mb-3">Datos</h3>

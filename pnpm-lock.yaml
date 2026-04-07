@@ -29,6 +29,9 @@ importers:
       vite:
         specifier: ^6.2.0
         version: 6.4.1(@types/node@22.19.17)(jiti@2.6.1)(lightningcss@1.32.0)
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.17)(jiti@2.6.1)(lightningcss@1.32.0)
       vue-tsc:
         specifier: ^2.2.0
         version: 2.2.12(typescript@5.9.3)
