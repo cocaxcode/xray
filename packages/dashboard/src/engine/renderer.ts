@@ -79,25 +79,25 @@ export function render(
       gx /= char.enemies.length;
       gy /= char.enemies.length;
 
-      // Draw dirt/sand patch in oval around goblin area
-      const tilemapImg = images.get('tile:1'); // sand center tile
+      // Draw dirt/sand patch — organic circle with noise
+      const tilemapImg = images.get('tile:1');
       if (tilemapImg) {
         const sandRegion = template.tiles['1']?.region;
         if (sandRegion) {
-          // Oval pattern: tiles within radius from goblin center
           const centerTileX = Math.floor(gx / tileSize);
           const centerTileY = Math.floor(gy / tileSize);
-          const radiusX = 2.5;
-          const radiusY = 1.8;
+          const baseRadius = 2.2;
 
           for (let dy = -3; dy <= 3; dy++) {
-            for (let dx = -3; dx <= 3; dx++) {
+            for (let dx = -4; dx <= 4; dx++) {
               const tx = centerTileX + dx;
               const ty = centerTileY + dy;
-              // Ellipse check
-              const ex = dx / radiusX;
-              const ey = dy / radiusY;
-              if (ex * ex + ey * ey <= 1) {
+              // Distance from center with noise for organic shape
+              const dist = Math.sqrt(dx * dx * 1.2 + dy * dy * 1.8);
+              // Noise based on angle — makes the edge irregular
+              const angle = Math.atan2(dy, dx);
+              const noise = Math.sin(angle * 5 + tx * 0.7) * 0.4 + Math.sin(angle * 3 + ty * 1.1) * 0.3;
+              if (dist < baseRadius + noise) {
                 ctx.drawImage(tilemapImg, sandRegion[0], sandRegion[1], 64, 64,
                   tx * tileSize, ty * tileSize, tileSize, tileSize);
               }
@@ -440,10 +440,14 @@ function drawProp(
   const srcX = frame * frameW;
   const srcY = anim.row * frameH;
 
+  // Draw props at half tile size, centered on tile
+  const propSize = tileSize * 0.5;
+  const offsetX = (tileSize - propSize) / 2;
+  const offsetY = (tileSize - propSize) / 2;
   ctx.drawImage(
     img,
     srcX, srcY, frameW, frameH,
-    prop.x * tileSize, prop.y * tileSize, tileSize, tileSize,
+    prop.x * tileSize + offsetX, prop.y * tileSize + offsetY, propSize, propSize,
   );
 }
 
