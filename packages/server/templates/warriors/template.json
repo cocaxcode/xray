@@ -2886,6 +2886,26 @@
         "tokens": 100000,
         "enemies": 8,
         "sprite": "goblin"
+      },
+      {
+        "tokens": 200000,
+        "enemies": 10,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 400000,
+        "enemies": 12,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 700000,
+        "enemies": 15,
+        "sprite": "goblin"
+      },
+      {
+        "tokens": 1000000,
+        "enemies": 18,
+        "sprite": "goblin"
       }
     ]
   },
