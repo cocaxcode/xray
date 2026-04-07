@@ -130,39 +130,38 @@ export function updateCharacter(
     case CharacterState.WORKING:
       updateAnimation(char, dt, template);
       if (char.enemies.length > 0) {
-        // Calculate center of goblin group
-        let centerX = 0, centerY = 0;
-        for (const e of char.enemies) { centerX += e.x; centerY += e.y; }
-        centerX /= char.enemies.length;
-        centerY /= char.enemies.length;
-
-        // Warrior oscillates slightly toward goblins (subtle movement)
+        // Use BASE positions for all calculations (no feedback loops)
         const homeX = char.tileX * tileSize + tileSize / 2;
         const homeY = char.tileY * tileSize + tileSize / 2;
-        const combatPhase = (Math.sin(Date.now() / 1200) + 1) / 2;
-        // Move only 25% toward goblin center — subtle, not teleporting
-        char.x = homeX + (centerX - homeX) * 0.25 * combatPhase;
-        char.y = homeY + (centerY - homeY) * 0.25 * combatPhase;
 
-        // Face toward goblins
-        const fdx = centerX - homeX;
-        const fdy = centerY - homeY;
-        if (Math.abs(fdx) > Math.abs(fdy)) {
-          char.facing = fdx > 0 ? 'right' : 'left';
-        } else if (fdy !== 0) {
-          char.facing = fdy > 0 ? 'down' : 'up';
+        // Find nearest enemy BASE position (not animated position)
+        let nearestEnemy = char.enemies[0];
+        let nearestDist = Infinity;
+        for (const e of char.enemies) {
+          const d = Math.abs(e.baseX - homeX) + Math.abs(e.baseY - homeY);
+          if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
         }
 
-        // Each goblin: oscillate between base position and warrior
+        // Warrior: charge toward nearest enemy then retreat
+        // Phase: 0 = at home, 1 = at peak advance
+        const warPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
+        char.x = homeX + (nearestEnemy.baseX - homeX) * 0.5 * warPhase;
+        char.y = homeY + (nearestEnemy.baseY - homeY) * 0.3 * warPhase;
+
+        // Face toward goblins
+        const fdx = nearestEnemy.baseX - homeX;
+        char.facing = fdx > 0 ? 'right' : 'left';
+
+        // Each goblin: charge toward warrior then retreat (staggered timing)
         for (let ei = 0; ei < char.enemies.length; ei++) {
           const enemy = char.enemies[ei];
           enemy.currentAnim = 'attack';
           updateEnemyAnimation(enemy, dt, template);
 
-          // Goblin sways slightly toward warrior (subtle, not teleporting)
-          const phase = (Math.sin(Date.now() / 1100 + ei * 1.7) + 1) / 2;
-          enemy.x = enemy.baseX + (char.x - enemy.baseX) * 0.2 * phase;
-          enemy.y = enemy.baseY + (char.y - enemy.baseY) * 0.2 * phase;
+          // Staggered: each goblin attacks at a different moment
+          const phase = (Math.sin(Date.now() / 1200 + ei * 2.0) + 1) / 2;
+          enemy.x = enemy.baseX + (homeX - enemy.baseX) * 0.4 * phase;
+          enemy.y = enemy.baseY + (homeY - enemy.baseY) * 0.25 * phase;
         }
       }
       break;
