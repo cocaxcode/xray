@@ -136,13 +136,13 @@ export function updateCharacter(
         centerX /= char.enemies.length;
         centerY /= char.enemies.length;
 
-        // Warrior oscillates: home position → center of goblins → back
+        // Warrior oscillates slightly toward goblins (subtle movement)
         const homeX = char.tileX * tileSize + tileSize / 2;
         const homeY = char.tileY * tileSize + tileSize / 2;
-        const combatPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
-        // Move 70% toward goblin center at peak, back to home at trough
-        char.x = homeX + (centerX - homeX) * 0.7 * combatPhase;
-        char.y = homeY + (centerY - homeY) * 0.7 * combatPhase;
+        const combatPhase = (Math.sin(Date.now() / 1200) + 1) / 2;
+        // Move only 25% toward goblin center — subtle, not teleporting
+        char.x = homeX + (centerX - homeX) * 0.25 * combatPhase;
+        char.y = homeY + (centerY - homeY) * 0.25 * combatPhase;
 
         // Face toward goblins
         const fdx = centerX - homeX;
@@ -159,11 +159,10 @@ export function updateCharacter(
           enemy.currentAnim = 'attack';
           updateEnemyAnimation(enemy, dt, template);
 
-          // Each goblin oscillates: base → warrior → base (different phase per goblin)
-          const phase = (Math.sin(Date.now() / 900 + ei * 1.7) + 1) / 2; // 0-1
-          // Interpolate between base and 60% toward warrior
-          enemy.x = enemy.baseX + (char.x - enemy.baseX) * 0.6 * phase;
-          enemy.y = enemy.baseY + (char.y - enemy.baseY) * 0.6 * phase;
+          // Goblin sways slightly toward warrior (subtle, not teleporting)
+          const phase = (Math.sin(Date.now() / 1100 + ei * 1.7) + 1) / 2;
+          enemy.x = enemy.baseX + (char.x - enemy.baseX) * 0.2 * phase;
+          enemy.y = enemy.baseY + (char.y - enemy.baseY) * 0.2 * phase;
         }
       }
       break;
@@ -457,8 +456,13 @@ export function updateEnemies(
     const dirX = (seed % 2 === 0) ? 1 : -1;
     const offsetX = (2 + pseudoRand * 1.5) * dirX;
     const offsetY = (pseudoRand2 - 0.5) * 2;
-    const ex = (seatX + offsetX) * tileSize + tileSize / 2;
-    const ey = (seatY + offsetY) * tileSize + tileSize / 2;
+    const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
+    const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
+    // Clamp to map bounds (keep 1 tile margin)
+    const mapW = template.maps.small.mapSize[0] * tileSize; // approximate
+    const mapH = template.maps.small.mapSize[1] * tileSize;
+    const ex = Math.max(tileSize, Math.min(mapW - tileSize, rawX));
+    const ey = Math.max(tileSize, Math.min(mapH - tileSize, rawY));
 
     // Every 4th goblin is TNT, rest are torch
     const enemySprite = (idx % 5 === 4 && template.sprites['goblin-tnt']) ? 'goblin-tnt' : 'goblin';
