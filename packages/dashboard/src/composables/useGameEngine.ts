@@ -137,6 +137,9 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
   const state = gameState.value;
   if (!state) return;
 
+  // Don't recreate if companion already exists
+  if (state.characters.has(agent.id)) return;
+
   const { config } = useConfig();
   const nameConfig: NameConfig = {
     avatarName: config.value?.avatar?.name,
