@@ -238,7 +238,7 @@ const legendOpen = ref(!isMobile);
           >
             <span class="text-[10px]">{{ comp.agentType === 'Explore' ? '🏹' : comp.agentType === 'Plan' ? '🔮' : '⚔️' }}</span>
             <span class="text-[9px] font-mono text-text">{{ comp.name }}</span>
-            <span class="text-[8px] font-mono text-muted">{{ stateLabel(comp.state, entry.status) }}</span>
+            <span class="text-[8px] font-mono text-muted">{{ stateLabel(comp.state) }}</span>
           </div>
 
           <!-- Enemies -->

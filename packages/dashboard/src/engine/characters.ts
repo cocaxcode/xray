@@ -149,16 +149,12 @@ export function updateCharacter(
         groupBaseX /= char.enemies.length;
         groupBaseY /= char.enemies.length;
 
-        // Meeting point: halfway between warrior home and goblin group center
-        const meetX = (homeX + groupBaseX) / 2;
-        const meetY = (homeY + groupBaseY) / 2;
-
-        // Combat phase: both sides advance to meeting point then retreat
+        // Combat phase: warrior charges toward goblin group center then retreats
         const combatPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
 
-        // Warrior advances toward meeting point
-        char.x = homeX + (meetX - homeX) * 0.8 * combatPhase;
-        char.y = homeY + (meetY - homeY) * 0.5 * combatPhase;
+        // Warrior advances 80% toward goblin group center directly
+        char.x = homeX + (groupBaseX - homeX) * 0.8 * combatPhase;
+        char.y = homeY + (groupBaseY - homeY) * 0.5 * combatPhase;
 
         // Face toward goblins
         char.facing = groupBaseX > homeX ? 'right' : 'left';
@@ -176,9 +172,9 @@ export function updateCharacter(
           // Stagger slightly so they don't ALL hit at the same frame
           const stagger = Math.sin(Date.now() / 800 + ei * 1.5) * tileSize * 0.15;
 
-          // Group advances toward meeting point
-          const groupX = groupBaseX + (meetX - groupBaseX) * 0.7 * combatPhase;
-          const groupY = groupBaseY + (meetY - groupBaseY) * 0.4 * combatPhase;
+          // Group advances toward warrior home position
+          const groupX = groupBaseX + (homeX - groupBaseX) * 0.5 * combatPhase;
+          const groupY = groupBaseY + (homeY - groupBaseY) * 0.3 * combatPhase;
 
           enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
           enemy.y = groupY + offsetFromGroupY * 0.6;
@@ -479,9 +475,10 @@ export function updateEnemies(
     const offsetY = (row - 0.5) * 1.1 + (pseudoRand2 - 0.5) * 0.4;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
-    // Clamp to map bounds (keep 1 tile margin)
-    const mapW = template.maps.small.mapSize[0] * tileSize; // approximate
-    const mapH = template.maps.small.mapSize[1] * tileSize;
+    // Clamp to map bounds (keep 1 tile margin) — use largest available map
+    const largestMap = template.maps.large || template.maps.medium || template.maps.small;
+    const mapW = largestMap.mapSize[0] * tileSize;
+    const mapH = largestMap.mapSize[1] * tileSize;
     const ex = Math.max(tileSize, Math.min(mapW - tileSize, rawX));
     const ey = Math.max(tileSize, Math.min(mapH - tileSize, rawY));
 

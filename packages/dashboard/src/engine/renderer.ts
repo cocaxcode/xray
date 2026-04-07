@@ -14,6 +14,10 @@ const MCP_CRYSTAL_CYCLE = ['crystal-blue', 'crystal-red', 'crystal-green', 'crys
 const mcpSpriteCache = new Map<string, string>();
 let mcpSpriteIdx = 0;
 
+// ── Cached dirt pattern ──
+let cachedDirtPattern: CanvasPattern | null = null;
+let cachedDirtPatternKey = '';
+
 export function getMcpSpriteKey(mcpName: string, template: TemplateConfig): string {
   // First check template environmentMap
   if (template.environmentMap[mcpName]) return template.environmentMap[mcpName];
@@ -84,13 +88,18 @@ export function render(
       if (tilemapImg) {
         const sandRegion = template.tiles['1']?.region;
         if (sandRegion) {
-          // Create sand pattern from tile
-          const patternCanvas = document.createElement('canvas');
-          patternCanvas.width = 64;
-          patternCanvas.height = 64;
-          const pctx = patternCanvas.getContext('2d')!;
-          pctx.drawImage(tilemapImg, sandRegion[0], sandRegion[1], 64, 64, 0, 0, 64, 64);
-          const pattern = ctx.createPattern(patternCanvas, 'repeat');
+          // Cache the pattern (only create once)
+          const patternKey = `${sandRegion[0]},${sandRegion[1]}`;
+          if (!cachedDirtPattern || cachedDirtPatternKey !== patternKey) {
+            const patternCanvas = document.createElement('canvas');
+            patternCanvas.width = 64;
+            patternCanvas.height = 64;
+            const pctx = patternCanvas.getContext('2d')!;
+            pctx.drawImage(tilemapImg, sandRegion[0], sandRegion[1], 64, 64, 0, 0, 64, 64);
+            cachedDirtPattern = ctx.createPattern(patternCanvas, 'repeat');
+            cachedDirtPatternKey = patternKey;
+          }
+          const pattern = cachedDirtPattern;
 
           if (pattern) {
             ctx.save();

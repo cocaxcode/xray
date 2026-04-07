@@ -202,7 +202,9 @@ function onSessionUpdate(session: Session): void {
   const prevWorking = char.state === CharacterState.WORKING;
   const prevIdle = char.state === CharacterState.IDLE || char.state === CharacterState.SPAWNING;
 
-  if (session.status === 'active' && !prevWorking && char.state !== CharacterState.WALKING) {
+  // Allow interrupting wander (WALKING with targetState IDLE) when session becomes active
+  const isWandering = char.state === CharacterState.WALKING && char.targetState === CharacterState.IDLE;
+  if (session.status === 'active' && !prevWorking && (char.state !== CharacterState.WALKING || isWandering)) {
     const toolAnim = getToolAnimation(state.template, session.activeTool?.toolName);
     transitionToActive(char, state.template, state.activeMap, state.occupiedSeats, state.template.tileSize, toolAnim);
   } else if ((session.status === 'idle' || session.status === 'waiting_input') && prevWorking) {
