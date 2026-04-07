@@ -17,6 +17,7 @@ import {
   type NameConfig,
 } from '../engine/characters';
 import { screenToWorld } from '../engine/camera';
+import { findPath } from '../engine/pathfinding';
 import { useConfig } from './useConfig';
 import { useSessions } from './useSessions';
 
@@ -174,11 +175,42 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
 
   state.characters.set(agent.id, char);
 
-  // Walk to work zone if parent session is active
-  if (parentSession?.status === 'active') {
+  // Position companion BEHIND the parent (opposite side of goblins)
+  const parent = state.characters.get(sessionId);
+  if (parent?.assignedSeat) {
+    // Goblins are to the RIGHT of parent seat, so companion goes LEFT (behind)
+    const behindX = parent.assignedSeat.x - 2;
+    const behindY = parent.assignedSeat.y + (state.characters.size % 3 - 1); // stagger vertically
+    const ts = state.template.tileSize;
+
+    // Don't use assignSeat — companion stays behind parent, not at a work seat
+    char.assignedSeat = { x: Math.max(1, behindX), y: Math.max(1, Math.min(state.activeMap.mapSize[1] - 2, behindY)) };
+
+    if (parentSession?.status === 'active') {
+      const path = findPath(state.activeMap.walkable, { x: char.tileX, y: char.tileY }, char.assignedSeat, state.occupiedSeats);
+      if (path.length > 0) {
+        char.path = path;
+        char.moveProgress = 0;
+        char.state = CharacterState.WALKING;
+        char.targetState = CharacterState.WORKING;
+        char.currentAnim = 'walk';
+        char.animFrame = 0;
+        char.animTimer = 0;
+      } else {
+        // Teleport
+        char.tileX = char.assignedSeat.x;
+        char.tileY = char.assignedSeat.y;
+        char.x = char.assignedSeat.x * ts + ts / 2;
+        char.y = char.assignedSeat.y * ts + ts / 2;
+        char.state = CharacterState.WORKING;
+        char.currentAnim = 'attack';
+        char.animFrame = 0;
+        char.animTimer = 0;
+      }
+    }
+  } else if (parentSession?.status === 'active') {
     transitionToActive(char, state.template, state.activeMap, state.occupiedSeats, state.template.tileSize);
   }
-  // Otherwise stay spawning → will transition to idle
 }
 
 // ── Event Handlers ──
