@@ -142,26 +142,45 @@ export function updateCharacter(
           if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
         }
 
-        // Warrior: charge toward nearest enemy then retreat
-        // Phase: 0 = at home, 1 = at peak advance
-        const warPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
-        char.x = homeX + (nearestEnemy.baseX - homeX) * 0.5 * warPhase;
-        char.y = homeY + (nearestEnemy.baseY - homeY) * 0.3 * warPhase;
+        // Calculate group center of goblins (using BASE positions)
+        let groupBaseX = 0, groupBaseY = 0;
+        for (const e of char.enemies) { groupBaseX += e.baseX; groupBaseY += e.baseY; }
+        groupBaseX /= char.enemies.length;
+        groupBaseY /= char.enemies.length;
+
+        // Meeting point: halfway between warrior home and goblin group center
+        const meetX = (homeX + groupBaseX) / 2;
+        const meetY = (homeY + groupBaseY) / 2;
+
+        // Combat phase: both sides advance to meeting point then retreat
+        const combatPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
+
+        // Warrior advances toward meeting point
+        char.x = homeX + (meetX - homeX) * 0.8 * combatPhase;
+        char.y = homeY + (meetY - homeY) * 0.5 * combatPhase;
 
         // Face toward goblins
-        const fdx = nearestEnemy.baseX - homeX;
-        char.facing = fdx > 0 ? 'right' : 'left';
+        char.facing = groupBaseX > homeX ? 'right' : 'left';
 
-        // Each goblin: charge toward warrior then retreat (staggered timing)
+        // All goblins advance toward meeting point as a group
         for (let ei = 0; ei < char.enemies.length; ei++) {
           const enemy = char.enemies[ei];
           enemy.currentAnim = 'attack';
           updateEnemyAnimation(enemy, dt, template);
 
-          // Staggered: each goblin attacks at a different moment
-          const phase = (Math.sin(Date.now() / 1200 + ei * 2.0) + 1) / 2;
-          enemy.x = enemy.baseX + (homeX - enemy.baseX) * 0.4 * phase;
-          enemy.y = enemy.baseY + (homeY - enemy.baseY) * 0.25 * phase;
+          // Each goblin keeps its formation offset but group moves together
+          const offsetFromGroupX = enemy.baseX - groupBaseX;
+          const offsetFromGroupY = enemy.baseY - groupBaseY;
+
+          // Stagger slightly so they don't ALL hit at the same frame
+          const stagger = Math.sin(Date.now() / 800 + ei * 1.5) * tileSize * 0.15;
+
+          // Group advances toward meeting point
+          const groupX = groupBaseX + (meetX - groupBaseX) * 0.7 * combatPhase;
+          const groupY = groupBaseY + (meetY - groupBaseY) * 0.4 * combatPhase;
+
+          enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
+          enemy.y = groupY + offsetFromGroupY * 0.6;
         }
       }
       break;
@@ -452,12 +471,15 @@ export function updateEnemies(
     const pseudoRand = Math.sin(seed * 13 + idx * 7) * 0.5 + 0.5;
     const pseudoRand2 = Math.sin(seed * 17 + idx * 11) * 0.5 + 0.5;
     // Direction based on seed (some sessions have goblins right, others left)
-    // Distribute goblins evenly in a grid-like pattern
+    // Goblins cluster in a tight formation to one side of the seat
     const dirX = (seed % 2 === 0) ? 1 : -1;
-    const col = idx % 3;     // 3 columns
-    const row = Math.floor(idx / 3); // rows of 3
-    const offsetX = (2.5 + col * 1.2 + pseudoRand * 0.4) * dirX;
-    const offsetY = -1.5 + row * 1.5 + (pseudoRand2 - 0.5) * 0.5;
+    // Formation: tight cluster, 3-4 tiles away, spread ~1 tile between each
+    const formationX = 3.5 * dirX; // center of group
+    const formationY = 0;
+    const col = idx % 3;
+    const row = Math.floor(idx / 3);
+    const offsetX = formationX + (col - 1) * 0.8 * dirX + (pseudoRand - 0.5) * 0.3;
+    const offsetY = formationY + (row - 0.5) * 1.0 + (pseudoRand2 - 0.5) * 0.3;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
     // Clamp to map bounds (keep 1 tile margin)
