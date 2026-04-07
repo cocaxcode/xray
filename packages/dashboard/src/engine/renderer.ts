@@ -186,8 +186,9 @@ function drawCharacter(
     srcY = anim.row * frameH;
   }
 
-  // Apply hue shift
-  const source = getHueShiftedSprite(srcImg, char.spriteKey, char.hueShift);
+  // Apply hue shift — include animation name in cache key to avoid cross-animation conflicts
+  const hueKey = anim.sheet ? `${char.spriteKey}:${char.currentAnim}` : char.spriteKey;
+  const source = getHueShiftedSprite(srcImg, hueKey, char.hueShift);
 
   // Flip horizontally based on facing direction
   // Sprites face right by default — flip for left

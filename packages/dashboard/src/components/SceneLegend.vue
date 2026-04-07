@@ -134,7 +134,12 @@ function statusEmoji(status: string): string {
   }
 }
 
-function stateLabel(state: CharacterState): string {
+function stateLabel(state: CharacterState, sessionStatus?: string): string {
+  // Use session status for more accurate label
+  if (sessionStatus === 'idle' && state !== CharacterState.DYING) return 'Descansando';
+  if (sessionStatus === 'waiting_input') return 'Esperando';
+  if (sessionStatus === 'waiting_permission') return 'Permiso';
+
   switch (state) {
     case CharacterState.WORKING: return 'Luchando';
     case CharacterState.IDLE: return 'Descansando';
@@ -222,7 +227,7 @@ const legendOpen = ref(!isMobile);
           <div v-if="entry.mainChar" class="flex items-center gap-1.5 pl-2">
             <span class="text-[12px]">🗡️</span>
             <span class="text-[9px] font-mono text-text">{{ entry.mainChar.name }}</span>
-            <span class="text-[8px] font-mono text-muted">{{ stateLabel(entry.mainChar.state) }}</span>
+            <span class="text-[8px] font-mono text-muted">{{ stateLabel(entry.mainChar.state, entry.status) }}</span>
           </div>
 
           <!-- Sub-agents -->
@@ -233,7 +238,7 @@ const legendOpen = ref(!isMobile);
           >
             <span class="text-[10px]">{{ comp.agentType === 'Explore' ? '🏹' : comp.agentType === 'Plan' ? '🔮' : '⚔️' }}</span>
             <span class="text-[9px] font-mono text-text">{{ comp.name }}</span>
-            <span class="text-[8px] font-mono text-muted">{{ stateLabel(comp.state) }}</span>
+            <span class="text-[8px] font-mono text-muted">{{ stateLabel(comp.state, entry.status) }}</span>
           </div>
 
           <!-- Enemies -->
