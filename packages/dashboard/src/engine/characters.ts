@@ -491,6 +491,9 @@ export function updateEnemies(
   const scaling = template.enemyScaling;
   if (!scaling) return;
 
+  // Don't spawn enemies until character has an assigned work seat
+  if (!char.assignedSeat) return;
+
   // Find current threshold — always at least 1 enemy
   let targetCount = 1;
   let latestSprite = scaling.thresholds[0]?.sprite || 'enemy';
