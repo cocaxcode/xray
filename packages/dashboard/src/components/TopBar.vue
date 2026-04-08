@@ -110,13 +110,14 @@ function toggleSearch(): void {
     <!-- Auto-approve toggle -->
     <button
       @click="toggleAutoApprove"
-      class="text-[9px] font-mono px-2 py-1 rounded-md border transition-colors shrink-0"
+      class="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-md border transition-colors shrink-0 flex items-center gap-1.5"
       :class="autoApprove
-        ? 'bg-green/20 text-green border-green/40 hover:bg-green/30'
+        ? 'bg-green/20 text-green border-green/40 hover:bg-green/30 animate-pulse'
         : 'bg-surface text-muted border-border hover:text-text'"
-      :title="autoApprove ? 'Auto-aprobar activo' : 'Auto-aprobar desactivado'"
+      :title="autoApprove ? 'Auto-aprobar activo — click para desactivar' : 'Click para auto-aprobar todo'"
     >
-      {{ autoApprove ? 'Auto' : 'Manual' }}
+      <span class="w-2 h-2 rounded-full" :class="autoApprove ? 'bg-green' : 'bg-muted/40'" />
+      {{ autoApprove ? 'Auto-approve ON' : 'Auto-approve' }}
     </button>
 
     <!-- Settings -->

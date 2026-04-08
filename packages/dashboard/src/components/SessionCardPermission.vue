@@ -33,13 +33,7 @@ async function handleResolve(decision: 'approve' | 'deny' | 'allowAlways'): Prom
         @click="handleResolve('allowAlways')"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded-md bg-green/20 text-green hover:bg-green/30 transition-colors"
       >
-        Aprobar siempre
-      </button>
-      <button
-        @click="handleResolve('approve')"
-        class="flex-1 text-xs font-semibold py-1.5 px-3 rounded-md bg-cyan/20 text-cyan hover:bg-cyan/30 transition-colors"
-      >
-        Una vez
+        Aprobar
       </button>
       <button
         @click="handleResolve('deny')"

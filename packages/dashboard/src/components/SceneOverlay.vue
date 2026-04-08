@@ -90,19 +90,13 @@ async function handleResolve(permissionId: number, decision: 'approve' | 'deny' 
           @click="handleResolve(getPermission(char)!.id, 'allowAlways')"
           class="flex-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-md bg-green/20 text-green hover:bg-green/40 border border-green/30 transition-colors"
         >
-          Siempre
-        </button>
-        <button
-          @click="handleResolve(getPermission(char)!.id, 'approve')"
-          class="flex-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-md bg-cyan/20 text-cyan hover:bg-cyan/40 border border-cyan/30 transition-colors"
-        >
-          1 vez
+          Aprobar
         </button>
         <button
           @click="handleResolve(getPermission(char)!.id, 'deny')"
           class="flex-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-md bg-red/20 text-red hover:bg-red/40 border border-red/30 transition-colors"
         >
-          No
+          Denegar
         </button>
       </div>
     </div>
