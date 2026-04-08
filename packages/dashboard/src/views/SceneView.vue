@@ -360,6 +360,7 @@ function onFocusSession(sessionId: string): void {
     <SceneOverlay
       v-if="gameState"
       :characters="gameState.characters"
+      :sessions="sessions"
       :camera="gameState.camera"
       :canvas-width="canvasWidth"
       :canvas-height="canvasHeight"

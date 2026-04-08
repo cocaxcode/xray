@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { Character, Camera } from '../engine/types';
+import type { Session } from '../types';
 import { worldToScreen } from '../engine/camera';
 import { usePermissions } from '../composables/usePermissions';
-import { truncate } from '../utils/format';
 
 const props = defineProps<{
   characters: Map<string, Character>;
+  sessions: Map<string, Session>;
   camera: Camera;
   canvasWidth: number;
   canvasHeight: number;
@@ -13,6 +15,20 @@ const props = defineProps<{
 }>();
 
 const { getBySession, resolve } = usePermissions();
+
+// Characters whose session is waiting for user input (not permission, just idle/waiting)
+const waitingCharacters = computed(() => {
+  void props.tick;
+  const result: Character[] = [];
+  for (const char of props.characters.values()) {
+    if (char.isCompanion) continue;
+    const session = props.sessions.get(char.sessionId);
+    if (session?.status === 'waiting_input' && !getBySession(char.sessionId)) {
+      result.push(char);
+    }
+  }
+  return result;
+});
 
 function getScreenPos(char: Character) {
   void props.tick; // reactive dependency for template re-evaluation
@@ -79,6 +95,24 @@ async function handleResolve(permissionId: number, decision: 'approve' | 'deny')
         >
           Denegar
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiting input bubbles — AI is idle, waiting for user to respond -->
+  <div
+    v-for="char in waitingCharacters"
+    :key="'wait-' + char.id"
+    class="absolute z-15 pointer-events-none"
+    :style="{
+      left: getScreenPos(char).x + 'px',
+      top: (getScreenPos(char).y - 70) + 'px',
+      transform: 'translateX(-50%)',
+    }"
+  >
+    <div class="bg-surface/90 border border-purple rounded-lg px-3 py-1.5 shadow-lg animate-pulse">
+      <div class="text-[10px] font-mono text-purple font-semibold">
+        Esperando respuesta...
       </div>
     </div>
   </div>
