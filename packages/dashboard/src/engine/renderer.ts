@@ -513,7 +513,7 @@ function drawNameLabel(
   const isHovered = mouseX !== undefined && mouseY !== undefined
     && Math.abs(mouseX - char.x) < hoverRadius
     && Math.abs(mouseY - char.y) < hoverRadius;
-  const labelAlpha = isHovered ? 1.0 : 0.4;
+  const labelAlpha = isHovered ? 1.0 : 0.6;
 
   ctx.globalAlpha = labelAlpha;
   ctx.textAlign = 'center';
