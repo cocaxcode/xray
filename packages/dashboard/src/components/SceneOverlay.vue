@@ -19,12 +19,15 @@ const { getBySession, resolve } = usePermissions();
 // Characters whose session is waiting for user input (not permission, just idle/waiting)
 const waitingCharacters = computed(() => {
   void props.tick;
-  const result: Character[] = [];
+  const result: Array<{ char: Character; message: string }> = [];
   for (const char of props.characters.values()) {
     if (char.isCompanion) continue;
     const session = props.sessions.get(char.sessionId);
     if (session?.status === 'waiting_input' && !getBySession(char.sessionId)) {
-      result.push(char);
+      result.push({
+        char,
+        message: session.lastMessage || 'Esperando respuesta...',
+      });
     }
   }
   return result;
@@ -58,7 +61,7 @@ function formatPermissionInput(toolName: string, toolInput: Record<string, unkno
   return toolName;
 }
 
-async function handleResolve(permissionId: number, decision: 'approve' | 'deny') {
+async function handleResolve(permissionId: number, decision: 'approve' | 'deny' | 'allowAlways') {
   resolve(permissionId, decision);
 }
 </script>
@@ -84,35 +87,44 @@ async function handleResolve(permissionId: number, decision: 'approve' | 'deny')
       </div>
       <div class="flex gap-2 mt-2">
         <button
-          @click="handleResolve(getPermission(char)!.id, 'approve')"
+          @click="handleResolve(getPermission(char)!.id, 'allowAlways')"
           class="flex-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-md bg-green/20 text-green hover:bg-green/40 border border-green/30 transition-colors"
         >
-          Aprobar
+          Siempre
+        </button>
+        <button
+          @click="handleResolve(getPermission(char)!.id, 'approve')"
+          class="flex-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-md bg-cyan/20 text-cyan hover:bg-cyan/40 border border-cyan/30 transition-colors"
+        >
+          1 vez
         </button>
         <button
           @click="handleResolve(getPermission(char)!.id, 'deny')"
           class="flex-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-md bg-red/20 text-red hover:bg-red/40 border border-red/30 transition-colors"
         >
-          Denegar
+          No
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Waiting input bubbles — AI is idle, waiting for user to respond -->
+  <!-- Waiting input bubbles — AI is idle, showing its question -->
   <div
-    v-for="char in waitingCharacters"
-    :key="'wait-' + char.id"
+    v-for="entry in waitingCharacters"
+    :key="'wait-' + entry.char.id"
     class="absolute z-15 pointer-events-none"
     :style="{
-      left: getScreenPos(char).x + 'px',
-      top: (getScreenPos(char).y - 70) + 'px',
+      left: getScreenPos(entry.char).x + 'px',
+      top: (getScreenPos(entry.char).y - 80) + 'px',
       transform: 'translateX(-50%)',
     }"
   >
-    <div class="bg-surface/90 border border-purple rounded-lg px-3 py-1.5 shadow-lg animate-pulse">
-      <div class="text-[10px] font-mono text-purple font-semibold">
-        Esperando respuesta...
+    <div class="bg-surface border border-purple rounded-lg px-3 py-2 max-w-[260px] shadow-lg">
+      <div class="text-[9px] font-mono text-purple font-semibold mb-1 animate-pulse">
+        Esperando respuesta
+      </div>
+      <div class="text-[9px] font-mono text-text break-words line-clamp-3">
+        {{ entry.message }}
       </div>
     </div>
   </div>

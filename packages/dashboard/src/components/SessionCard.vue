@@ -209,6 +209,19 @@ async function handleDismiss(e: Event): Promise<void> {
       :permission="pendingPermission"
     />
 
+    <!-- Waiting input (AI asked a question) -->
+    <div
+      v-if="!pendingPermission && session.status === 'waiting_input' && session.lastMessage"
+      class="mx-3 mb-2 p-2 rounded-md border border-purple/40 bg-purple/10"
+    >
+      <div class="text-[9px] font-mono text-purple font-semibold mb-1 animate-pulse">
+        Esperando respuesta
+      </div>
+      <div class="text-[9px] font-mono text-text line-clamp-3">
+        {{ session.lastMessage }}
+      </div>
+    </div>
+
     <!-- Activity (last tool calls, compact shows fewer) -->
     <SessionCardActivity
       v-if="!compact && activity.size > 0"
