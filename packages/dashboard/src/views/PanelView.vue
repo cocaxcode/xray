@@ -116,6 +116,7 @@ function dismissSession(id: string): void {
             </button>
           </div>
           <SessionDetailPanel
+            :key="selectedSession.id"
             :session-id="selectedSession.id"
             :event-count="selectedSession.eventCount"
           />
