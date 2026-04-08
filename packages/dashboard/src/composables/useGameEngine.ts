@@ -417,12 +417,12 @@ function getCharacterAtPixel(screenX: number, screenY: number): Character | null
   if (!state) return null;
 
   const world = screenToWorld(screenX, screenY, state.camera);
-  const ts = state.template.tileSize;
+  const cs = state.template.tileSize * (state.template.mechanics?.characterScale ?? 1);
 
   for (const char of state.characters.values()) {
     if (
-      world.x >= char.x - ts / 2 && world.x <= char.x + ts / 2 &&
-      world.y >= char.y - ts / 2 && world.y <= char.y + ts / 2
+      world.x >= char.x - cs / 2 && world.x <= char.x + cs / 2 &&
+      world.y >= char.y - cs / 2 && world.y <= char.y + cs / 2
     ) {
       return char;
     }

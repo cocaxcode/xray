@@ -170,12 +170,13 @@ export function render(
           }
         }
         // MCP crystals floating around character
+        const cs = tileSize * (template.mechanics?.characterScale ?? 1);
         for (let mi = 0; mi < char.environmentMcps.length; mi++) {
           const mcpKey = char.environmentMcps[mi];
           const angle = (mi * Math.PI * 2) / char.environmentMcps.length + Date.now() / 3000;
-          const radius = tileSize * (template.mechanics?.mcpOrbitRadius ?? 0.6);
+          const radius = cs * (template.mechanics?.mcpOrbitRadius ?? 0.6);
           const mx = char.x + Math.cos(angle) * radius;
-          const my = char.y - tileSize * 0.5 + Math.sin(angle) * radius * 0.3;
+          const my = char.y - cs * 0.5 + Math.sin(angle) * radius * 0.3;
           drawEnvironment(ctx, images, template, mx, my, mcpKey, tileSize);
         }
       },
@@ -191,7 +192,7 @@ export function render(
 
   // 5. Name labels (drawn last, always on top)
   for (const char of characters.values()) {
-    drawNameLabel(ctx, char, tileSize);
+    drawNameLabel(ctx, char, tileSize, template.mechanics?.characterScale ?? 1);
   }
 
   // 6. Empty state
@@ -306,13 +307,16 @@ function drawCharacter(
     }
   }
 
+  // Character renders at characterScale * tileSize (independent of tile grid)
+  const charSize = tileSize * (template.mechanics?.characterScale ?? 1);
+
   ctx.save();
   if (flipX) {
     ctx.translate(char.x, char.y);
     ctx.scale(-1, 1);
-    ctx.drawImage(source, srcX, srcY, frameW, frameH, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
+    ctx.drawImage(source, srcX, srcY, frameW, frameH, -charSize / 2, -charSize / 2, charSize, charSize);
   } else {
-    ctx.drawImage(source, srcX, srcY, frameW, frameH, char.x - tileSize / 2, char.y - tileSize / 2, tileSize, tileSize);
+    ctx.drawImage(source, srcX, srcY, frameW, frameH, char.x - charSize / 2, char.y - charSize / 2, charSize, charSize);
   }
   ctx.restore();
 
@@ -343,17 +347,18 @@ function drawEquipment(
   const srcX = 0; // Equipment shows first frame
   const srcY = anim.row * frameH;
 
+  const charSize = tileSize * (template.mechanics?.characterScale ?? 1);
   // Draw offset from character (weapon position)
-  const offsetX = tileSize * 0.3;
-  const offsetY = -tileSize * 0.1;
+  const offsetX = charSize * 0.3;
+  const offsetY = -charSize * 0.1;
 
   ctx.drawImage(
     img,
     srcX, srcY, frameW, frameH,
-    char.x - tileSize / 4 + offsetX,
-    char.y - tileSize / 2 + offsetY,
-    tileSize * 0.6,
-    tileSize * 0.6,
+    char.x - charSize / 4 + offsetX,
+    char.y - charSize / 2 + offsetY,
+    charSize * 0.6,
+    charSize * 0.6,
   );
 }
 
@@ -399,8 +404,9 @@ function drawEnemy(
 
   const [frameW, frameH] = sprite.frameSize;
 
-  // Enemies render at configurable scale of tile size
-  const enemySize = tileSize * (template.mechanics?.enemyScale ?? 0.8);
+  // Enemies render relative to character size
+  const charSize = tileSize * (template.mechanics?.characterScale ?? 1);
+  const enemySize = charSize * (template.mechanics?.enemyScale ?? 0.8);
 
   // Flip to face the character — sprites face right by default
   const flipX = targetX !== undefined && targetX < enemy.x;
@@ -443,7 +449,8 @@ function drawEnvironment(
   const srcX = frame * frameW;
   const srcY = anim.row * frameH;
 
-  const size = tileSize * (template.mechanics?.mcpScale ?? 0.25);
+  const charSize = tileSize * (template.mechanics?.characterScale ?? 1);
+  const size = charSize * (template.mechanics?.mcpScale ?? 0.25);
   // Slight pulsing glow effect
   const pulse = 0.7 + Math.sin(Date.now() / 500) * 0.3;
   ctx.globalAlpha = pulse;
@@ -494,9 +501,11 @@ function drawNameLabel(
   ctx: CanvasRenderingContext2D,
   char: Character,
   tileSize: number,
+  characterScale: number,
 ): void {
-  const fontSize = Math.max(8, tileSize * 0.18);
-  const subtitleSize = Math.max(7, tileSize * 0.14);
+  const charSize = tileSize * characterScale;
+  const fontSize = Math.max(8, charSize * 0.18);
+  const subtitleSize = Math.max(7, charSize * 0.14);
 
   ctx.textAlign = 'center';
 
@@ -505,7 +514,7 @@ function drawNameLabel(
   ctx.font = `bold ${fontSize}px monospace`;
   const mainMetrics = ctx.measureText(mainText);
 
-  const labelY = char.y + tileSize / 2 + fontSize + 2;
+  const labelY = char.y + charSize / 2 + fontSize + 2;
   const padding = 3;
 
   // Subtitle (topic)

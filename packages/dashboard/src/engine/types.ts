@@ -76,8 +76,9 @@ export interface MechanicsConfig {
   // Companion placement
   companionOffsetX?: number;   // tiles behind parent (default: -2, negative = left)
 
-  // Render sizes (as fraction of tileSize)
-  enemyScale?: number;         // enemy render size (default: 0.8)
+  // Render sizes
+  characterScale?: number;     // character render size in tiles (default: 1, use 2 for small tiles)
+  enemyScale?: number;         // enemy render size as fraction of character size (default: 0.8)
   mcpScale?: number;           // MCP crystal render size (default: 0.25)
   mcpOrbitRadius?: number;     // orbit distance from character (default: 0.6)
   campStructureW?: number;     // camp building width in tiles (default: 1.2)
