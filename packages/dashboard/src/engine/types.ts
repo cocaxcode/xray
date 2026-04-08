@@ -91,7 +91,7 @@ export interface MapDef {
   map: number[][];
   walkable: boolean[][];
   zones: {
-    work: Position[];
+    work: WorkPosition[];
     rest: Position[];
     spawn: Position[];
     exit: Position[];
@@ -137,6 +137,13 @@ export interface Position {
   y: number;
 }
 
+export type Facing = 'up' | 'down' | 'left' | 'right';
+
+/** Work zone position with optional facing direction */
+export interface WorkPosition extends Position {
+  facing?: Facing;
+}
+
 export interface StateVisual {
   anim: string;
   zone?: string;
@@ -170,8 +177,6 @@ export enum CharacterState {
   WORKING = 'working',
   DYING = 'dying',
 }
-
-export type Facing = 'up' | 'down' | 'left' | 'right';
 
 export interface Character {
   id: string;
@@ -219,7 +224,7 @@ export interface Character {
   topic: string | null;
 
   // Assigned work seat (null if none)
-  assignedSeat: Position | null;
+  assignedSeat: WorkPosition | null;
 
   // Marked for removal after DYING animation completes
   markedForRemoval: boolean;

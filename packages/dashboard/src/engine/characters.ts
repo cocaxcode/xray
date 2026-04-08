@@ -1,7 +1,7 @@
 import type {
-  Character, EnemyState, Position, TemplateConfig, MapDef,
+  Character, EnemyState, Position, WorkPosition, TemplateConfig, MapDef,
   SpriteDef, AnimationDef, EnemyScaling, CharacterState as CharState,
-  MechanicsConfig,
+  MechanicsConfig, Facing,
 } from './types';
 import { CharacterState } from './types';
 import { findPath, findNearestWalkable } from './pathfinding';
@@ -235,6 +235,10 @@ function updateMovement(char: Character, dt: number, tileSize: number, template:
     char.currentAnim = next === CharacterState.WORKING ? (template.animations?.working || 'attack') : 'idle';
     char.animFrame = 0;
     char.animTimer = 0;
+    // Apply seat facing if defined (e.g. face toward desk)
+    if (next === CharacterState.WORKING && char.assignedSeat?.facing) {
+      char.facing = char.assignedSeat.facing;
+    }
     return;
   }
 
@@ -256,6 +260,10 @@ function updateMovement(char: Character, dt: number, tileSize: number, template:
       char.targetState = null;
       char.currentAnim = next === CharacterState.WORKING ? (template.animations?.working || 'attack') : 'idle';
       char.animFrame = 0;
+      // Apply seat facing if defined
+      if (next === CharacterState.WORKING && char.assignedSeat?.facing) {
+        char.facing = char.assignedSeat.facing;
+      }
       char.animTimer = 0;
     }
   } else {
@@ -305,6 +313,7 @@ export function transitionToActive(
       char.currentAnim = toolAnim || workingAnim;
       char.animFrame = 0;
       char.animTimer = 0;
+      if (seat.facing) char.facing = seat.facing;
     }
   } else {
     // No seats available — stay where we are, play working anim anyway
@@ -390,7 +399,7 @@ export function transitionToStopped(
 
 const seatQueue: string[] = [];
 
-export function assignSeat(workZones: Position[], occupied: Set<string>): Position | null {
+export function assignSeat(workZones: WorkPosition[], occupied: Set<string>): WorkPosition | null {
   for (const seat of workZones) {
     const key = `${seat.x},${seat.y}`;
     if (!occupied.has(key)) {
