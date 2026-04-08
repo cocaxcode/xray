@@ -152,20 +152,9 @@ let resizeObs: ResizeObserver | null = null;
 
 // ── Dismiss Session ──
 
-function onDismissSession(sessionId: string): void {
-  // Remove main character + all companions + their enemies from the engine
-  if (!gameState.value) return;
-  const toRemove: string[] = [];
-  for (const [id, char] of gameState.value.characters) {
-    if (char.sessionId === sessionId) {
-      char.enemies = [];
-      char.markedForRemoval = true;
-      toRemove.push(id);
-    }
-  }
-  for (const id of toRemove) {
-    gameState.value.characters.delete(id);
-  }
+function onDismissSession(_sessionId: string): void {
+  // Don't remove characters from engine — just hide from legend
+  // Characters stay on map, the legend filters them via hiddenSessions
 }
 
 // ── Canvas Events ──
