@@ -61,6 +61,9 @@ onMounted(async () => {
     const currentSessions = Array.from(sessions.value.values());
     init(config, images, currentSessions);
 
+    // Measure canvas BEFORE centering camera (needs real dimensions)
+    updateCanvasRect();
+
     // Center camera on map
     if (gameState.value) {
       const mapCenterX = (gameState.value.activeMap.mapSize[0] * config.tileSize) / 2;
