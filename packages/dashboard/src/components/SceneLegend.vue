@@ -107,7 +107,7 @@ function getSpriteSheetUrl(spriteKey: string): string {
   // Use idle animation sheet if available, otherwise main sheet
   const idleAnim = sprite.animations.idle;
   const sheet = idleAnim?.sheet || sprite.sheet;
-  return `/templates/${props.templateName}/${sheet}`;
+  return `/templates/${props.templateName}/assets/${sheet}`;
 }
 
 function getEnemySpriteUrl(): string {
