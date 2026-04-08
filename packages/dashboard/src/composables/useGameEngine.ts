@@ -423,13 +423,40 @@ function update(dt: number): void {
     sessionHueShifts.delete(id);
   }
 
-  // Companions face toward parent's enemies
+  // Companions: face toward enemies and advance/stay back based on type
+  const ts = state.template.tileSize;
+  const mc = state.template.mechanics;
+  const advMin = mc?.combatAdvanceMin ?? 0.7;
+  const advRange = mc?.combatAdvanceRange ?? 0.2;
+
+  // Ranged types stay behind, melee types advance like the warrior
+  const rangedTypes = new Set(['Explore', 'Plan', 'best-practices-advisor', 'seo-spanish-copywriter']);
+
   for (const char of state.characters.values()) {
-    if (char.isCompanion && (char.state === CharacterState.WORKING || char.state === CharacterState.IDLE)) {
-      const parent = state.characters.get(char.sessionId);
-      if (parent && parent.enemies.length > 0) {
-        const enemyCenterX = parent.enemies.reduce((s, e) => s + e.x, 0) / parent.enemies.length;
-        char.facing = enemyCenterX > char.x ? 'right' : 'left';
+    if (!char.isCompanion) continue;
+    const parent = state.characters.get(char.sessionId);
+    if (!parent || parent.enemies.length === 0) continue;
+
+    const enemyCenterX = parent.enemies.reduce((s, e) => s + e.x, 0) / parent.enemies.length;
+    const enemyCenterY = parent.enemies.reduce((s, e) => s + e.y, 0) / parent.enemies.length;
+    char.facing = enemyCenterX > char.x ? 'right' : 'left';
+
+    if (char.state === CharacterState.WORKING && char.assignedSeat) {
+      const homeX = char.assignedSeat.x * ts + ts / 2;
+      const homeY = char.assignedSeat.y * ts + ts / 2;
+      const combatPhase = (Math.sin(Date.now() / 1000 + 1.5) + 1) / 2;
+      const isRanged = rangedTypes.has(char.agentType || '');
+
+      if (isRanged) {
+        // Ranged: stay at home position, slight sway only
+        const sway = Math.sin(Date.now() / 2000) * ts * 0.15;
+        char.x = homeX + sway;
+        char.y = homeY;
+      } else {
+        // Melee: advance toward enemies like warrior but offset 1 tile vertically
+        const advance = advMin + advRange * combatPhase;
+        char.x = homeX + (enemyCenterX - homeX) * advance;
+        char.y = homeY + (enemyCenterY - homeY) * advance;
       }
     }
   }
