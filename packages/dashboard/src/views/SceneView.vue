@@ -61,6 +61,13 @@ onMounted(async () => {
     const currentSessions = Array.from(sessions.value.values());
     init(config, images, currentSessions);
 
+    // Center camera on map
+    if (gameState.value) {
+      const mapCenterX = (gameState.value.activeMap.mapSize[0] * config.tileSize) / 2;
+      const mapCenterY = (gameState.value.activeMap.mapSize[1] * config.tileSize) / 2;
+      panTo(gameState.value.camera, mapCenterX, mapCenterY, canvasWidth.value, canvasHeight.value);
+    }
+
     // Create game loop
     gameLoop = createGameLoop(
       canvasRef.value,
