@@ -18,6 +18,7 @@ export function registerApiRoutes(
   manager: SessionManager,
   permissionHandler: PermissionHandler,
   authState: AuthState,
+  broadcast?: (event: import('../types.js').ServerWSEvent) => void,
 ): void {
   // ── Projects (agrupados) ──
   fastify.get('/api/projects', async (request) => {
@@ -97,6 +98,18 @@ export function registerApiRoutes(
   // ── Active pending permissions (only those with active deferred promises) ──
   fastify.get('/api/permissions/pending', async () => {
     return permissionHandler.getActivePendingFull();
+  });
+
+  // ── Auto-approve toggle ──
+  fastify.get('/api/permissions/auto-approve', async () => {
+    return { enabled: permissionHandler.autoApprove };
+  });
+
+  fastify.post('/api/permissions/auto-approve', async (request) => {
+    const { enabled } = request.body as { enabled: boolean };
+    permissionHandler.autoApprove = !!enabled;
+    broadcast?.({ type: 'config:auto-approve', data: { enabled: permissionHandler.autoApprove } });
+    return { enabled: permissionHandler.autoApprove };
   });
 
   // ── PIN exchange ──

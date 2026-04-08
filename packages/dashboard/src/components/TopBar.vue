@@ -6,6 +6,7 @@ import { useSessions } from '../composables/useSessions';
 import { useSearch } from '../composables/useSearch';
 import { usePermissions } from '../composables/usePermissions';
 import { useViewMode } from '../composables/useViewMode';
+import { useAutoApprove } from '../composables/useAutoApprove';
 
 const emit = defineEmits<{ openSettings: [] }>();
 
@@ -15,6 +16,7 @@ const { totals } = useSessions();
 const { searchQuery, clearSearch } = useSearch();
 const { count: permissionCount } = usePermissions();
 const { current: viewMode, availableTemplates, setView } = useViewMode();
+const { autoApprove, toggle: toggleAutoApprove } = useAutoApprove();
 
 const searchOpen = ref(false);
 
@@ -103,6 +105,18 @@ function toggleSearch(): void {
       <span class="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-[9px] font-bold bg-amber text-bg rounded-full">
         {{ permissionCount }}
       </span>
+    </button>
+
+    <!-- Auto-approve toggle -->
+    <button
+      @click="toggleAutoApprove"
+      class="text-[9px] font-mono px-2 py-1 rounded-md border transition-colors shrink-0"
+      :class="autoApprove
+        ? 'bg-green/20 text-green border-green/40 hover:bg-green/30'
+        : 'bg-surface text-muted border-border hover:text-text'"
+      :title="autoApprove ? 'Auto-aprobar activo' : 'Auto-aprobar desactivado'"
+    >
+      {{ autoApprove ? 'Auto' : 'Manual' }}
     </button>
 
     <!-- Settings -->

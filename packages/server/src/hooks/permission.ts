@@ -13,11 +13,15 @@ export class PermissionHandler {
   private pending = new Map<number, DeferredPermission>();
   private queries: Queries;
   private broadcast: (event: ServerWSEvent) => void;
+  private _autoApprove = false;
 
   constructor(queries: Queries, broadcast: (event: ServerWSEvent) => void) {
     this.queries = queries;
     this.broadcast = broadcast;
   }
+
+  get autoApprove(): boolean { return this._autoApprove; }
+  set autoApprove(val: boolean) { this._autoApprove = val; }
 
   /**
    * Maneja un PermissionRequest. Devuelve una Promise que se resuelve
@@ -42,6 +46,18 @@ export class PermissionHandler {
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
+
+    // Auto-approve: resolve immediately without waiting
+    if (this._autoApprove) {
+      this.queries.updatePermission(permissionId, 'approved');
+      this.broadcast({ type: 'permission:auto-approved', data: permission });
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PermissionRequest' as const,
+          decision: { behavior: 'allowAlways' as const },
+        },
+      };
+    }
 
     // Broadcast al dashboard
     this.broadcast({ type: 'permission:pending', data: permission });

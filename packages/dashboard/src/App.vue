@@ -5,6 +5,7 @@ import { useWebSocket } from './composables/useWebSocket';
 import { useSessions } from './composables/useSessions';
 import { useConfig } from './composables/useConfig';
 import { useViewMode } from './composables/useViewMode';
+import { useAutoApprove } from './composables/useAutoApprove';
 import TopBar from './components/TopBar.vue';
 import AuthPrompt from './components/AuthPrompt.vue';
 import SettingsDrawer from './components/SettingsDrawer.vue';
@@ -16,6 +17,7 @@ const { connect, onMessage } = useWebSocket();
 const { handleWSEvent, loadInitialState } = useSessions();
 const { loadConfig } = useConfig();
 const { current: viewMode, loadAvailableTemplates } = useViewMode();
+const { fetchState: fetchAutoApprove, setFromWS } = useAutoApprove();
 
 const authMode = ref<'loading' | 'local' | 'authenticated' | 'needs_auth'>('loading');
 const settingsOpen = ref(false);
@@ -35,9 +37,15 @@ onMounted(async () => {
 function init(): void {
   connect(token.value);
   onMessage(handleWSEvent);
+  onMessage((event) => {
+    if (event.type === 'config:auto-approve') {
+      setFromWS(event.data.enabled);
+    }
+  });
   loadInitialState(false);
   loadConfig();
   loadAvailableTemplates();
+  fetchAutoApprove();
 }
 
 function onAuthenticated(): void {

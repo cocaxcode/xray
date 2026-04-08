@@ -211,7 +211,9 @@ export type ServerWSEvent =
   | { type: 'agent:start'; data: { sessionId: string; agent: Agent } }
   | { type: 'agent:stop'; data: { sessionId: string; agentId: string } }
   | { type: 'notification'; data: { sessionId: string; type: string; message: string } }
-  | { type: 'config:updated'; data: Record<string, unknown> };
+  | { type: 'config:updated'; data: Record<string, unknown> }
+  | { type: 'config:auto-approve'; data: { enabled: boolean } }
+  | { type: 'permission:auto-approved'; data: PendingPermission };
 
 export type ClientWSEvent =
   | { type: 'permission:resolve'; data: { id: number; decision: 'approve' | 'deny' } };
