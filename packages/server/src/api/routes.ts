@@ -96,7 +96,7 @@ export function registerApiRoutes(
 
   // ── Active pending permissions (only those with active deferred promises) ──
   fastify.get('/api/permissions/pending', async () => {
-    return permissionHandler.getActivePending();
+    return permissionHandler.getActivePendingFull();
   });
 
   // ── PIN exchange ──

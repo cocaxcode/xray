@@ -105,6 +105,7 @@ export function registerHookRoutes(
     try {
       ensureSession(payload);
       manager.transitionTo(sessionId, 'waiting_permission');
+      broadcast({ type: 'session:update', data: { id: sessionId, status: 'waiting_permission' } });
 
       const response = await permissionHandler.handlePermissionRequest(
         sessionId,
@@ -113,6 +114,7 @@ export function registerHookRoutes(
       );
 
       manager.transitionTo(sessionId, 'active');
+      broadcast({ type: 'session:update', data: { id: sessionId, status: 'active' } });
       return response;
     } catch (e) {
       fastify.log.error(e, 'permission-request handler error');

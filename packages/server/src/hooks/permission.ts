@@ -101,6 +101,16 @@ export class PermissionHandler {
     return Array.from(this.pending.keys());
   }
 
+  /** Returns full PendingPermission objects for all active (in-memory) pending permissions */
+  getActivePendingFull(): PendingPermission[] {
+    const result: PendingPermission[] = [];
+    for (const id of this.pending.keys()) {
+      const perm = this.queries.getPendingPermission(id);
+      if (perm) result.push(perm);
+    }
+    return result;
+  }
+
   /**
    * Limpia todos los permisos pendientes de una sesion.
    * Limpia TANTO el Map en memoria COMO la base de datos.

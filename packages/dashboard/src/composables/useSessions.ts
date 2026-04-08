@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import type {
   Session, ProjectGroup, ToolEvent, ServerWSEvent, Agent,
   ProjectsResponse, SessionEventsResponse, SessionSummary,
+  PendingPermission,
 } from '../types';
 import { useAuth } from './useAuth';
 import { usePermissions } from './usePermissions';
@@ -204,17 +205,24 @@ async function loadInitialState(includeStopped = false): Promise<void> {
 
 async function syncPermissions(): Promise<void> {
   const { getAuthHeaders } = useAuth();
-  const { pending, removePending } = usePermissions();
+  const { pending, removePending, addPending } = usePermissions();
   try {
     const res = await fetch('/api/permissions/pending', { headers: getAuthHeaders() });
     if (!res.ok) return;
-    const activeIds: number[] = await res.json();
-    const activeSet = new Set(activeIds);
+    const activePermissions: PendingPermission[] = await res.json();
+    const activeIds = new Set(activePermissions.map(p => p.id));
 
     // Remove permissions from UI that are no longer active on server
     for (const id of pending.value.keys()) {
-      if (!activeSet.has(id)) {
+      if (!activeIds.has(id)) {
         removePending(id);
+      }
+    }
+
+    // Add permissions that exist on server but are missing from UI (page reload case)
+    for (const perm of activePermissions) {
+      if (!pending.value.has(perm.id)) {
+        addPending(perm);
       }
     }
   } catch {
