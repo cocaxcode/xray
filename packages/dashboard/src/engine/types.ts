@@ -274,6 +274,8 @@ export interface GameState {
   seatQueue: string[];        // character IDs waiting for a seat
   camera: Camera;
   randomProps: PropDef[];  // randomly generated decorations
+  mouseWorldX?: number;    // mouse position in world coords (for hover effects)
+  mouseWorldY?: number;
 }
 
 // ── Template Metadata (from GET /api/templates) ──

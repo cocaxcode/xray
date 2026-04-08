@@ -208,10 +208,12 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
   // Position companion BEHIND the parent (opposite side of enemies)
   const parent = state.characters.get(sessionId);
   if (parent?.assignedSeat) {
-    // Companion goes opposite side of enemies (configurable offset)
+    // Companion positioned near parent but offset vertically so they don't overlap
     const companionOffset = state.template.mechanics?.companionOffsetX ?? -2;
     const behindX = parent.assignedSeat.x + companionOffset;
-    const behindY = parent.assignedSeat.y + (state.characters.size % 3 - 1); // stagger vertically
+    // Each companion gets a unique vertical offset: -2, -3, -4... (above parent)
+    const companionIdx = Array.from(state.characters.values()).filter(c => c.isCompanion && c.sessionId === sessionId).length;
+    const behindY = parent.assignedSeat.y - 2 - companionIdx;
     const ts = state.template.tileSize;
 
     // Don't use assignSeat — companion stays behind parent, not at a work seat

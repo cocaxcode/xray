@@ -7,7 +7,7 @@ import { useWebSocket } from '../composables/useWebSocket';
 import { usePermissions } from '../composables/usePermissions';
 import { createGameLoop, type GameLoop } from '../engine/gameLoop';
 import { render } from '../engine/renderer';
-import { zoomAt, startDrag, updateDrag, endDrag, panTo } from '../engine/camera';
+import { zoomAt, startDrag, updateDrag, endDrag, panTo, screenToWorld } from '../engine/camera';
 import SceneOverlay from '../components/SceneOverlay.vue';
 import SceneLegend from '../components/SceneLegend.vue';
 import PromptBubble from '../components/PromptBubble.vue';
@@ -202,6 +202,13 @@ function onMouseDown(e: MouseEvent): void {
 function onMouseMove(e: MouseEvent): void {
   if (!gameState.value) return;
   updateDrag(gameState.value.camera, e.clientX, e.clientY);
+  // Track mouse in world coords for hover effects (labels)
+  const rect = canvasRef.value?.getBoundingClientRect();
+  if (rect) {
+    const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, gameState.value.camera);
+    gameState.value.mouseWorldX = world.x;
+    gameState.value.mouseWorldY = world.y;
+  }
 }
 
 function onMouseUp(): void {

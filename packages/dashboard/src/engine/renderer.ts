@@ -189,7 +189,7 @@ export function render(
 
   // 5. Name labels (drawn last, always on top)
   for (const char of characters.values()) {
-    drawNameLabel(ctx, char, tileSize, template.mechanics?.characterScale ?? 1);
+    drawNameLabel(ctx, char, tileSize, template.mechanics?.characterScale ?? 1, state.mouseWorldX, state.mouseWorldY);
   }
 
   // 6. Empty state
@@ -501,11 +501,21 @@ function drawNameLabel(
   char: Character,
   tileSize: number,
   characterScale: number,
+  mouseX?: number,
+  mouseY?: number,
 ): void {
   const charSize = tileSize * characterScale;
   const fontSize = Math.max(8, charSize * 0.18);
   const subtitleSize = Math.max(7, charSize * 0.14);
 
+  // Check if mouse is near this character — labels are translucent by default, opaque on hover
+  const hoverRadius = charSize * 1.5;
+  const isHovered = mouseX !== undefined && mouseY !== undefined
+    && Math.abs(mouseX - char.x) < hoverRadius
+    && Math.abs(mouseY - char.y) < hoverRadius;
+  const labelAlpha = isHovered ? 1.0 : 0.4;
+
+  ctx.globalAlpha = labelAlpha;
   ctx.textAlign = 'center';
 
   // Main label (project name or character name)
@@ -549,6 +559,8 @@ function drawNameLabel(
     const displaySub = subtitle.length > 30 ? subtitle.slice(0, 30) + '...' : subtitle;
     ctx.fillText(displaySub, char.x, labelY + subtitleSize + 2);
   }
+
+  ctx.globalAlpha = 1;
 }
 
 // ── Empty State ──
