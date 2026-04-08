@@ -104,8 +104,12 @@ export function registerHookRoutes(
 
     try {
       ensureSession(payload);
-      manager.transitionTo(sessionId, 'waiting_permission');
-      broadcast({ type: 'session:update', data: { id: sessionId, status: 'waiting_permission' } });
+
+      // Skip waiting_permission state when auto-approve is active
+      if (!permissionHandler.autoApprove) {
+        manager.transitionTo(sessionId, 'waiting_permission');
+        broadcast({ type: 'session:update', data: { id: sessionId, status: 'waiting_permission' } });
+      }
 
       const response = await permissionHandler.handlePermissionRequest(
         sessionId,
@@ -113,8 +117,10 @@ export function registerHookRoutes(
         (payload.tool_input as Record<string, unknown>) ?? {},
       );
 
-      manager.transitionTo(sessionId, 'active');
-      broadcast({ type: 'session:update', data: { id: sessionId, status: 'active' } });
+      if (!permissionHandler.autoApprove) {
+        manager.transitionTo(sessionId, 'active');
+        broadcast({ type: 'session:update', data: { id: sessionId, status: 'active' } });
+      }
       return response;
     } catch (e) {
       fastify.log.error(e, 'permission-request handler error');
