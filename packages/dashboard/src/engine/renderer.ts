@@ -70,21 +70,7 @@ export function render(
   // 2. Collect drawables (props + characters + enemies + environment)
   const drawables: Drawable[] = [];
 
-  // Static props
-  for (const prop of template.props) {
-    const py = prop.y * tileSize;
-    drawables.push({
-      y: py,
-      draw: () => drawProp(ctx, images, template, prop, tileSize),
-    });
-  }
-
-  // Random decorations (drawn on ground — characters walk OVER them)
-  for (const prop of state.randomProps) {
-    drawProp(ctx, images, template, prop, tileSize);
-  }
-
-  // Enemy camps: dirt patch + structure (drawn before characters)
+  // Enemy camp dirt patches (drawn first on ground layer, under decorations)
   const campGroundTile = template.enemyCamp?.groundTile;
   const campStructure = template.enemyCamp?.structure;
 
@@ -100,7 +86,6 @@ export function render(
       if (tilemapImg) {
         const sandRegion = campGroundTile ? template.tiles[campGroundTile]?.region : null;
         if (sandRegion) {
-          // Cache the pattern (only create once)
           const patternKey = `${sandRegion[0]},${sandRegion[1]}`;
           if (!cachedDirtPattern || cachedDirtPatternKey !== patternKey) {
             const patternCanvas = document.createElement('canvas');
@@ -118,11 +103,9 @@ export function render(
             ctx.beginPath();
             const rx = tileSize * (template.mechanics?.campGroundRx ?? 2.2);
             const ry = tileSize * (template.mechanics?.campGroundRy ?? 1.5);
-            // Irregular edge using many points with noise
             const points = 40;
             for (let i = 0; i <= points; i++) {
               const angle = (i / points) * Math.PI * 2;
-              // Noise per point for bumpy edge
               const seed = Math.sin(gx * 0.1 + angle * 3) * 0.15
                          + Math.sin(gy * 0.1 + angle * 5) * 0.1
                          + Math.sin(angle * 7) * 0.08;
@@ -140,7 +123,7 @@ export function render(
         }
       }
 
-      // Draw camp structure above
+      // Camp structure as drawable (Y-sorted with characters)
       const houseImg = campStructure ? images.get(`sprite:${campStructure}`) : null;
       if (houseImg) {
         const houseW = tileSize * (template.mechanics?.campStructureW ?? 1.2);
@@ -153,6 +136,20 @@ export function render(
         });
       }
     }
+  }
+
+  // Static props
+  for (const prop of template.props) {
+    const py = prop.y * tileSize;
+    drawables.push({
+      y: py,
+      draw: () => drawProp(ctx, images, template, prop, tileSize),
+    });
+  }
+
+  // Random decorations (drawn on ground — over dirt patches, under characters)
+  for (const prop of state.randomProps) {
+    drawProp(ctx, images, template, prop, tileSize);
   }
 
   // Characters + their enemies + environment
