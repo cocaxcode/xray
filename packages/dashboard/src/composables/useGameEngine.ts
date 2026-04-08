@@ -297,7 +297,7 @@ function onSessionUpdate(session: Session): void {
 
   // Enemy scaling
   const totalTokens = session.inputTokens + session.outputTokens;
-  updateEnemies(char, state.template, totalTokens, state.template.tileSize);
+  updateEnemies(char, state.template, totalTokens, state.template.tileSize, state.occupiedSeats);
 
   // Check if map resize needed
   const totalSessions = state.characters.size;
@@ -381,7 +381,7 @@ function update(dt: number): void {
       const session = sessions.value.get(char.sessionId);
       if (session) {
         const totalTokens = session.inputTokens + session.outputTokens;
-        updateEnemies(char, state.template, totalTokens, state.template.tileSize);
+        updateEnemies(char, state.template, totalTokens, state.template.tileSize, state.occupiedSeats);
       }
     }
 

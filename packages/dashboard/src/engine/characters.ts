@@ -487,6 +487,7 @@ export function updateEnemies(
   template: TemplateConfig,
   totalTokens: number,
   tileSize: number,
+  occupied?: Set<string>,
 ): void {
   const scaling = template.enemyScaling;
   if (!scaling) return;
@@ -555,8 +556,23 @@ export function updateEnemies(
     char.enemies.pop();
   }
 
-  // Note: spriteKey is set per-enemy at creation time (torch/tnt pattern)
-  // Don't override individual enemy types here
+  // Mark camp area tiles as occupied so characters pathfind around them
+  if (occupied && char.enemies.length > 0 && template.enemyCamp?.structure) {
+    let cx = 0, cy = 0;
+    for (const e of char.enemies) { cx += e.baseX; cy += e.baseY; }
+    cx /= char.enemies.length;
+    cy /= char.enemies.length;
+    // Convert pixel center to tile coords and block a small area
+    const campTileX = Math.floor(cx / tileSize);
+    const campTileY = Math.floor(cy / tileSize);
+    const campW = Math.ceil((template.mechanics?.campStructureW ?? 1.2) / 2);
+    const campH = Math.ceil((template.mechanics?.campStructureH ?? 1.8) / 2);
+    for (let dy = -campH; dy <= campH; dy++) {
+      for (let dx = -campW; dx <= campW; dx++) {
+        occupied.add(`${campTileX + dx},${campTileY + dy}`);
+      }
+    }
+  }
 }
 
 // ── Name Resolution ──
