@@ -75,6 +75,7 @@ export function render(
   const campStructure = template.enemyCamp?.structure;
 
   for (const char of characters.values()) {
+    if (char.hidden) continue;
     if (!char.isCompanion && char.enemies.length > 0) {
       let gx = 0, gy = 0;
       for (const e of char.enemies) { gx += e.baseX; gy += e.baseY; }
@@ -154,6 +155,7 @@ export function render(
 
   // Characters + their enemies + environment
   for (const char of characters.values()) {
+    if (char.hidden) continue;
     drawables.push({
       y: char.y,
       draw: () => {
@@ -189,6 +191,7 @@ export function render(
 
   // 5. Name labels (drawn last, always on top)
   for (const char of characters.values()) {
+    if (char.hidden) continue;
     drawNameLabel(ctx, char, tileSize, template.mechanics?.characterScale ?? 1, state.mouseWorldX, state.mouseWorldY);
   }
 

@@ -238,6 +238,9 @@ export interface Character {
 
   // Marked for removal after DYING animation completes
   markedForRemoval: boolean;
+
+  // Hidden from rendering (dismissed in legend, can be restored)
+  hidden: boolean;
 }
 
 export interface EnemyState {

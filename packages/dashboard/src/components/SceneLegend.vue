@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   dismissSession: [sessionId: string];
+  restoreSession: [sessionId: string];
 }>();
 
 // Track which entries are expanded (first 2 auto-expand)
@@ -313,7 +314,7 @@ const legendOpen = ref(!isMobile);
           <span class="w-2 h-2 rounded-full shrink-0 bg-muted/30" />
           <span class="text-[10px] font-mono text-muted truncate">{{ entry.projectName }}</span>
           <button
-            @click="hiddenSessions.delete(entry.sessionId)"
+            @click="hiddenSessions.delete(entry.sessionId); emit('restoreSession', entry.sessionId)"
             class="ml-auto text-[8px] font-mono text-cyan hover:text-text"
           >
             Mostrar

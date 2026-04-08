@@ -152,9 +152,24 @@ let resizeObs: ResizeObserver | null = null;
 
 // ── Dismiss Session ──
 
-function onDismissSession(_sessionId: string): void {
-  // Don't remove characters from engine — just hide from legend
-  // Characters stay on map, the legend filters them via hiddenSessions
+function onDismissSession(sessionId: string): void {
+  // Hide characters from map rendering (reversible via legend "Mostrar")
+  if (!gameState.value) return;
+  for (const char of gameState.value.characters.values()) {
+    if (char.sessionId === sessionId) {
+      char.hidden = true;
+    }
+  }
+}
+
+function onRestoreSession(sessionId: string): void {
+  // Restore hidden characters to map
+  if (!gameState.value) return;
+  for (const char of gameState.value.characters.values()) {
+    if (char.sessionId === sessionId) {
+      char.hidden = false;
+    }
+  }
 }
 
 // ── Canvas Events ──
@@ -382,6 +397,7 @@ function onFocusSession(sessionId: string): void {
       :tick="tick"
       :template-name="templateName"
       @dismiss-session="onDismissSession"
+      @restore-session="onRestoreSession"
     />
 
 

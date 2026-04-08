@@ -86,6 +86,7 @@ export function createCharacter(
     topic: null,
     assignedSeat: null,
     markedForRemoval: false,
+    hidden: false,
   };
 }
 
