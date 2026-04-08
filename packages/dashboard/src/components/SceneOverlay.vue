@@ -11,11 +11,13 @@ const props = defineProps<{
   camera: Camera;
   canvasWidth: number;
   canvasHeight: number;
+  tick: number;
 }>();
 
 const { getBySession, resolve } = usePermissions();
 
 const workingCharacters = computed(() => {
+  void props.tick; // force recomputation each frame
   const result: Character[] = [];
   for (const char of props.characters.values()) {
     if (char.state === CharacterState.WORKING) {
@@ -26,6 +28,7 @@ const workingCharacters = computed(() => {
 });
 
 function getScreenPos(char: Character) {
+  void props.tick; // reactive dependency for template re-evaluation
   return worldToScreen(char.x, char.y, props.camera);
 }
 

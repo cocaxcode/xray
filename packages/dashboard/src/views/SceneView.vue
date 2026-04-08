@@ -363,6 +363,7 @@ function onFocusSession(sessionId: string): void {
       :camera="gameState.camera"
       :canvas-width="canvasWidth"
       :canvas-height="canvasHeight"
+      :tick="tick"
     />
 
     <!-- Prompt Bubble (top-right) -->
