@@ -289,7 +289,8 @@ export function transitionToActive(
   tileSize: number,
   toolAnim?: string,
 ): void {
-  const seat = assignSeat(activeMap.zones.work, occupied);
+  // Reuse existing seat if already assigned, otherwise get a new one
+  const seat = char.assignedSeat || assignSeat(activeMap.zones.work, occupied);
   if (seat) {
     char.assignedSeat = seat;
     const path = findPath(activeMap.walkable, { x: char.tileX, y: char.tileY }, seat, occupied);

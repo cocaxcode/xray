@@ -12,6 +12,7 @@ import {
   transitionToIdle,
   transitionToStopped,
   updateEnemies,
+  assignSeat,
   resolveCharacterName,
   getUniqueName,
   type NameConfig,
@@ -132,7 +133,14 @@ function addSessionCharacter(session: Session): void {
 
   state.characters.set(session.id, char);
 
-  // If session is already active, transition
+  // Always assign a work seat so enemies have a position
+  // (even idle sessions get a zone — they just wander instead of fighting)
+  const seat = assignSeat(state.activeMap.zones.work, state.occupiedSeats);
+  if (seat) {
+    char.assignedSeat = seat;
+  }
+
+  // If session is already active, transition to working
   if (session.status === 'active') {
     transitionToActive(char, state.template, state.activeMap, state.occupiedSeats, state.template.tileSize);
   }
