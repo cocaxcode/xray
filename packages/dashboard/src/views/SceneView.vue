@@ -61,22 +61,33 @@ onMounted(async () => {
     const currentSessions = Array.from(sessions.value.values());
     init(config, images, currentSessions);
 
-    // Measure canvas BEFORE centering camera (needs real dimensions)
-    updateCanvasRect();
-
-    // Center camera on map
-    if (gameState.value) {
-      const mapCenterX = (gameState.value.activeMap.mapSize[0] * config.tileSize) / 2;
-      const mapCenterY = (gameState.value.activeMap.mapSize[1] * config.tileSize) / 2;
-      panTo(gameState.value.camera, mapCenterX, mapCenterY, canvasWidth.value, canvasHeight.value);
-    }
+    // Center camera on first render frame (canvas has real dimensions by then)
+    let cameraCentered = false;
 
     // Create game loop
     gameLoop = createGameLoop(
       canvasRef.value,
       (dt) => update(dt),
       (ctx) => {
-        if (gameState.value) render(ctx, gameState.value);
+        if (!gameState.value) return;
+        // Center camera once — wait until canvas has real dimensions
+        if (!cameraCentered) {
+          updateCanvasRect();
+          if (canvasWidth.value > 0 && canvasHeight.value > 0) {
+            cameraCentered = true;
+            const ts = gameState.value.template.tileSize;
+            const mapW = gameState.value.activeMap.mapSize[0] * ts;
+            const mapH = gameState.value.activeMap.mapSize[1] * ts;
+            // Fit map in canvas with small padding
+            const fitZoom = Math.min(
+              canvasWidth.value / (mapW + ts * 2),
+              canvasHeight.value / (mapH + ts * 2),
+            );
+            gameState.value.camera.zoom = Math.max(gameState.value.camera.minZoom, Math.min(fitZoom, 1));
+            panTo(gameState.value.camera, mapW / 2, mapH / 2, canvasWidth.value, canvasHeight.value);
+          }
+        }
+        render(ctx, gameState.value);
       },
     );
 

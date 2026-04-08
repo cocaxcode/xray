@@ -52,6 +52,15 @@ export interface TemplateConfig {
   /** Labels for character states in the legend */
   stateLabels?: Record<string, string>;
 
+  /** Auto-generate random work zones instead of fixed positions */
+  workZoneGen?: {
+    count: number;          // max zones to generate
+    minSpacing: number;     // min tiles between zones
+    marginTop: number;      // tiles from top edge
+    marginBottom: number;   // tiles from bottom edge
+    marginSide: number;     // tiles from left/right edges
+  };
+
   /** Gameplay mechanics — all optional with sensible defaults */
   mechanics?: MechanicsConfig;
 }

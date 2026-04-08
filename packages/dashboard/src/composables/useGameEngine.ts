@@ -42,6 +42,11 @@ function init(
 ): void {
   const activeMap = selectMap(template, currentSessions.length);
 
+  // Generate random work zones if configured
+  if (template.workZoneGen) {
+    activeMap.zones.work = generateRandomWorkZones(template, activeMap);
+  }
+
   // Generate random decorations
   const randomProps = generateRandomDecorations(template, activeMap);
 
@@ -467,6 +472,41 @@ function destroy(): void {
 }
 
 // ── Helpers ──
+
+function generateRandomWorkZones(template: TemplateConfig, activeMap: MapDef): import('../engine/types').WorkPosition[] {
+  const gen = template.workZoneGen!;
+  const [cols, rows] = activeMap.mapSize;
+  const zones: import('../engine/types').WorkPosition[] = [];
+  const used = new Set<string>();
+
+  const minX = gen.marginSide;
+  const maxX = cols - gen.marginSide - 1;
+  const minY = gen.marginTop;
+  const maxY = rows - gen.marginBottom - 1;
+
+  let attempts = 0;
+  while (zones.length < gen.count && attempts < 500) {
+    attempts++;
+    const x = minX + Math.floor(Math.random() * (maxX - minX + 1));
+    const y = minY + Math.floor(Math.random() * (maxY - minY + 1));
+    const key = `${x},${y}`;
+
+    if (used.has(key) || !activeMap.walkable[y]?.[x]) continue;
+
+    // Check min spacing from existing zones
+    let tooClose = false;
+    for (const z of zones) {
+      const dist = Math.abs(z.x - x) + Math.abs(z.y - y);
+      if (dist < gen.minSpacing) { tooClose = true; break; }
+    }
+    if (tooClose) continue;
+
+    zones.push({ x, y });
+    used.add(key);
+  }
+
+  return zones;
+}
 
 function generateRandomDecorations(template: TemplateConfig, activeMap: MapDef): import('../engine/types').PropDef[] {
   const config = template.decorations;
