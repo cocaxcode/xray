@@ -505,7 +505,15 @@ function generateRandomWorkZones(template: TemplateConfig, activeMap: MapDef): i
       const y = Math.max(minY, Math.min(maxY, sy));
 
       if (activeMap.walkable[y]?.[x]) {
-        zones.push({ x, y });
+        // Verify min spacing from all existing zones
+        let tooClose = false;
+        for (const z of zones) {
+          if (Math.abs(z.x - x) + Math.abs(z.y - y) < gen.minSpacing) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (!tooClose) zones.push({ x, y });
       }
     }
   }

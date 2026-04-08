@@ -7351,8 +7351,8 @@
     "margin": 2
   },
   "workZoneGen": {
-    "count": 12,
-    "minSpacing": 3,
+    "count": 8,
+    "minSpacing": 8,
     "marginTop": 2,
     "marginBottom": 6,
     "marginSide": 3
