@@ -21,7 +21,10 @@ export class PermissionHandler {
   }
 
   get autoApprove(): boolean { return this._autoApprove; }
-  set autoApprove(val: boolean) { this._autoApprove = val; }
+  set autoApprove(val: boolean) {
+    this._autoApprove = val;
+    console.log(`[xray] Auto-approve set to: ${val}`);
+  }
 
   /**
    * Maneja un PermissionRequest. Devuelve una Promise que se resuelve
@@ -48,15 +51,19 @@ export class PermissionHandler {
     };
 
     // Auto-approve: resolve immediately without waiting
+    console.log(`[xray] Permission request: tool=${toolName}, autoApprove=${this._autoApprove}`);
     if (this._autoApprove) {
+      console.log(`[xray] Auto-approving permission #${permissionId} for ${toolName}`);
       this.queries.updatePermission(permissionId, 'approved');
       this.broadcast({ type: 'permission:auto-approved', data: permission });
-      return {
+      const response = {
         hookSpecificOutput: {
           hookEventName: 'PermissionRequest' as const,
           decision: { behavior: 'allowAlways' as const },
         },
       };
+      console.log(`[xray] Returning auto-approve response:`, JSON.stringify(response));
+      return response;
     }
 
     // Broadcast al dashboard
