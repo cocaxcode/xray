@@ -477,32 +477,43 @@ function generateRandomWorkZones(template: TemplateConfig, activeMap: MapDef): i
   const gen = template.workZoneGen!;
   const [cols, rows] = activeMap.mapSize;
   const zones: import('../engine/types').WorkPosition[] = [];
-  const used = new Set<string>();
 
   const minX = gen.marginSide;
   const maxX = cols - gen.marginSide - 1;
   const minY = gen.marginTop;
   const maxY = rows - gen.marginBottom - 1;
+  const areaW = maxX - minX;
+  const areaH = maxY - minY;
 
-  let attempts = 0;
-  while (zones.length < gen.count && attempts < 500) {
-    attempts++;
-    const x = minX + Math.floor(Math.random() * (maxX - minX + 1));
-    const y = minY + Math.floor(Math.random() * (maxY - minY + 1));
-    const key = `${x},${y}`;
+  // Divide usable area into a grid of sectors — one zone per sector
+  // This guarantees even distribution across the entire map
+  const gridCols = Math.ceil(Math.sqrt(gen.count * (areaW / areaH)));
+  const gridRows = Math.ceil(gen.count / gridCols);
+  const sectorW = areaW / gridCols;
+  const sectorH = areaH / gridRows;
 
-    if (used.has(key) || !activeMap.walkable[y]?.[x]) continue;
+  for (let gr = 0; gr < gridRows; gr++) {
+    for (let gc = 0; gc < gridCols; gc++) {
+      if (zones.length >= gen.count) break;
 
-    // Check min spacing from existing zones
-    let tooClose = false;
-    for (const z of zones) {
-      const dist = Math.abs(z.x - x) + Math.abs(z.y - y);
-      if (dist < gen.minSpacing) { tooClose = true; break; }
+      // Random position within this sector
+      const sx = minX + Math.floor(gc * sectorW + Math.random() * sectorW);
+      const sy = minY + Math.floor(gr * sectorH + Math.random() * sectorH);
+
+      // Clamp to usable area
+      const x = Math.max(minX, Math.min(maxX, sx));
+      const y = Math.max(minY, Math.min(maxY, sy));
+
+      if (activeMap.walkable[y]?.[x]) {
+        zones.push({ x, y });
+      }
     }
-    if (tooClose) continue;
+  }
 
-    zones.push({ x, y });
-    used.add(key);
+  // Shuffle so sessions don't always get top-left first
+  for (let i = zones.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [zones[i], zones[j]] = [zones[j], zones[i]];
   }
 
   return zones;

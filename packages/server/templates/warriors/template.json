@@ -7351,10 +7351,10 @@
     "margin": 2
   },
   "workZoneGen": {
-    "count": 10,
-    "minSpacing": 10,
+    "count": 12,
+    "minSpacing": 3,
     "marginTop": 2,
     "marginBottom": 6,
-    "marginSide": 2
+    "marginSide": 3
   }
 }
