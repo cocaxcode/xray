@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { Character, Camera, TemplateConfig } from '../engine/types';
-import { CharacterState } from '../engine/types';
+import type { Character, Camera } from '../engine/types';
 import { worldToScreen } from '../engine/camera';
 import { usePermissions } from '../composables/usePermissions';
 import { truncate } from '../utils/format';
@@ -15,17 +13,6 @@ const props = defineProps<{
 }>();
 
 const { getBySession, resolve } = usePermissions();
-
-const workingCharacters = computed(() => {
-  void props.tick; // force recomputation each frame
-  const result: Character[] = [];
-  for (const char of props.characters.values()) {
-    if (char.state === CharacterState.WORKING) {
-      result.push(char);
-    }
-  }
-  return result;
-});
 
 function getScreenPos(char: Character) {
   void props.tick; // reactive dependency for template re-evaluation
@@ -61,27 +48,6 @@ async function handleResolve(permissionId: number, decision: 'approve' | 'deny')
 </script>
 
 <template>
-  <!-- Activity bubbles for working characters -->
-  <div
-    v-for="char in workingCharacters"
-    :key="'bubble-' + char.id"
-    class="absolute z-10 pointer-events-none"
-    :style="{
-      left: getScreenPos(char).x + 'px',
-      top: (getScreenPos(char).y - 50) + 'px',
-      transform: 'translateX(-50%)',
-    }"
-  >
-    <div class="bg-surface/90 backdrop-blur-sm border border-border rounded-lg px-2 py-1 max-w-[180px]">
-      <div class="text-[9px] font-mono text-text truncate">
-        {{ char.currentAnim }}
-      </div>
-      <div v-if="char.equipment" class="text-[8px] font-mono text-cyan truncate">
-        {{ char.equipment }}
-      </div>
-    </div>
-  </div>
-
   <!-- Permission bubbles (only for main characters, not companions) -->
   <div
     v-for="char in Array.from(characters.values()).filter(c => !c.isCompanion && getPermission(c))"
