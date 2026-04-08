@@ -95,9 +95,15 @@ function addSessionCharacter(session: Session): void {
   const charName = session.projectName || resolveCharacterName(null, nameConfig, state.template);
 
   const spawnZone = state.activeMap.zones.spawn;
-  const spawnPos = spawnZone.length > 0
-    ? { x: spawnZone[0].x, y: spawnZone[0].y }
+  const spawnIdx = sessionCounter % Math.max(1, spawnZone.length);
+  const baseSpawn = spawnZone.length > 0
+    ? spawnZone[spawnIdx]
     : { x: 0, y: 0 };
+  // Offset each character slightly so they don't stack on the same pixel
+  const spawnPos = {
+    x: baseSpawn.x + (sessionCounter % 3) - 1,
+    y: baseSpawn.y + Math.floor(sessionCounter / 3) % 2,
+  };
 
   const spriteKey = getMainSpriteKey(state.template);
   const char = createCharacter(
@@ -162,9 +168,16 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
   const spriteKey = agentVisual?.sprite || getMainSpriteKey(state.template);
 
   const spawnZone = state.activeMap.zones.spawn;
-  const spawnPos = spawnZone.length > 0
-    ? { x: spawnZone[0].x, y: spawnZone[0].y }
+  const companionCount = Array.from(state.characters.values()).filter(c => c.isCompanion).length;
+  const spawnIdx = companionCount % Math.max(1, spawnZone.length);
+  const baseSpawn = spawnZone.length > 0
+    ? spawnZone[spawnIdx]
     : { x: 0, y: 0 };
+  // Offset companion spawn so it doesn't overlap with parent
+  const spawnPos = {
+    x: baseSpawn.x + (companionCount % 3),
+    y: baseSpawn.y + (companionCount % 2),
+  };
 
   const char = createCharacter(
     agent.id, sessionId, spriteKey, name,
