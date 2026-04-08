@@ -485,7 +485,9 @@ function drawProp(
   const srcY = anim.row * frameH;
 
   // Draw props at half tile size, centered on tile
-  const propSize = tileSize * 0.5;
+  // Props scale with characterScale so they look proportional
+  const charScale = template.mechanics?.characterScale ?? 1;
+  const propSize = tileSize * 0.5 * charScale;
   const offsetX = (tileSize - propSize) / 2;
   const offsetY = (tileSize - propSize) / 2;
   ctx.drawImage(
