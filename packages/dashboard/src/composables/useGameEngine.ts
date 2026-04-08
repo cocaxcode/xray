@@ -102,7 +102,7 @@ function addSessionCharacter(session: Session): void {
   const spriteKey = getMainSpriteKey(state.template);
   const char = createCharacter(
     session.id, session.id, spriteKey, charName,
-    hueShift, spawnPos,
+    hueShift, spawnPos, false, undefined, state.template,
   );
 
   // Set topic from session
@@ -168,7 +168,7 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
 
   const char = createCharacter(
     agent.id, sessionId, spriteKey, name,
-    hueShift, spawnPos, true, agent.type,
+    hueShift, spawnPos, true, agent.type, state.template,
   );
 
   // Set project name as topic for sub-agent
@@ -179,11 +179,12 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
 
   state.characters.set(agent.id, char);
 
-  // Position companion BEHIND the parent (opposite side of goblins)
+  // Position companion BEHIND the parent (opposite side of enemies)
   const parent = state.characters.get(sessionId);
   if (parent?.assignedSeat) {
-    // Goblins are to the RIGHT of parent seat, so companion goes LEFT (behind)
-    const behindX = parent.assignedSeat.x - 2;
+    // Companion goes opposite side of enemies (configurable offset)
+    const companionOffset = state.template.mechanics?.companionOffsetX ?? -2;
+    const behindX = parent.assignedSeat.x + companionOffset;
     const behindY = parent.assignedSeat.y + (state.characters.size % 3 - 1); // stagger vertically
     const ts = state.template.tileSize;
 
@@ -207,7 +208,7 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
         char.x = char.assignedSeat.x * ts + ts / 2;
         char.y = char.assignedSeat.y * ts + ts / 2;
         char.state = CharacterState.WORKING;
-        char.currentAnim = 'attack';
+        char.currentAnim = state.template.animations?.working || 'attack';
         char.animFrame = 0;
         char.animTimer = 0;
       }
@@ -254,7 +255,7 @@ function onSessionUpdate(session: Session): void {
         if (currentChar && currentChar.state === CharacterState.WORKING) {
           const sess = useSessions().sessions.value.get(currentChar.sessionId);
           if (sess && (sess.status === 'idle' || sess.status === 'waiting_input')) {
-            transitionToIdle(currentChar, gameState.value!.occupiedSeats);
+            transitionToIdle(currentChar, gameState.value!.occupiedSeats, gameState.value!.template);
           }
         }
       }, 2000));
@@ -265,7 +266,7 @@ function onSessionUpdate(session: Session): void {
     idleTimers.delete(char.id);
   }
   if (session.status === 'stopped') {
-    transitionToStopped(char, state.activeMap, state.occupiedSeats, state.template.tileSize);
+    transitionToStopped(char, state.activeMap, state.occupiedSeats, state.template.tileSize, state.template);
   }
 
   // Sync topic
@@ -331,7 +332,7 @@ function onAgentStop(_sessionId: string, agentId: string): void {
   if (!char) return;
 
   // Companion stays on map — goes to idle (resting), doesn't disappear
-  transitionToIdle(char, state.occupiedSeats);
+  transitionToIdle(char, state.occupiedSeats, state.template);
 }
 
 function onToolActivity(event: ToolEvent): void {
@@ -518,11 +519,12 @@ function getMainSpriteKey(template: TemplateConfig): string {
       return key;
     }
   }
-  return Object.keys(template.sprites)[0] || 'warrior-1';
+  return Object.keys(template.sprites)[0] || 'character';
 }
 
 function getToolAnimation(template: TemplateConfig, toolName?: string): string {
-  if (!toolName || !template.toolAnimations) return 'attack';
+  const workingAnim = template.animations?.working || 'attack';
+  if (!toolName || !template.toolAnimations) return workingAnim;
 
   // Parse base tool name from MCP pattern (mcp__server__tool → tool)
   let baseName = toolName;
@@ -531,7 +533,7 @@ function getToolAnimation(template: TemplateConfig, toolName?: string): string {
     baseName = parts[2] || parts[1] || toolName;
   }
 
-  return template.toolAnimations[baseName] || template.toolAnimations.default || 'attack';
+  return template.toolAnimations[baseName] || template.toolAnimations.default || workingAnim;
 }
 
 // ── Export ──

@@ -361,6 +361,7 @@ function onFocusSession(sessionId: string): void {
       :sessions="sessions"
       :game-state="gameState"
       :tick="tick"
+      :template-name="templateName"
       @dismiss-session="onDismissSession"
     />
 

@@ -5,6 +5,49 @@
   "version": "1.0.0",
   "description": "Campo de batalla RPG — guerreros vs goblins. Sprites: Tiny Swords (Pixel Frog)",
   "tileSize": 64,
+  "colors": {
+    "background": "#3a6b8a",
+    "ground": "#4a7c59",
+    "fallbackTile": "#6b5b3e"
+  },
+  "animations": {
+    "working": "attack",
+    "death": "death"
+  },
+  "enemyCamp": {
+    "structure": "goblin-house",
+    "groundTile": "1"
+  },
+  "environmentCycle": ["crystal-blue", "crystal-red", "crystal-green", "crystal-purple", "portal"],
+  "mechanics": {
+    "walkSpeed": 3,
+    "wanderMin": 2,
+    "wanderMax": 20,
+    "spawnDuration": 0.5,
+    "combatAdvanceMin": 0.7,
+    "combatAdvanceRange": 0.2,
+    "enemyAdvance": 0.15,
+    "enemyOffsetX": 2,
+    "enemySpreadCols": 3,
+    "enemySpreadRowH": 0.8,
+    "companionOffsetX": -2,
+    "enemyScale": 0.8,
+    "mcpScale": 0.25,
+    "mcpOrbitRadius": 0.6,
+    "campStructureW": 1.2,
+    "campStructureH": 1.8,
+    "campGroundRx": 2.2,
+    "campGroundRy": 1.5
+  },
+  "stateLabels": {
+    "working": "Luchando",
+    "idle": "Descansando",
+    "walking": "Caminando",
+    "spawning": "Apareciendo",
+    "dying": "Muriendo",
+    "waiting_input": "Esperando",
+    "waiting_permission": "Permiso"
+  },
   "maps": {
     "small": {
       "mapSize": [
@@ -2861,6 +2904,7 @@
   },
   "enemyScaling": {
     "metric": "totalTokens",
+    "variants": ["goblin", "goblin", "goblin", "goblin", "goblin-tnt"],
     "thresholds": [
       {
         "tokens": 0,

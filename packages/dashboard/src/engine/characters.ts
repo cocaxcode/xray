@@ -1,17 +1,48 @@
 import type {
   Character, EnemyState, Position, TemplateConfig, MapDef,
   SpriteDef, AnimationDef, EnemyScaling, CharacterState as CharState,
+  MechanicsConfig,
 } from './types';
 import { CharacterState } from './types';
 import { findPath, findNearestWalkable } from './pathfinding';
 
-// ── Constants ──
+// ── Default Constants (overridable via template.mechanics) ──
 
-const WALK_SPEED = 3;           // tiles per second
-const WANDER_MIN = 2;           // seconds
-const WANDER_MAX = 20;          // seconds
-const SPAWN_DURATION = 0.5;     // seconds
+const DEFAULTS = {
+  walkSpeed: 3,
+  wanderMin: 2,
+  wanderMax: 20,
+  spawnDuration: 0.5,
+  combatAdvanceMin: 0.7,
+  combatAdvanceRange: 0.2,
+  enemyAdvance: 0.15,
+  enemyOffsetX: 2,
+  enemySpreadCols: 3,
+  enemySpreadRowH: 0.8,
+} as const;
+
 const HUE_SHIFTS = [0, 45, 90, 135, 180, 225, 270, 315];
+
+/** Resolve mechanics config with defaults */
+function m(template: TemplateConfig): Required<Pick<MechanicsConfig,
+  'walkSpeed' | 'wanderMin' | 'wanderMax' | 'spawnDuration' |
+  'combatAdvanceMin' | 'combatAdvanceRange' | 'enemyAdvance' |
+  'enemyOffsetX' | 'enemySpreadCols' | 'enemySpreadRowH'
+>> {
+  const mc = template.mechanics;
+  return {
+    walkSpeed: mc?.walkSpeed ?? DEFAULTS.walkSpeed,
+    wanderMin: mc?.wanderMin ?? DEFAULTS.wanderMin,
+    wanderMax: mc?.wanderMax ?? DEFAULTS.wanderMax,
+    spawnDuration: mc?.spawnDuration ?? DEFAULTS.spawnDuration,
+    combatAdvanceMin: mc?.combatAdvanceMin ?? DEFAULTS.combatAdvanceMin,
+    combatAdvanceRange: mc?.combatAdvanceRange ?? DEFAULTS.combatAdvanceRange,
+    enemyAdvance: mc?.enemyAdvance ?? DEFAULTS.enemyAdvance,
+    enemyOffsetX: mc?.enemyOffsetX ?? DEFAULTS.enemyOffsetX,
+    enemySpreadCols: mc?.enemySpreadCols ?? DEFAULTS.enemySpreadCols,
+    enemySpreadRowH: mc?.enemySpreadRowH ?? DEFAULTS.enemySpreadRowH,
+  };
+}
 
 // ── Factory ──
 
@@ -24,7 +55,9 @@ export function createCharacter(
   spawnPos: Position,
   isCompanion = false,
   agentType?: string,
+  template?: TemplateConfig,
 ): Character {
+  const mc = template?.mechanics;
   return {
     id,
     sessionId,
@@ -47,9 +80,9 @@ export function createCharacter(
     animTimer: 0,
     path: [],
     moveProgress: 0,
-    walkSpeed: WALK_SPEED,
+    walkSpeed: mc?.walkSpeed ?? DEFAULTS.walkSpeed,
     wanderTimer: 0,
-    spawnTimer: SPAWN_DURATION,
+    spawnTimer: mc?.spawnDuration ?? DEFAULTS.spawnDuration,
     enemies: [],
     topic: null,
     assignedSeat: null,
@@ -104,7 +137,8 @@ export function updateCharacter(
             char.animTimer = 0;
           }
         }
-        char.wanderTimer = randomRange(WANDER_MIN, WANDER_MAX);
+        const mc = m(template);
+        char.wanderTimer = randomRange(mc.wanderMin, mc.wanderMax);
       }
       updateAnimation(char, dt, template);
       // Enemies idle at base with slight wobble
@@ -120,14 +154,16 @@ export function updateCharacter(
       break;
 
     case CharacterState.WALKING:
-      updateMovement(char, dt, tileSize);
+      updateMovement(char, dt, tileSize, template);
       updateAnimation(char, dt, template);
       for (const enemy of char.enemies) {
         updateEnemyAnimation(enemy, dt, template);
       }
       break;
 
-    case CharacterState.WORKING:
+    case CharacterState.WORKING: {
+      const workingAnim = template.animations?.working || 'attack';
+      const mc = m(template);
       updateAnimation(char, dt, template);
       if (char.enemies.length > 0) {
         // Home = assigned seat position (not current tile which may be mid-walk)
@@ -135,53 +171,46 @@ export function updateCharacter(
         const homeX = seat.x * tileSize + tileSize / 2;
         const homeY = seat.y * tileSize + tileSize / 2;
 
-        // Find nearest enemy BASE position (not animated position)
-        let nearestEnemy = char.enemies[0];
-        let nearestDist = Infinity;
-        for (const e of char.enemies) {
-          const d = Math.abs(e.baseX - homeX) + Math.abs(e.baseY - homeY);
-          if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
-        }
-
-        // Calculate group center of goblins (using BASE positions)
+        // Calculate group center of enemies (using BASE positions)
         let groupBaseX = 0, groupBaseY = 0;
         for (const e of char.enemies) { groupBaseX += e.baseX; groupBaseY += e.baseY; }
         groupBaseX /= char.enemies.length;
         groupBaseY /= char.enemies.length;
 
-        // Combat phase: warrior charges toward goblin group center then retreats
+        // Combat phase: character advances toward enemy group center then retreats
         const combatPhase = (Math.sin(Date.now() / 1000) + 1) / 2;
 
-        // Warrior oscillates 70-90% toward goblins — fights close
-        const advance = 0.7 + 0.2 * combatPhase;
+        // Character oscillates toward enemies (configurable range)
+        const advance = mc.combatAdvanceMin + mc.combatAdvanceRange * combatPhase;
         char.x = homeX + (groupBaseX - homeX) * advance;
         char.y = homeY + (groupBaseY - homeY) * advance;
 
-        // Face toward goblins
+        // Face toward enemies
         char.facing = groupBaseX > homeX ? 'right' : 'left';
 
-        // All goblins advance toward meeting point as a group
+        // All enemies advance toward meeting point as a group
         for (let ei = 0; ei < char.enemies.length; ei++) {
           const enemy = char.enemies[ei];
-          enemy.currentAnim = 'attack';
+          enemy.currentAnim = workingAnim;
           updateEnemyAnimation(enemy, dt, template);
 
-          // Each goblin keeps its formation offset but group moves together
+          // Each enemy keeps its formation offset but group moves together
           const offsetFromGroupX = enemy.baseX - groupBaseX;
           const offsetFromGroupY = enemy.baseY - groupBaseY;
 
           // Stagger slightly so they don't ALL hit at the same frame
           const stagger = Math.sin(Date.now() / 800 + ei * 1.5) * tileSize * 0.15;
 
-          // Group advances toward warrior home position
-          const groupX = groupBaseX + (homeX - groupBaseX) * 0.15 * combatPhase;
-          const groupY = groupBaseY + (homeY - groupBaseY) * 0.15 * combatPhase;
+          // Group advances toward character home position (configurable advance)
+          const groupX = groupBaseX + (homeX - groupBaseX) * mc.enemyAdvance * combatPhase;
+          const groupY = groupBaseY + (homeY - groupBaseY) * mc.enemyAdvance * combatPhase;
 
           enemy.x = groupX + offsetFromGroupX * 0.6 + stagger;
           enemy.y = groupY + offsetFromGroupY * 0.6;
         }
       }
       break;
+    }
 
     case CharacterState.DYING:
       updateAnimation(char, dt, template);
@@ -197,13 +226,13 @@ export function updateCharacter(
 
 // ── Movement ──
 
-function updateMovement(char: Character, dt: number, tileSize: number): void {
+function updateMovement(char: Character, dt: number, tileSize: number, template: TemplateConfig): void {
   if (char.path.length === 0) {
     // Arrived at destination
     const next = char.targetState ?? CharacterState.IDLE;
     char.state = next;
     char.targetState = null;
-    char.currentAnim = next === CharacterState.WORKING ? 'attack' : 'idle';
+    char.currentAnim = next === CharacterState.WORKING ? (template.animations?.working || 'attack') : 'idle';
     char.animFrame = 0;
     char.animTimer = 0;
     return;
@@ -225,7 +254,7 @@ function updateMovement(char: Character, dt: number, tileSize: number): void {
       const next = char.targetState ?? CharacterState.IDLE;
       char.state = next;
       char.targetState = null;
-      char.currentAnim = next === CharacterState.WORKING ? 'attack' : 'idle';
+      char.currentAnim = next === CharacterState.WORKING ? (template.animations?.working || 'attack') : 'idle';
       char.animFrame = 0;
       char.animTimer = 0;
     }
@@ -267,19 +296,21 @@ export function transitionToActive(
       char.animTimer = 0;
     } else {
       // Can't pathfind — just teleport
+      const workingAnim = template.animations?.working || 'attack';
       char.tileX = seat.x;
       char.tileY = seat.y;
       char.x = seat.x * tileSize + tileSize / 2;
       char.y = seat.y * tileSize + tileSize / 2;
       char.state = CharacterState.WORKING;
-      char.currentAnim = toolAnim || 'attack';
+      char.currentAnim = toolAnim || workingAnim;
       char.animFrame = 0;
       char.animTimer = 0;
     }
   } else {
     // No seats available — stay where we are, play working anim anyway
+    const workingAnim = template.animations?.working || 'attack';
     char.state = CharacterState.WORKING;
-    char.currentAnim = toolAnim || 'attack';
+    char.currentAnim = toolAnim || workingAnim;
     char.animFrame = 0;
     char.animTimer = 0;
   }
@@ -288,16 +319,19 @@ export function transitionToActive(
 export function transitionToIdle(
   char: Character,
   occupied: Set<string>,
+  template?: TemplateConfig,
 ): void {
   if (char.assignedSeat) {
     releaseSeat(char.assignedSeat, occupied);
     char.assignedSeat = null;
   }
+  const wanderMin = template?.mechanics?.wanderMin ?? DEFAULTS.wanderMin;
+  const wanderMax = template?.mechanics?.wanderMax ?? DEFAULTS.wanderMax;
   char.state = CharacterState.IDLE;
   char.currentAnim = 'idle';
   char.animFrame = 0;
   char.animTimer = 0;
-  char.wanderTimer = randomRange(WANDER_MIN, WANDER_MAX);
+  char.wanderTimer = randomRange(wanderMin, wanderMax);
 
   // Despawn enemies
   for (const enemy of char.enemies) {
@@ -311,12 +345,14 @@ export function transitionToStopped(
   activeMap: MapDef,
   occupied: Set<string>,
   tileSize: number,
+  template?: TemplateConfig,
 ): void {
   if (char.assignedSeat) {
     releaseSeat(char.assignedSeat, occupied);
     char.assignedSeat = null;
   }
 
+  const deathAnim = template?.animations?.death || 'death';
   const exitZone = activeMap.zones.exit;
   if (exitZone.length > 0) {
     const exit = exitZone[0];
@@ -332,13 +368,13 @@ export function transitionToStopped(
     } else {
       // Can't pathfind to exit — die in place
       char.state = CharacterState.DYING;
-      char.currentAnim = 'death';
+      char.currentAnim = deathAnim;
       char.animFrame = 0;
       char.animTimer = 0;
     }
   } else {
     char.state = CharacterState.DYING;
-    char.currentAnim = 'death';
+    char.currentAnim = deathAnim;
     char.animFrame = 0;
     char.animTimer = 0;
   }
@@ -448,7 +484,7 @@ export function updateEnemies(
 
   // Find current threshold — always at least 1 enemy
   let targetCount = 1;
-  let latestSprite = 'goblin';
+  let latestSprite = scaling.thresholds[0]?.sprite || 'enemy';
   for (const threshold of scaling.thresholds) {
     if (totalTokens >= threshold.tokens) {
       targetCount = Math.max(threshold.enemies, 1);
@@ -463,17 +499,17 @@ export function updateEnemies(
 
   // Seed random from char ID for consistent positions
   const seed = char.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const mc = m(template);
 
   while (char.enemies.length < targetCount) {
     const idx = char.enemies.length;
     const pseudoRand = Math.sin(seed * 13 + idx * 7) * 0.5 + 0.5;
     const pseudoRand2 = Math.sin(seed * 17 + idx * 11) * 0.5 + 0.5;
-    // Direction based on seed (some sessions have goblins right, others left)
-    // Goblins 2 tiles to the right of seat — compact formation within 3 tiles
-    const col = idx % 3;
-    const row = Math.floor(idx / 3);
-    const offsetX = 2 + col * 0.5 + pseudoRand * 0.3;
-    const offsetY = (row - 0.5) * 0.8 + (pseudoRand2 - 0.5) * 0.3;
+    // Enemy formation: configurable offset and spread
+    const col = idx % mc.enemySpreadCols;
+    const row = Math.floor(idx / mc.enemySpreadCols);
+    const offsetX = mc.enemyOffsetX + col * 0.5 + pseudoRand * 0.3;
+    const offsetY = (row - 0.5) * mc.enemySpreadRowH + (pseudoRand2 - 0.5) * 0.3;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
     // Clamp to map bounds (keep 1 tile margin) — use largest available map
@@ -483,8 +519,14 @@ export function updateEnemies(
     const ex = Math.max(tileSize, Math.min(mapW - tileSize, rawX));
     const ey = Math.max(tileSize, Math.min(mapH - tileSize, rawY));
 
-    // Every 4th goblin is TNT, rest are torch
-    const enemySprite = (idx % 5 === 4 && template.sprites['goblin-tnt']) ? 'goblin-tnt' : 'goblin';
+    // Rotate between enemy variants if available, otherwise use threshold sprite
+    const variants = scaling.variants;
+    let enemySprite: string;
+    if (variants && variants.length > 0) {
+      enemySprite = variants[idx % variants.length];
+    } else {
+      enemySprite = latestSprite;
+    }
 
     char.enemies.push({
       spriteKey: enemySprite,

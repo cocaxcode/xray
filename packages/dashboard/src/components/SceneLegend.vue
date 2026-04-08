@@ -10,6 +10,7 @@ const props = defineProps<{
   sessions: Map<string, Session>;
   gameState: GameState | null;
   tick: number;
+  templateName: string;
 }>();
 
 const emit = defineEmits<{
@@ -97,29 +98,38 @@ const entries = computed(() => {
 const visibleEntries = computed(() => entries.value.filter(e => !hiddenSessions.has(e.sessionId)));
 const hiddenEntries = computed(() => entries.value.filter(e => hiddenSessions.has(e.sessionId)));
 
-// Get the template name from the current view
-function getTemplateName(): string {
-  // Default to warriors — could be made dynamic
-  return 'warriors';
+// Build asset URLs dynamically from template config
+function getSpriteSheetUrl(spriteKey: string): string {
+  const template = props.gameState?.template;
+  if (!template) return '';
+  const sprite = template.sprites[spriteKey];
+  if (!sprite) return '';
+  // Use idle animation sheet if available, otherwise main sheet
+  const idleAnim = sprite.animations.idle;
+  const sheet = idleAnim?.sheet || sprite.sheet;
+  return `/templates/${props.templateName}/${sheet}`;
 }
 
 function getEnemySpriteUrl(): string {
-  return `/templates/${getTemplateName()}/assets/enemies/goblin-idle.png`;
+  const template = props.gameState?.template;
+  if (!template?.enemyScaling?.thresholds?.length) return '';
+  const firstEnemySprite = template.enemyScaling.thresholds[0].sprite;
+  return getSpriteSheetUrl(firstEnemySprite);
 }
 
 function getCharSpriteUrl(spriteKey: string): string {
-  return `/templates/${getTemplateName()}/assets/characters/${spriteKey}-idle.png`;
+  return getSpriteSheetUrl(spriteKey);
 }
 
 function getEquipmentUrl(equipmentKey: string): string {
-  return `/templates/${getTemplateName()}/assets/equipment/${equipmentKey}.png`;
+  return getSpriteSheetUrl(equipmentKey);
 }
 
 function getMcpUrl(mcpName: string): string {
-  // Use same function as renderer for consistent colors
   const template = props.gameState?.template;
-  const sprite = template ? getMcpSpriteKey(mcpName, template) : 'portal';
-  return `/templates/${getTemplateName()}/assets/environment/${sprite}.png`;
+  if (!template) return '';
+  const spriteKey = getMcpSpriteKey(mcpName, template);
+  return getSpriteSheetUrl(spriteKey);
 }
 
 function statusEmoji(status: string): string {
@@ -135,17 +145,29 @@ function statusEmoji(status: string): string {
 }
 
 function stateLabel(state: CharacterState, sessionStatus?: string): string {
+  const labels = props.gameState?.template?.stateLabels;
+  const defaultLabels: Record<string, string> = {
+    working: 'Trabajando',
+    idle: 'Descansando',
+    walking: 'Caminando',
+    spawning: 'Apareciendo',
+    dying: 'Muriendo',
+    waiting_input: 'Esperando',
+    waiting_permission: 'Permiso',
+  };
+  const l = labels || defaultLabels;
+
   // Use session status for more accurate label
-  if (sessionStatus === 'idle' && state !== CharacterState.DYING) return 'Descansando';
-  if (sessionStatus === 'waiting_input') return 'Esperando';
-  if (sessionStatus === 'waiting_permission') return 'Permiso';
+  if (sessionStatus === 'idle' && state !== CharacterState.DYING) return l.idle || 'Descansando';
+  if (sessionStatus === 'waiting_input') return l.waiting_input || 'Esperando';
+  if (sessionStatus === 'waiting_permission') return l.waiting_permission || 'Permiso';
 
   switch (state) {
-    case CharacterState.WORKING: return 'Luchando';
-    case CharacterState.IDLE: return 'Descansando';
-    case CharacterState.WALKING: return 'Caminando';
-    case CharacterState.SPAWNING: return 'Apareciendo';
-    case CharacterState.DYING: return 'Muriendo';
+    case CharacterState.WORKING: return l.working || 'Trabajando';
+    case CharacterState.IDLE: return l.idle || 'Descansando';
+    case CharacterState.WALKING: return l.walking || 'Caminando';
+    case CharacterState.SPAWNING: return l.spawning || 'Apareciendo';
+    case CharacterState.DYING: return l.dying || 'Muriendo';
     default: return '';
   }
 }

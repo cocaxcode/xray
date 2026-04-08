@@ -22,8 +22,68 @@ export interface TemplateConfig {
   agentTypes: Record<string, AgentTypeVisual>;
   equipmentMap: Record<string, string>;
   environmentMap: Record<string, string>;
-  enemyScaling: EnemyScaling;
+  enemyScaling?: EnemyScaling;
   decorations?: DecorationConfig;
+
+  // ── Template-agnostic config (optional, with sensible defaults) ──
+
+  /** Canvas background colors */
+  colors?: {
+    background: string;   // outer area (water in warriors)
+    ground: string;       // under-tile fill
+    fallbackTile?: string; // fallback for non-zero tiles without image
+  };
+
+  /** Animation name mappings — allows templates to use custom anim names */
+  animations?: {
+    working: string;  // 'attack' in warriors, 'coding' in office, etc.
+    death: string;    // 'death' in warriors, 'die' in others
+  };
+
+  /** Enemy camp visual config */
+  enemyCamp?: {
+    structure?: string;   // sprite key for camp building ('goblin-house' in warriors)
+    groundTile?: string;  // tile key for dirt patch texture ('1' in warriors)
+  };
+
+  /** MCP environment sprite rotation — fallback cycle for unmapped MCPs */
+  environmentCycle?: string[];
+
+  /** Labels for character states in the legend */
+  stateLabels?: Record<string, string>;
+
+  /** Gameplay mechanics — all optional with sensible defaults */
+  mechanics?: MechanicsConfig;
+}
+
+export interface MechanicsConfig {
+  // Movement
+  walkSpeed?: number;          // tiles per second (default: 3)
+  wanderMin?: number;          // min seconds between wanders (default: 2)
+  wanderMax?: number;          // max seconds between wanders (default: 20)
+  spawnDuration?: number;      // fade-in seconds (default: 0.5)
+
+  // Combat positioning
+  combatAdvanceMin?: number;   // character min advance toward enemies (default: 0.7 = 70%)
+  combatAdvanceRange?: number; // oscillation range (default: 0.2 → 70-90%)
+  enemyAdvance?: number;       // enemy advance toward character (default: 0.15 = 15%)
+
+  // Enemy placement (relative to assigned seat)
+  enemyOffsetX?: number;       // tiles to the right (default: 2)
+  enemySpreadCols?: number;    // columns in formation (default: 3)
+  enemySpreadRowH?: number;    // vertical spacing per row (default: 0.8)
+
+  // Companion placement
+  companionOffsetX?: number;   // tiles behind parent (default: -2, negative = left)
+
+  // Render sizes (as fraction of tileSize)
+  enemyScale?: number;         // enemy render size (default: 0.8)
+  mcpScale?: number;           // MCP crystal render size (default: 0.25)
+  mcpOrbitRadius?: number;     // orbit distance from character (default: 0.6)
+  campStructureW?: number;     // camp building width in tiles (default: 1.2)
+  campStructureH?: number;     // camp building height in tiles (default: 1.8)
+  campGroundRx?: number;       // dirt patch X radius in tiles (default: 2.2)
+  campGroundRy?: number;       // dirt patch Y radius in tiles (default: 1.5)
 }
 
 export interface MapDef {
@@ -97,6 +157,8 @@ export interface EnemyScaling {
     enemies: number;
     sprite: string;
   }>;
+  /** Enemy sprite variants to rotate between (e.g. ['goblin', 'goblin-tnt']) */
+  variants?: string[];
 }
 
 // ── Engine Runtime State ──

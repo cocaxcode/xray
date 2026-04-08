@@ -47,6 +47,11 @@ const mockTemplate: TemplateConfig = {
   equipmentMap: { 'sdd-apply': 'sword-big', default: 'sword-short' },
   environmentMap: { database: 'crystal-blue', default: 'portal' },
   enemyScaling: { metric: 'totalTokens', thresholds: [{ tokens: 0, enemies: 1, sprite: 'goblin' }] },
+  colors: { background: '#3a6b8a', ground: '#4a7c59', fallbackTile: '#6b5b3e' },
+  animations: { working: 'attack', death: 'death' },
+  enemyCamp: { structure: 'goblin-house', groundTile: '1' },
+  environmentCycle: ['crystal-blue', 'crystal-red'],
+  stateLabels: { working: 'Luchando', idle: 'Descansando' },
 };
 
 describe('resolveCharacterName', () => {

@@ -10,7 +10,6 @@ interface Drawable {
 
 // ── Shared MCP color assignment (consistent between renderer and legend) ──
 
-const MCP_CRYSTAL_CYCLE = ['crystal-blue', 'crystal-red', 'crystal-green', 'crystal-purple', 'portal'];
 const mcpSpriteCache = new Map<string, string>();
 let mcpSpriteIdx = 0;
 
@@ -18,13 +17,23 @@ let mcpSpriteIdx = 0;
 let cachedDirtPattern: CanvasPattern | null = null;
 let cachedDirtPatternKey = '';
 
+function getEnvironmentCycle(template: TemplateConfig): string[] {
+  if (template.environmentCycle && template.environmentCycle.length > 0) {
+    return template.environmentCycle;
+  }
+  // Fallback: pick first 5 environment sprite keys from template
+  return Object.keys(template.environmentMap).slice(0, 5);
+}
+
 export function getMcpSpriteKey(mcpName: string, template: TemplateConfig): string {
   // First check template environmentMap
   if (template.environmentMap[mcpName]) return template.environmentMap[mcpName];
 
   // Otherwise assign a consistent color from the cycle
   if (!mcpSpriteCache.has(mcpName)) {
-    mcpSpriteCache.set(mcpName, MCP_CRYSTAL_CYCLE[mcpSpriteIdx % MCP_CRYSTAL_CYCLE.length]);
+    const cycle = getEnvironmentCycle(template);
+    if (cycle.length === 0) return mcpName; // no cycle available
+    mcpSpriteCache.set(mcpName, cycle[mcpSpriteIdx % cycle.length]);
     mcpSpriteIdx++;
   }
   return mcpSpriteCache.get(mcpName)!;
@@ -43,16 +52,16 @@ export function render(
   const cssWidth = ctx.canvas.getBoundingClientRect().width;
   const cssHeight = ctx.canvas.getBoundingClientRect().height;
 
-  // Clear entire canvas with water/background color
-  ctx.fillStyle = '#3a6b8a';
+  // Clear entire canvas with background color (configurable per template)
+  ctx.fillStyle = template.colors?.background || '#3a6b8a';
   ctx.fillRect(0, 0, cssWidth, cssHeight);
 
   // Apply camera transform
   applyCamera(ctx, camera);
 
-  // Fill exact map area with grass color (under tiles)
+  // Fill exact map area with ground color (under tiles)
   const [mapCols, mapRows] = activeMap.mapSize;
-  ctx.fillStyle = '#4a7c59';
+  ctx.fillStyle = template.colors?.ground || '#4a7c59';
   ctx.fillRect(0, 0, mapCols * tileSize, mapRows * tileSize);
 
   // 1. Tiles
@@ -75,7 +84,10 @@ export function render(
     drawProp(ctx, images, template, prop, tileSize);
   }
 
-  // Goblin camps: dirt patch + house (drawn before characters)
+  // Enemy camps: dirt patch + structure (drawn before characters)
+  const campGroundTile = template.enemyCamp?.groundTile;
+  const campStructure = template.enemyCamp?.structure;
+
   for (const char of characters.values()) {
     if (!char.isCompanion && char.enemies.length > 0) {
       let gx = 0, gy = 0;
@@ -84,9 +96,9 @@ export function render(
       gy /= char.enemies.length;
 
       // Draw dirt patch as smooth filled ellipse with pattern
-      const tilemapImg = images.get('tile:1');
+      const tilemapImg = campGroundTile ? images.get(`tile:${campGroundTile}`) : null;
       if (tilemapImg) {
-        const sandRegion = template.tiles['1']?.region;
+        const sandRegion = campGroundTile ? template.tiles[campGroundTile]?.region : null;
         if (sandRegion) {
           // Cache the pattern (only create once)
           const patternKey = `${sandRegion[0]},${sandRegion[1]}`;
@@ -104,8 +116,8 @@ export function render(
           if (pattern) {
             ctx.save();
             ctx.beginPath();
-            const rx = tileSize * 2.2;
-            const ry = tileSize * 1.5;
+            const rx = tileSize * (template.mechanics?.campGroundRx ?? 2.2);
+            const ry = tileSize * (template.mechanics?.campGroundRy ?? 1.5);
             // Irregular edge using many points with noise
             const points = 40;
             for (let i = 0; i <= points; i++) {
@@ -128,11 +140,11 @@ export function render(
         }
       }
 
-      // Draw goblin house above
-      const houseImg = images.get('sprite:goblin-house');
+      // Draw camp structure above
+      const houseImg = campStructure ? images.get(`sprite:${campStructure}`) : null;
       if (houseImg) {
-        const houseW = tileSize * 1.2;
-        const houseH = tileSize * 1.8;
+        const houseW = tileSize * (template.mechanics?.campStructureW ?? 1.2);
+        const houseH = tileSize * (template.mechanics?.campStructureH ?? 1.8);
         drawables.push({
           y: gy - tileSize,
           draw: () => {
@@ -161,7 +173,7 @@ export function render(
         for (let mi = 0; mi < char.environmentMcps.length; mi++) {
           const mcpKey = char.environmentMcps[mi];
           const angle = (mi * Math.PI * 2) / char.environmentMcps.length + Date.now() / 3000;
-          const radius = tileSize * 0.6;
+          const radius = tileSize * (template.mechanics?.mcpOrbitRadius ?? 0.6);
           const mx = char.x + Math.cos(angle) * radius;
           const my = char.y - tileSize * 0.5 + Math.sin(angle) * radius * 0.3;
           drawEnvironment(ctx, images, template, mx, my, mcpKey, tileSize);
@@ -210,7 +222,9 @@ function drawTileMap(
       const tileDef = template.tiles[String(tileId)];
       if (!tileDef) {
         // Fallback: draw colored rectangle
-        ctx.fillStyle = tileId === 0 ? '#4a7c59' : '#6b5b3e';
+        ctx.fillStyle = tileId === 0
+          ? (template.colors?.ground || '#4a7c59')
+          : (template.colors?.fallbackTile || '#6b5b3e');
         ctx.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
         continue;
       }
@@ -225,7 +239,7 @@ function drawTileMap(
           ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize);
         }
       } else {
-        ctx.fillStyle = '#4a7c59';
+        ctx.fillStyle = template.colors?.ground || '#4a7c59';
         ctx.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
       }
     }
@@ -285,7 +299,8 @@ function drawCharacter(
   // Dying effect (fade out)
   if (char.state === CharacterState.DYING) {
     const sp2 = template.sprites[char.spriteKey];
-    const deathAnim = sp2?.animations.death;
+    const deathAnimName = template.animations?.death || 'death';
+    const deathAnim = sp2?.animations[deathAnimName];
     if (deathAnim && deathAnim.frames > 0) {
       ctx.globalAlpha = 1 - (char.animFrame / (deathAnim.frames - 1));
     }
@@ -384,10 +399,10 @@ function drawEnemy(
 
   const [frameW, frameH] = sprite.frameSize;
 
-  // Enemies render at 80% of tile size
-  const enemySize = tileSize * 0.8;
+  // Enemies render at configurable scale of tile size
+  const enemySize = tileSize * (template.mechanics?.enemyScale ?? 0.8);
 
-  // Flip to face the warrior — sprites face right by default
+  // Flip to face the character — sprites face right by default
   const flipX = targetX !== undefined && targetX < enemy.x;
 
   ctx.save();
@@ -428,7 +443,7 @@ function drawEnvironment(
   const srcX = frame * frameW;
   const srcY = anim.row * frameH;
 
-  const size = tileSize * 0.25;
+  const size = tileSize * (template.mechanics?.mcpScale ?? 0.25);
   // Slight pulsing glow effect
   const pulse = 0.7 + Math.sin(Date.now() / 500) * 0.3;
   ctx.globalAlpha = pulse;
