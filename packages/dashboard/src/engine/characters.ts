@@ -503,7 +503,6 @@ export function updateEnemies(
   }
 
   // Place enemies grouped near the character's assigned work seat
-  // Each session gets a consistent "zone" based on seat position
   const seatX = char.assignedSeat ? char.assignedSeat.x : char.tileX;
   const seatY = char.assignedSeat ? char.assignedSeat.y : char.tileY;
 
@@ -511,23 +510,32 @@ export function updateEnemies(
   const seed = char.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const mc = m(template);
 
+  // Determine which side has more space for enemies
+  const activeMap = template.maps.large || template.maps.medium || template.maps.small;
+  const mapCols = activeMap.mapSize[0];
+  const mapRows = activeMap.mapSize[1];
+  const spaceRight = mapCols - seatX;
+  const spaceLeft = seatX;
+  const dirX = spaceRight >= spaceLeft ? 1 : -1; // place enemies toward more open side
+
   while (char.enemies.length < targetCount) {
     const idx = char.enemies.length;
     const pseudoRand = Math.sin(seed * 13 + idx * 7) * 0.5 + 0.5;
     const pseudoRand2 = Math.sin(seed * 17 + idx * 11) * 0.5 + 0.5;
-    // Enemy formation: configurable offset and spread
+    // Enemy formation: configurable offset and spread, direction-aware
     const col = idx % mc.enemySpreadCols;
     const row = Math.floor(idx / mc.enemySpreadCols);
-    const offsetX = mc.enemyOffsetX + col * 0.5 + pseudoRand * 0.3;
-    const offsetY = (row - 0.5) * mc.enemySpreadRowH + (pseudoRand2 - 0.5) * 0.3;
+    const offsetX = (mc.enemyOffsetX + col * 0.5 + pseudoRand * 0.3) * dirX;
+    // Center formation vertically around the seat
+    const offsetY = (row - Math.floor(mc.enemySpreadCols / 2) * 0.3) * mc.enemySpreadRowH + (pseudoRand2 - 0.5) * 0.3;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
-    // Clamp to map bounds (keep 1 tile margin) — use largest available map
-    const largestMap = template.maps.large || template.maps.medium || template.maps.small;
-    const mapW = largestMap.mapSize[0] * tileSize;
-    const mapH = largestMap.mapSize[1] * tileSize;
-    const ex = Math.max(tileSize, Math.min(mapW - tileSize, rawX));
-    const ey = Math.max(tileSize, Math.min(mapH - tileSize, rawY));
+    // Clamp to map bounds (keep 2 tile margin)
+    const mapW = mapCols * tileSize;
+    const mapH = mapRows * tileSize;
+    const margin = tileSize * 2;
+    const ex = Math.max(margin, Math.min(mapW - margin, rawX));
+    const ey = Math.max(margin, Math.min(mapH - margin, rawY));
 
     // Rotate between enemy variants if available, otherwise use threshold sprite
     const variants = scaling.variants;
