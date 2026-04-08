@@ -24,11 +24,7 @@ const DEFAULTS = {
 const HUE_SHIFTS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 /** Resolve mechanics config with defaults */
-function m(template: TemplateConfig): Required<Pick<MechanicsConfig,
-  'walkSpeed' | 'wanderMin' | 'wanderMax' | 'spawnDuration' |
-  'combatAdvanceMin' | 'combatAdvanceRange' | 'enemyAdvance' |
-  'enemyOffsetX' | 'enemySpreadCols' | 'enemySpreadRowH'
->> {
+function m(template: TemplateConfig) {
   const mc = template.mechanics;
   return {
     walkSpeed: mc?.walkSpeed ?? DEFAULTS.walkSpeed,
@@ -41,6 +37,9 @@ function m(template: TemplateConfig): Required<Pick<MechanicsConfig,
     enemyOffsetX: mc?.enemyOffsetX ?? DEFAULTS.enemyOffsetX,
     enemySpreadCols: mc?.enemySpreadCols ?? DEFAULTS.enemySpreadCols,
     enemySpreadRowH: mc?.enemySpreadRowH ?? DEFAULTS.enemySpreadRowH,
+    campGroundRx: mc?.campGroundRx ?? 2.2,
+    campGroundRy: mc?.campGroundRy ?? 1.5,
+    characterScale: mc?.characterScale ?? 1,
   };
 }
 
@@ -530,12 +529,16 @@ export function updateEnemies(
     const offsetY = (row - Math.floor(mc.enemySpreadCols / 2) * 0.3) * mc.enemySpreadRowH + (pseudoRand2 - 0.5) * 0.3;
     const rawX = (seatX + offsetX) * tileSize + tileSize / 2;
     const rawY = (seatY + offsetY) * tileSize + tileSize / 2;
-    // Clamp to map bounds (keep 2 tile margin)
+    // Clamp to map bounds — margin accounts for dirt patch + camp structure
     const mapW = mapCols * tileSize;
     const mapH = mapRows * tileSize;
-    const margin = tileSize * 2;
-    const ex = Math.max(margin, Math.min(mapW - margin, rawX));
-    const ey = Math.max(margin, Math.min(mapH - margin, rawY));
+    const campRx = mc.campGroundRx * tileSize;
+    const campRy = mc.campGroundRy * tileSize;
+    const charSize = mc.characterScale * tileSize;
+    const marginX = Math.max(tileSize * 2, campRx + charSize);
+    const marginY = Math.max(tileSize * 2, campRy + charSize);
+    const ex = Math.max(marginX, Math.min(mapW - marginX, rawX));
+    const ey = Math.max(marginY, Math.min(mapH - marginY, rawY));
 
     // Rotate between enemy variants if available, otherwise use threshold sprite
     const variants = scaling.variants;
