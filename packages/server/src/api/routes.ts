@@ -91,7 +91,15 @@ export function registerApiRoutes(
       return reply.status(400).send({ error: 'Invalid decision. Must be "approve", "deny" or "allowAlways".' });
     }
 
-    const resolved = permissionHandler.resolvePermission(parseInt(id), decision);
+    const permId = parseInt(id);
+    // Load tool info from DB for the updatedInput field in the hook response
+    const permInfo = queries.getPendingPermission(permId);
+    const resolved = permissionHandler.resolvePermission(
+      permId,
+      decision,
+      permInfo?.toolName,
+      permInfo?.toolInput,
+    );
     return { success: resolved };
   });
 

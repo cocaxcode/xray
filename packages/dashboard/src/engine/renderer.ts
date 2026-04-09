@@ -348,17 +348,18 @@ function drawEquipment(
   const srcY = anim.row * frameH;
 
   const charSize = tileSize * (template.mechanics?.characterScale ?? 1);
-  // Draw offset from character (weapon position)
-  const offsetX = charSize * 0.3;
-  const offsetY = -charSize * 0.1;
+  // Equipment rendered at ~35% of character size (smaller accessory, not overwhelming)
+  const equipSize = charSize * 0.35;
+  const offsetX = charSize * 0.25;
+  const offsetY = -charSize * 0.05;
 
   ctx.drawImage(
     img,
     srcX, srcY, frameW, frameH,
-    char.x - charSize / 4 + offsetX,
-    char.y - charSize / 2 + offsetY,
-    charSize * 0.6,
-    charSize * 0.6,
+    char.x + offsetX - equipSize / 2,
+    char.y + offsetY - equipSize / 2,
+    equipSize,
+    equipSize,
   );
 }
 

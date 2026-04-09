@@ -93,11 +93,21 @@ export type HookPayload =
 
 // ── Hook Responses (outgoing to Claude Code) ──
 
+export interface PermissionRule {
+  type: 'addRules';
+  rules: Array<{ toolName: string; ruleContent?: string }>;
+  behavior: 'allow' | 'deny';
+  destination: 'session' | 'localSettings' | 'projectSettings' | 'userSettings';
+}
+
 export interface PermissionResponse {
   hookSpecificOutput: {
     hookEventName: 'PermissionRequest';
     decision: {
-      behavior: 'allow' | 'deny' | 'allowAlways';
+      behavior: 'allow' | 'deny';
+      updatedInput?: Record<string, unknown>;
+      updatedPermissions?: PermissionRule[];
+      message?: string;
     };
   };
 }

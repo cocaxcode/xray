@@ -56,10 +56,13 @@ export class PermissionHandler {
       console.log(`[xray] Auto-approving permission #${permissionId} for ${toolName}`);
       this.queries.updatePermission(permissionId, 'approved');
       this.broadcast({ type: 'permission:auto-approved', data: permission });
-      const response = {
+      const response: PermissionResponse = {
         hookSpecificOutput: {
-          hookEventName: 'PermissionRequest' as const,
-          decision: { behavior: 'allowAlways' as const },
+          hookEventName: 'PermissionRequest',
+          decision: {
+            behavior: 'allow',
+            updatedInput: toolInput,
+          },
         },
       };
       console.log(`[xray] Returning auto-approve response:`, JSON.stringify(response));
@@ -86,7 +89,12 @@ export class PermissionHandler {
   /**
    * Resuelve un permiso pendiente. First-wins: si ya fue resuelto, ignora.
    */
-  resolvePermission(permissionId: number, decision: 'approve' | 'deny' | 'allowAlways'): boolean {
+  resolvePermission(
+    permissionId: number,
+    decision: 'approve' | 'deny' | 'allowAlways',
+    toolName?: string,
+    toolInput?: Record<string, unknown>,
+  ): boolean {
     const deferred = this.pending.get(permissionId);
     if (!deferred) return false;
 
@@ -101,18 +109,42 @@ export class PermissionHandler {
       data: { id: permissionId, decision: status },
     });
 
-    const behaviorMap: Record<string, 'allow' | 'deny' | 'allowAlways'> = {
-      approve: 'allow',
-      allowAlways: 'allowAlways',
-      deny: 'deny',
-    };
-
-    deferred.resolve({
-      hookSpecificOutput: {
-        hookEventName: 'PermissionRequest',
-        decision: { behavior: behaviorMap[decision] },
-      },
-    });
+    // Claude Code only accepts 'allow' or 'deny'. For allowAlways, use allow +
+    // updatedPermissions to persist a rule for future calls.
+    if (decision === 'deny') {
+      deferred.resolve({
+        hookSpecificOutput: {
+          hookEventName: 'PermissionRequest',
+          decision: { behavior: 'deny' },
+        },
+      });
+    } else if (decision === 'allowAlways' && toolName) {
+      deferred.resolve({
+        hookSpecificOutput: {
+          hookEventName: 'PermissionRequest',
+          decision: {
+            behavior: 'allow',
+            updatedInput: toolInput || {},
+            updatedPermissions: [{
+              type: 'addRules',
+              rules: [{ toolName }],
+              behavior: 'allow',
+              destination: 'session',
+            }],
+          },
+        },
+      });
+    } else {
+      deferred.resolve({
+        hookSpecificOutput: {
+          hookEventName: 'PermissionRequest',
+          decision: {
+            behavior: 'allow',
+            updatedInput: toolInput || {},
+          },
+        },
+      });
+    }
 
     return true;
   }
