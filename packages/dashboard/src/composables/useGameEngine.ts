@@ -127,6 +127,12 @@ function addSessionCharacter(session: Session): void {
     }
   }
 
+  // Restore equipment from last used skill (so it persists across reloads)
+  if (session.skills && session.skills.length > 0) {
+    const lastSkill = session.skills[session.skills.length - 1];
+    char.equipment = state.template.equipmentMap[lastSkill] || state.template.equipmentMap.default || null;
+  }
+
   // Set pixel position
   char.x = spawnPos.x * state.template.tileSize + state.template.tileSize / 2;
   char.y = spawnPos.y * state.template.tileSize + state.template.tileSize / 2;
