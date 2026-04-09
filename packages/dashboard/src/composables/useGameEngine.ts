@@ -203,8 +203,9 @@ function addCompanionCharacter(sessionId: string, agent: Agent): void {
     hueShift, spawnPos, true, agent.type, state.template,
   );
 
-  // Set project name as topic for sub-agent
-  char.topic = parentSession?.projectName || null;
+  // Subtitle: show the raw agent type from Claude Code (e.g. "Explore", "Plan")
+  // This identifies what kind of sub-agent it is, independent of display name
+  char.topic = agent.type || null;
 
   char.x = spawnPos.x * state.template.tileSize + state.template.tileSize / 2;
   char.y = spawnPos.y * state.template.tileSize + state.template.tileSize / 2;
