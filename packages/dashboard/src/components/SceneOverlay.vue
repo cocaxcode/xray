@@ -21,7 +21,7 @@ const waitingCharacters = computed(() => {
   void props.tick;
   const result: Array<{ char: Character; message: string }> = [];
   for (const char of props.characters.values()) {
-    if (char.isCompanion) continue;
+    if (char.isCompanion || char.hidden) continue;
     const session = props.sessions.get(char.sessionId);
     if (session?.status === 'waiting_input' && !getBySession(char.sessionId)) {
       result.push({
@@ -69,7 +69,7 @@ async function handleResolve(permissionId: number, decision: 'approve' | 'deny' 
 <template>
   <!-- Permission bubbles (only for main characters, not companions) -->
   <div
-    v-for="char in Array.from(characters.values()).filter(c => !c.isCompanion && getPermission(c))"
+    v-for="char in Array.from(characters.values()).filter(c => !c.isCompanion && !c.hidden && getPermission(c))"
     :key="'perm-' + char.id"
     class="absolute z-20"
     :style="{
