@@ -2,9 +2,7 @@
 
 **Real-time dashboard for all your Claude Code sessions.** Watch every agent working across every project from a single pane — or from a pixel-art battlefield where each session is a warrior fighting goblins.
 
-<video src="https://github.com/cocaxcode/xray/raw/master/docs/xray-demo.webm" controls muted width="100%"></video>
-
-> [Watch demo video](docs/xray-demo.webm)
+![xray Warriors view demo](docs/xray-demo.gif)
 
 ## What is this?
 
