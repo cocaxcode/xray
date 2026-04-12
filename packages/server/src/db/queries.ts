@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Session, ToolEvent, PendingPermission, SessionSummary, ProjectGroup, McpServer, Agent } from '../types.js';
+import type { Session, ToolEvent, PendingPermission, SessionSummary, ProjectGroup, McpServer, Agent, TokenOptimizerEvent, TokenOptimizerSummary, OptimizationSourceBreakdown, OptimizationData } from '../types.js';
 
 export class Queries {
   private db: Database.Database;
@@ -295,6 +295,203 @@ export class Queries {
       totalInputTokens: session?.inputTokens ?? 0,
       totalOutputTokens: session?.outputTokens ?? 0,
       tokensByAgent: [],
+    };
+  }
+
+  // ── Optimization (token-optimizer integration) ──
+
+  insertOptimizationEvent(event: TokenOptimizerEvent): void {
+    this.db.prepare(`
+      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      event.session_id,
+      event.tool_name,
+      event.source,
+      event.tokens_estimated,
+      event.output_bytes,
+      event.duration_ms,
+      event.estimation_method,
+      event.input_hash,
+      event.created_at,
+    );
+  }
+
+  upsertOptimizationSummary(summary: TokenOptimizerSummary): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO optimization_summaries
+        (session_id, total_tokens, total_events, by_source, by_tool, cost_haiku, cost_sonnet, cost_opus, probes, coach_tips_surfaced, schema_measurement, optimizer_version)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      summary.session_id,
+      summary.total_tokens,
+      summary.total_events,
+      JSON.stringify(summary.by_source),
+      JSON.stringify(summary.by_tool),
+      summary.cost_haiku,
+      summary.cost_sonnet,
+      summary.cost_opus,
+      JSON.stringify(summary.probes),
+      JSON.stringify(summary.coach_tips_surfaced),
+      JSON.stringify(summary.schema_measurement),
+      summary.optimizer_version,
+    );
+  }
+
+  getOptimizationSourceBreakdown(sessionId: string): OptimizationSourceBreakdown[] {
+    return this.db.prepare(`
+      SELECT source, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens
+      FROM optimization_events
+      WHERE session_id = ?
+      GROUP BY source
+      ORDER BY tokens DESC
+    `).all(sessionId) as OptimizationSourceBreakdown[];
+  }
+
+  getOptimizationSummary(sessionId: string): TokenOptimizerSummary | null {
+    const row = this.db.prepare(
+      'SELECT * FROM optimization_summaries WHERE session_id = ?'
+    ).get(sessionId) as Record<string, unknown> | undefined;
+    if (!row) return null;
+    return {
+      session_id: row.session_id as string,
+      total_tokens: row.total_tokens as number,
+      total_events: row.total_events as number,
+      by_source: JSON.parse(row.by_source as string),
+      by_tool: JSON.parse(row.by_tool as string),
+      cost_haiku: row.cost_haiku as number,
+      cost_sonnet: row.cost_sonnet as number,
+      cost_opus: row.cost_opus as number,
+      probes: JSON.parse((row.probes as string) || 'null'),
+      coach_tips_surfaced: JSON.parse((row.coach_tips_surfaced as string) || '[]'),
+      schema_measurement: JSON.parse((row.schema_measurement as string) || 'null'),
+      optimizer_version: row.optimizer_version as string,
+    };
+  }
+
+  getOptimizationEventCount(sessionId: string): number {
+    const row = this.db.prepare(
+      'SELECT COUNT(*) as count FROM optimization_events WHERE session_id = ?'
+    ).get(sessionId) as { count: number };
+    return row.count;
+  }
+
+  getOptimizationData(sessionId: string): OptimizationData {
+    return {
+      summary: this.getOptimizationSummary(sessionId),
+      realtimeBreakdown: this.getOptimizationSourceBreakdown(sessionId),
+      eventCount: this.getOptimizationEventCount(sessionId),
+    };
+  }
+
+  getOptimizationAggregateByProject(projectPath: string): {
+    total_tokens: number;
+    total_events: number;
+    session_count: number;
+    by_source: OptimizationSourceBreakdown[];
+    cost_haiku: number;
+    cost_sonnet: number;
+    cost_opus: number;
+  } {
+    // Agregar por fuente cruzando optimization_events con sessions
+    const bySource = this.db.prepare(`
+      SELECT oe.source, COUNT(*) as count, COALESCE(SUM(oe.tokens_estimated), 0) as tokens
+      FROM optimization_events oe
+      JOIN sessions s ON oe.session_id = s.id
+      WHERE s.project_path = ?
+      GROUP BY oe.source
+      ORDER BY tokens DESC
+    `).all(projectPath) as OptimizationSourceBreakdown[];
+
+    const totals = this.db.prepare(`
+      SELECT
+        COALESCE(SUM(oe.tokens_estimated), 0) as total_tokens,
+        COUNT(*) as total_events,
+        COUNT(DISTINCT oe.session_id) as session_count
+      FROM optimization_events oe
+      JOIN sessions s ON oe.session_id = s.id
+      WHERE s.project_path = ?
+    `).get(projectPath) as { total_tokens: number; total_events: number; session_count: number };
+
+    const mtok = totals.total_tokens / 1_000_000;
+    return {
+      total_tokens: totals.total_tokens,
+      total_events: totals.total_events,
+      session_count: totals.session_count,
+      by_source: bySource,
+      cost_haiku: Number((mtok * 1).toFixed(4)),
+      cost_sonnet: Number((mtok * 3).toFixed(4)),
+      cost_opus: Number((mtok * 5).toFixed(4)),
+    };
+  }
+
+  getOptimizationGlobalStats(): {
+    projects: Array<{
+      projectPath: string;
+      projectName: string;
+      total_tokens: number;
+      total_events: number;
+      session_count: number;
+      by_source: OptimizationSourceBreakdown[];
+      cost_haiku: number;
+      cost_sonnet: number;
+      cost_opus: number;
+    }>;
+    totals: { total_tokens: number; total_events: number; session_count: number; cost_haiku: number; cost_sonnet: number; cost_opus: number };
+  } {
+    // Per-project breakdown
+    const projectRows = this.db.prepare(`
+      SELECT
+        s.project_path,
+        s.project_name,
+        COALESCE(SUM(oe.tokens_estimated), 0) as total_tokens,
+        COUNT(oe.id) as total_events,
+        COUNT(DISTINCT oe.session_id) as session_count
+      FROM optimization_events oe
+      JOIN sessions s ON oe.session_id = s.id
+      GROUP BY s.project_path, s.project_name
+      ORDER BY total_tokens DESC
+    `).all() as Array<{ project_path: string; project_name: string; total_tokens: number; total_events: number; session_count: number }>;
+
+    const projects = projectRows.map((row) => {
+      const bySource = this.db.prepare(`
+        SELECT oe.source, COUNT(*) as count, COALESCE(SUM(oe.tokens_estimated), 0) as tokens
+        FROM optimization_events oe
+        JOIN sessions s ON oe.session_id = s.id
+        WHERE s.project_path = ?
+        GROUP BY oe.source ORDER BY tokens DESC
+      `).all(row.project_path) as OptimizationSourceBreakdown[];
+
+      const mtok = row.total_tokens / 1_000_000;
+      return {
+        projectPath: row.project_path,
+        projectName: row.project_name,
+        total_tokens: row.total_tokens,
+        total_events: row.total_events,
+        session_count: row.session_count,
+        by_source: bySource,
+        cost_haiku: Number((mtok * 1).toFixed(4)),
+        cost_sonnet: Number((mtok * 3).toFixed(4)),
+        cost_opus: Number((mtok * 5).toFixed(4)),
+      };
+    });
+
+    // Global totals
+    const totalTokens = projects.reduce((s, p) => s + p.total_tokens, 0);
+    const totalEvents = projects.reduce((s, p) => s + p.total_events, 0);
+    const totalSessions = projects.reduce((s, p) => s + p.session_count, 0);
+    const mtok = totalTokens / 1_000_000;
+
+    return {
+      projects,
+      totals: {
+        total_tokens: totalTokens,
+        total_events: totalEvents,
+        session_count: totalSessions,
+        cost_haiku: Number((mtok * 1).toFixed(4)),
+        cost_sonnet: Number((mtok * 3).toFixed(4)),
+        cost_opus: Number((mtok * 5).toFixed(4)),
+      },
     };
   }
 

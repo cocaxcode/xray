@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -18,10 +18,12 @@ export function initSchema(db: Database.Database): void {
     // Primera instalacion: crear todo desde cero
     createTablesV1(db);
     migrateToV2(db);
+    migrateToV3(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
     if (currentVersion < 2) migrateToV2(db);
+    if (currentVersion < 3) migrateToV3(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -117,6 +119,59 @@ function migrateToV2(db: Database.Database): void {
 
   if (!hasTopicColumn) {
     db.exec('ALTER TABLE sessions ADD COLUMN topic TEXT');
+  }
+}
+
+/** v3: tablas de integración con token-optimizer */
+function migrateToV3(db: Database.Database): void {
+  const tables = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table'"
+  ).all() as Array<{ name: string }>;
+  const tableNames = new Set(tables.map(t => t.name));
+
+  if (!tableNames.has('optimization_events')) {
+    db.exec(`
+      CREATE TABLE optimization_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        tool_name TEXT NOT NULL,
+        source TEXT NOT NULL,
+        tokens_estimated INTEGER NOT NULL,
+        output_bytes INTEGER NOT NULL DEFAULT 0,
+        duration_ms INTEGER,
+        estimation_method TEXT NOT NULL,
+        input_hash TEXT,
+        created_at TEXT NOT NULL,
+        received_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (session_id) REFERENCES sessions(id)
+      );
+
+      CREATE INDEX idx_opt_events_session ON optimization_events(session_id);
+      CREATE INDEX idx_opt_events_created ON optimization_events(created_at);
+      CREATE INDEX idx_opt_events_source ON optimization_events(source);
+    `);
+  }
+
+  if (!tableNames.has('optimization_summaries')) {
+    db.exec(`
+      CREATE TABLE optimization_summaries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL UNIQUE,
+        total_tokens INTEGER NOT NULL,
+        total_events INTEGER NOT NULL,
+        by_source TEXT NOT NULL,
+        by_tool TEXT NOT NULL,
+        cost_haiku REAL,
+        cost_sonnet REAL,
+        cost_opus REAL,
+        probes TEXT,
+        coach_tips_surfaced TEXT,
+        schema_measurement TEXT,
+        optimizer_version TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (session_id) REFERENCES sessions(id)
+      );
+    `);
   }
 }
 

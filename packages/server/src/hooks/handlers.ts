@@ -9,6 +9,8 @@ import type {
   StopPayload,
   ServerWSEvent,
   Agent,
+  TokenOptimizerEvent,
+  TokenOptimizerSummary,
 } from '../types.js';
 import type { SessionManager } from '../sessions/manager.js';
 import type { Queries } from '../db/queries.js';
@@ -294,6 +296,31 @@ export class HookHandlers {
         inputTokensAtStop: session.inputTokensAtStop, outputTokensAtStop: session.outputTokensAtStop,
       } });
     }
+  }
+
+  // ── Token Optimizer Integration ──
+
+  handleTokenOptimizerEvent(event: TokenOptimizerEvent): void {
+    this.queries.insertOptimizationEvent(event);
+
+    this.broadcast({
+      type: 'optimization:event',
+      data: {
+        sessionId: event.session_id,
+        source: event.source,
+        tokens: event.tokens_estimated,
+        toolName: event.tool_name,
+      },
+    });
+  }
+
+  handleTokenOptimizerSummary(summary: TokenOptimizerSummary): void {
+    this.queries.upsertOptimizationSummary(summary);
+
+    this.broadcast({
+      type: 'optimization:summary',
+      data: { sessionId: summary.session_id },
+    });
   }
 
   handleSessionEnd(sessionId: string): void {

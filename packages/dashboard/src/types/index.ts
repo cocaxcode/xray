@@ -114,6 +114,42 @@ export interface SessionEventsResponse {
   pageSize: number;
 }
 
+// ── Token Optimizer Integration ──
+
+export interface OptimizationSourceBreakdown {
+  source: string;
+  count: number;
+  tokens: number;
+}
+
+export interface OptimizationProbes {
+  serena: { present: boolean; confidence: number; signals: string[] };
+  rtk: { present: boolean; confidence: number; signals: string[] };
+  mcp_pruning: { present: boolean; confidence: number; signals: string[] };
+  prompt_caching: { present: boolean; confidence: number };
+}
+
+export interface OptimizationSummary {
+  session_id: string;
+  total_tokens: number;
+  total_events: number;
+  by_source: OptimizationSourceBreakdown[];
+  by_tool: Array<{ tool_name: string; count: number; tokens: number }>;
+  cost_haiku: number;
+  cost_sonnet: number;
+  cost_opus: number;
+  probes: OptimizationProbes | null;
+  coach_tips_surfaced: Array<{ rule_id: string; tip_ids: string[]; severity: string }>;
+  schema_measurement: { tool_schema_tokens: number; mcp_servers: string[] } | null;
+  optimizer_version: string;
+}
+
+export interface OptimizationData {
+  summary: OptimizationSummary | null;
+  realtimeBreakdown: OptimizationSourceBreakdown[];
+  eventCount: number;
+}
+
 export type ServerWSEvent =
   | { type: 'session:start'; data: Session }
   | { type: 'session:update'; data: { id: string } & Partial<Session> }
@@ -125,7 +161,9 @@ export type ServerWSEvent =
   | { type: 'agent:stop'; data: { sessionId: string; agentId: string } }
   | { type: 'notification'; data: { sessionId: string; type: string; message: string } }
   | { type: 'config:auto-approve'; data: { enabled: boolean } }
-  | { type: 'permission:auto-approved'; data: PendingPermission };
+  | { type: 'permission:auto-approved'; data: PendingPermission }
+  | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string } }
+  | { type: 'optimization:summary'; data: { sessionId: string } };
 
 export type ClientWSEvent =
   | { type: 'permission:resolve'; data: { id: number; decision: 'approve' | 'deny' } };

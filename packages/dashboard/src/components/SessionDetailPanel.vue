@@ -207,6 +207,7 @@ watch(activeTab, async (tab) => {
             </div>
           </div>
         </template>
+
       </div>
 
       <!-- Right: Event detail (only when event selected in history tab) -->

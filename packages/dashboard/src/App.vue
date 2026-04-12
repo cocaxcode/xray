@@ -11,6 +11,7 @@ import AuthPrompt from './components/AuthPrompt.vue';
 import SettingsDrawer from './components/SettingsDrawer.vue';
 import PanelView from './views/PanelView.vue';
 import SceneView from './views/SceneView.vue';
+import OptimizationView from './views/OptimizationView.vue';
 
 const { handleQrAuth, token, checkAuth } = useAuth();
 const { connect, onMessage } = useWebSocket();
@@ -73,6 +74,9 @@ function onAuthenticated(): void {
     <PanelView
       v-if="viewMode === 'panel'"
       @open-settings="settingsOpen = true"
+    />
+    <OptimizationView
+      v-else-if="viewMode === 'optimization'"
     />
     <SceneView
       v-else

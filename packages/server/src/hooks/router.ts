@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { HookHandlers } from './handlers.js';
 import type { PermissionHandler } from './permission.js';
 import type { SessionManager } from '../sessions/manager.js';
-import type { ServerWSEvent } from '../types.js';
+import type { ServerWSEvent, TokenOptimizerEvent, TokenOptimizerSummary } from '../types.js';
 import { readModelFromTranscript, readTopicFromTranscript } from '../sessions/transcript-reader.js';
 
 export function registerHookRoutes(
@@ -151,6 +151,34 @@ export function registerHookRoutes(
   fastify.post('/api/hook/stop', async (request) => {
     const payload = request.body as Record<string, unknown>;
     try { ensureSession(payload); handlers.handleStop(payload as never); } catch (e) { fastify.log.error(e, 'stop handler error'); }
+    return {};
+  });
+
+  // ── Token Optimizer Integration ──
+
+  fastify.post('/hooks/token-optimizer', async (request) => {
+    const body = request.body as { source?: string; version?: string; event?: TokenOptimizerEvent };
+    try {
+      const event = body.event;
+      if (!event?.session_id) return {};
+      ensureSession({ session_id: event.session_id, cwd: '' });
+      handlers.handleTokenOptimizerEvent(event);
+    } catch (e) {
+      fastify.log.error(e, 'token-optimizer event hook error');
+    }
+    return {};
+  });
+
+  fastify.post('/hooks/token-optimizer/summary', async (request) => {
+    const body = request.body as { source?: string; version?: string; summary?: TokenOptimizerSummary };
+    try {
+      const summary = body.summary;
+      if (!summary?.session_id) return {};
+      ensureSession({ session_id: summary.session_id, cwd: '' });
+      handlers.handleTokenOptimizerSummary(summary);
+    } catch (e) {
+      fastify.log.error(e, 'token-optimizer summary hook error');
+    }
     return {};
   });
 }

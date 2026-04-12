@@ -191,6 +191,41 @@ export function registerApiRoutes(
     return templates;
   });
 
+  // ── Optimization (token-optimizer data) ──
+
+  fastify.get('/api/sessions/:id/optimization', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    if (!queries.sessionExists(id)) {
+      return reply.status(404).send({ error: 'Session not found' });
+    }
+    return queries.getOptimizationData(id);
+  });
+
+  fastify.get('/api/sessions/:id/optimization/events', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { page = '1', pageSize = '100' } = request.query as Record<string, string>;
+    if (!queries.sessionExists(id)) {
+      return reply.status(404).send({ error: 'Session not found' });
+    }
+    const offset = (parseInt(page) - 1) * parseInt(pageSize);
+    const events = queries['db'].prepare(
+      'SELECT * FROM optimization_events WHERE session_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    ).all(id, parseInt(pageSize), offset);
+    const total = queries.getOptimizationEventCount(id);
+    return { events, total, page: parseInt(page), pageSize: parseInt(pageSize) };
+  });
+
+  fastify.get('/api/projects/:path/optimization', async (request) => {
+    const { path: projectPath } = request.params as { path: string };
+    const decoded = decodeURIComponent(projectPath);
+    return queries.getOptimizationAggregateByProject(decoded);
+  });
+
+  // Global optimization stats (all projects)
+  fastify.get('/api/optimization', async () => {
+    return queries.getOptimizationGlobalStats();
+  });
+
   // ── Health ──
   fastify.get('/api/health', async () => {
     const projects = manager.getProjectGroups();

@@ -80,6 +80,13 @@ function toggleSearch(): void {
         Panel
       </button>
       <button
+        @click="setView('optimization')"
+        class="text-[10px] font-mono px-2 py-1 rounded transition-colors"
+        :class="viewMode === 'optimization' ? 'bg-purple/20 text-purple' : 'text-muted hover:text-text'"
+      >
+        Tokens
+      </button>
+      <button
         v-for="template in availableTemplates"
         :key="template.name"
         @click="setView(template.name.toLowerCase().replace(/\s+/g, '-'))"

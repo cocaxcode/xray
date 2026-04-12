@@ -138,6 +138,11 @@ function handleWSEvent(event: ServerWSEvent): void {
       }
       break;
     }
+
+    case 'optimization:event':
+    case 'optimization:summary':
+      // Handled by useOptimization composable directly
+      break;
   }
 }
 

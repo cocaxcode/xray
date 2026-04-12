@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import type { TemplateMeta } from '../types';
 import { useAuth } from './useAuth';
 
-export type ViewMode = 'panel' | string;
+export type ViewMode = 'panel' | 'optimization' | string;
 
 const STORAGE_KEY = 'xray-view-mode';
 
@@ -10,7 +10,7 @@ const current = ref<ViewMode>(localStorage.getItem(STORAGE_KEY) || 'panel');
 const availableTemplates = ref<TemplateMeta[]>([]);
 
 function setView(mode: ViewMode): void {
-  if (mode !== 'panel') {
+  if (mode !== 'panel' && mode !== 'optimization') {
     // Verify template exists
     const exists = availableTemplates.value.some(t => t.name.toLowerCase().replace(/\s+/g, '-') === mode);
     if (!exists) {
