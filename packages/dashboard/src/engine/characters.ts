@@ -331,10 +331,9 @@ export function transitionToIdle(
   occupied: Set<string>,
   template?: TemplateConfig,
 ): void {
-  if (char.assignedSeat) {
-    releaseSeat(char.assignedSeat, occupied);
-    char.assignedSeat = null;
-  }
+  // Keep assigned seat and enemies — they stay on the map during idle
+  // The character wanders near its seat, enemies wobble in place
+  // Seat and enemies are only cleared on transitionToStopped (session end)
   const wanderMin = template?.mechanics?.wanderMin ?? DEFAULTS.wanderMin;
   const wanderMax = template?.mechanics?.wanderMax ?? DEFAULTS.wanderMax;
   char.state = CharacterState.IDLE;
@@ -342,12 +341,6 @@ export function transitionToIdle(
   char.animFrame = 0;
   char.animTimer = 0;
   char.wanderTimer = randomRange(wanderMin, wanderMax);
-
-  // Despawn enemies
-  for (const enemy of char.enemies) {
-    enemy.markedForRemoval = true;
-  }
-  char.enemies = [];
 }
 
 export function transitionToStopped(
