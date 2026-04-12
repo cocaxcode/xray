@@ -29,7 +29,8 @@
   },
   "files": [
     "packages/server/dist/",
-    "packages/server/bin/"
+    "packages/server/bin/",
+    "packages/server/templates/"
   ],
   "engines": {
     "node": ">=18"
