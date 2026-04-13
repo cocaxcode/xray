@@ -161,7 +161,7 @@ export function registerHookRoutes(
     try {
       const event = body.event;
       if (!event?.session_id) return {};
-      ensureSession({ session_id: event.session_id, cwd: '' });
+      ensureSession({ session_id: event.session_id, cwd: event.project_path ?? '' });
       handlers.handleTokenOptimizerEvent(event);
     } catch (e) {
       fastify.log.error(e, 'token-optimizer event hook error');
@@ -174,7 +174,7 @@ export function registerHookRoutes(
     try {
       const summary = body.summary;
       if (!summary?.session_id) return {};
-      ensureSession({ session_id: summary.session_id, cwd: '' });
+      ensureSession({ session_id: summary.session_id, cwd: (summary as unknown as Record<string, unknown>).project_path as string ?? '' });
       handlers.handleTokenOptimizerSummary(summary);
     } catch (e) {
       fastify.log.error(e, 'token-optimizer summary hook error');

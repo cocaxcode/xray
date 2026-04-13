@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -19,11 +19,13 @@ export function initSchema(db: Database.Database): void {
     createTablesV1(db);
     migrateToV2(db);
     migrateToV3(db);
+    migrateToV4(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
     if (currentVersion < 2) migrateToV2(db);
     if (currentVersion < 3) migrateToV3(db);
+    if (currentVersion < 4) migrateToV4(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -175,6 +177,19 @@ function migrateToV3(db: Database.Database): void {
   }
 }
 
+/** v4: project context en optimization_events */
+function migrateToV4(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info('optimization_events')").all() as Array<{ name: string }>;
+  const colNames = new Set(columns.map(c => c.name));
+
+  if (!colNames.has('project_path')) {
+    db.exec("ALTER TABLE optimization_events ADD COLUMN project_path TEXT");
+  }
+  if (!colNames.has('project_name')) {
+    db.exec("ALTER TABLE optimization_events ADD COLUMN project_name TEXT");
+  }
+}
+
 export function purgeOldEvents(db: Database.Database, daysOld = 7): number {
   const result = db.prepare(
     "DELETE FROM events WHERE created_at < datetime('now', ?)"
@@ -192,6 +207,14 @@ export function purgeOldSessions(db: Database.Database, hoursOld = 24): number {
 
     db.prepare(
       "DELETE FROM pending_permissions WHERE session_id IN (SELECT id FROM sessions WHERE status = 'stopped' AND last_event_at < datetime('now', ?))"
+    ).run(param);
+
+    db.prepare(
+      "DELETE FROM optimization_events WHERE session_id IN (SELECT id FROM sessions WHERE status = 'stopped' AND last_event_at < datetime('now', ?))"
+    ).run(param);
+
+    db.prepare(
+      "DELETE FROM optimization_summaries WHERE session_id IN (SELECT id FROM sessions WHERE status = 'stopped' AND last_event_at < datetime('now', ?))"
     ).run(param);
 
     const result = db.prepare(

@@ -261,6 +261,9 @@ export interface TokenOptimizerEvent {
   estimation_method: string;
   input_hash: string;
   created_at: string;
+  project_path?: string;
+  project_name?: string;
+  project_hash?: string;
 }
 
 export interface TokenOptimizerSummary {

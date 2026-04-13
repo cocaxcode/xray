@@ -302,8 +302,8 @@ export class Queries {
 
   insertOptimizationEvent(event: TokenOptimizerEvent): void {
     this.db.prepare(`
-      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       event.session_id,
       event.tool_name,
@@ -314,6 +314,8 @@ export class Queries {
       event.estimation_method,
       event.input_hash,
       event.created_at,
+      event.project_path ?? null,
+      event.project_name ?? null,
     );
   }
 
@@ -433,23 +435,27 @@ export class Queries {
       total_events: number;
       session_count: number;
       by_source: OptimizationSourceBreakdown[];
+      by_tool: Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
       cost_haiku: number;
       cost_sonnet: number;
       cost_opus: number;
     }>;
     totals: { total_tokens: number; total_events: number; session_count: number; cost_haiku: number; cost_sonnet: number; cost_opus: number };
+    global_by_source: OptimizationSourceBreakdown[];
+    global_by_tool: Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
   } {
-    // Per-project breakdown
+    // Per-project breakdown — prefer project_path from optimization_events (direct from token-optimizer)
+    // Fall back to sessions.project_path for events without project context
     const projectRows = this.db.prepare(`
       SELECT
-        s.project_path,
-        s.project_name,
+        COALESCE(oe.project_path, s.project_path) as project_path,
+        COALESCE(oe.project_name, s.project_name) as project_name,
         COALESCE(SUM(oe.tokens_estimated), 0) as total_tokens,
         COUNT(oe.id) as total_events,
         COUNT(DISTINCT oe.session_id) as session_count
       FROM optimization_events oe
-      JOIN sessions s ON oe.session_id = s.id
-      GROUP BY s.project_path, s.project_name
+      LEFT JOIN sessions s ON oe.session_id = s.id
+      GROUP BY COALESCE(oe.project_path, s.project_path)
       ORDER BY total_tokens DESC
     `).all() as Array<{ project_path: string; project_name: string; total_tokens: number; total_events: number; session_count: number }>;
 
@@ -457,10 +463,19 @@ export class Queries {
       const bySource = this.db.prepare(`
         SELECT oe.source, COUNT(*) as count, COALESCE(SUM(oe.tokens_estimated), 0) as tokens
         FROM optimization_events oe
-        JOIN sessions s ON oe.session_id = s.id
-        WHERE s.project_path = ?
+        LEFT JOIN sessions s ON oe.session_id = s.id
+        WHERE COALESCE(oe.project_path, s.project_path) = ?
         GROUP BY oe.source ORDER BY tokens DESC
       `).all(row.project_path) as OptimizationSourceBreakdown[];
+
+      const byTool = this.db.prepare(`
+        SELECT tool_name, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens,
+               ROUND(CAST(COALESCE(SUM(tokens_estimated), 0) AS REAL) / MAX(COUNT(*), 1)) as avg_tokens
+        FROM optimization_events oe
+        LEFT JOIN sessions s ON oe.session_id = s.id
+        WHERE COALESCE(oe.project_path, s.project_path) = ?
+        GROUP BY tool_name ORDER BY tokens DESC LIMIT 10
+      `).all(row.project_path) as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
 
       const mtok = row.total_tokens / 1_000_000;
       return {
@@ -470,11 +485,27 @@ export class Queries {
         total_events: row.total_events,
         session_count: row.session_count,
         by_source: bySource,
+        by_tool: byTool,
         cost_haiku: Number((mtok * 1).toFixed(4)),
         cost_sonnet: Number((mtok * 3).toFixed(4)),
         cost_opus: Number((mtok * 5).toFixed(4)),
       };
     });
+
+    // Global top tools
+    const globalByTool = this.db.prepare(`
+      SELECT tool_name, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens,
+             ROUND(CAST(COALESCE(SUM(tokens_estimated), 0) AS REAL) / MAX(COUNT(*), 1)) as avg_tokens
+      FROM optimization_events
+      GROUP BY tool_name ORDER BY tokens DESC LIMIT 10
+    `).all() as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
+
+    // Global by source
+    const globalBySource = this.db.prepare(`
+      SELECT source, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens
+      FROM optimization_events
+      GROUP BY source ORDER BY tokens DESC
+    `).all() as OptimizationSourceBreakdown[];
 
     // Global totals
     const totalTokens = projects.reduce((s, p) => s + p.total_tokens, 0);
@@ -492,6 +523,8 @@ export class Queries {
         cost_sonnet: Number((mtok * 3).toFixed(4)),
         cost_opus: Number((mtok * 5).toFixed(4)),
       },
+      global_by_source: globalBySource,
+      global_by_tool: globalByTool,
     };
   }
 
