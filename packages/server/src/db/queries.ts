@@ -312,7 +312,7 @@ export class Queries {
       event.output_bytes,
       event.duration_ms,
       event.estimation_method,
-      event.input_hash,
+      event.input_hash ?? null,
       event.created_at,
       event.project_path ?? null,
       event.project_name ?? null,

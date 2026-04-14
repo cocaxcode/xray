@@ -51,7 +51,8 @@ export function registerAuthMiddleware(
     const url = request.url;
 
     // Hook endpoints: solo aceptar de localhost (Claude Code corre local)
-    if (url.startsWith('/api/hook/')) {
+    // Incluye /api/hook/* (hooks nativos) y /hooks/* (token-optimizer)
+    if (url.startsWith('/api/hook/') || url.startsWith('/hooks/')) {
       const ip = request.ip;
       const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
       if (!isLocal) {
