@@ -4,7 +4,7 @@ import type { Session } from '../types';
 import type { Character, GameState } from '../engine/types';
 import { CharacterState } from '../engine/types';
 import { getMcpSpriteKey } from '../engine/renderer';
-import { formatTokens } from '../utils/format';
+import { formatTokens, formatModel, getModelColor } from '../utils/format';
 
 const props = defineProps<{
   sessions: Map<string, Session>;
@@ -224,7 +224,7 @@ const legendOpen = ref(!isMobile);
             :class="entry.status === 'active' ? 'bg-cyan' : entry.status === 'idle' ? 'bg-muted' : entry.status === 'waiting_permission' ? 'bg-amber animate-pulse' : entry.status === 'waiting_input' ? 'bg-purple' : 'bg-red'"
           />
           <span class="text-[11px] font-mono font-semibold text-text truncate">{{ entry.projectName }}</span>
-          <span class="text-[8px] font-mono text-muted">{{ entry.model }}</span>
+          <span class="text-[8px] font-mono font-semibold px-1 rounded-full" :style="{ backgroundColor: getModelColor(entry.model) + '20', color: getModelColor(entry.model) }">{{ formatModel(entry.model) }}</span>
           <!-- Expand/collapse arrow -->
           <span class="text-[8px] text-muted ml-auto">{{ isExpanded(entry.sessionId, idx) ? '▼' : '▶' }}</span>
           <!-- Dismiss button -->

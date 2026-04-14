@@ -12,10 +12,10 @@ export interface TokenResult {
  */
 export function readModelFromTranscript(transcriptPath: string): string | null {
   try {
-    // Leer solo los primeros 8KB (suficiente para encontrar el modelo)
+    // Leer los primeros 64KB — el model puede estar despues del system prompt largo
     const fd = openSync(transcriptPath, 'r');
-    const buffer = Buffer.alloc(8192);
-    const bytesRead = readSync(fd, buffer, 0, 8192, 0);
+    const buffer = Buffer.alloc(65536);
+    const bytesRead = readSync(fd, buffer, 0, 65536, 0);
     closeSync(fd);
 
     const content = buffer.toString('utf-8', 0, bytesRead);
