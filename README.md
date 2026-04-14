@@ -130,7 +130,7 @@ cxc-xray setup
 cxc-xray
 ```
 
-`cxc-xray setup` registers 10 hooks in `~/.claude/settings.json`: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Notification`, `SubagentStart`, `SubagentStop`, `Stop`. The install is non-destructive — it appends to existing hook arrays and creates a `.backup` of your settings before touching anything.
+`cxc-xray setup` registers 10 hooks in `~/.claude/settings.json`: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Notification`, `SubagentStart`, `SubagentStop`, `Stop`. Hooks are registered as `type: "command"` pointing to a tiny Node wrapper (`cxc-xray-hook`) that forwards the payload to the server and silently exits if xray isn't running — so nothing shows up in your terminal when the server is down. The install is non-destructive, appends to existing hook arrays, creates a `.backup` of your settings before touching anything, and auto-migrates the older `type: "http"` format if it finds it.
 
 To remove it cleanly:
 
@@ -183,19 +183,20 @@ Drop a folder into `~/.xray/templates/<name>/` and it appears in the view switch
 ## Architecture
 
 ```
-Claude Code hooks ──HTTP POST──▶ Fastify server ──WebSocket──▶ Vue dashboard
-                                      │
-                                      ├─▶ SQLite (WAL, FTS5, incremental migrations)
-                                      └─▶ In-memory (active tools, pending permissions)
+Claude Code hooks ──▶ cxc-xray-hook (wrapper) ──HTTP POST──▶ Fastify server ──WS──▶ Vue dashboard
+                                                                │
+                                                                ├─▶ SQLite (WAL, FTS5, incremental migrations)
+                                                                └─▶ In-memory (active tools, pending permissions)
 ```
 
 **Key design decisions**:
 
-- **Deferred Promise permissions** — the `PermissionRequest` hook holds the HTTP connection open (up to 9 minutes) until you click a button. Claude Code blocks on the response. This is how xray can intercept and gate every tool execution without any terminal interaction.
+- **Deferred Promise permissions** — the `PermissionRequest` hook holds the connection open (up to 9 minutes) until you click a button. The `cxc-xray-hook` wrapper awaits the long-polling fetch and streams the server's response back to Claude Code over stdout, so the harness blocks on the approval without ever hitting the network itself.
 - **Two views, one data source** — Panel and Warriors share the same WebSocket composables. Switching views loses no state.
 - **Hue-shift sprite coloring** — 8 preset hue offsets, applied per character via an offscreen canvas cache. One sprite sheet, unlimited unique colors, zero extra assets.
 - **Token counter = tangible pressure** — instead of a boring progress bar, the goblin count grows with total tokens. 3 at start, 18 at a million. Context usage becomes visceral.
-- **Non-destructive hooks install** — appends to existing arrays, creates backups, removes only xray's entries on uninstall.
+- **Non-destructive hooks install** — appends to existing arrays, creates backups, removes only xray's entries on uninstall. Auto-migrates `type: "http"` entries from older versions to the `type: "command"` wrapper.
+- **Silent when down** — the `cxc-xray-hook` wrapper always exits 0. If the server isn't running, hooks fire, fail to connect, and return cleanly. No `HTTP undefined from localhost:3333` noise in your terminal when xray is off.
 - **Persistent auth** — Bearer token stored in SQLite so QR codes scanned on mobile keep working across server restarts.
 - **Real token extraction** — incremental JSONL reads from transcript files, byte-offset tracked per session, capped at 1MB per call.
 

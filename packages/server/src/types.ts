@@ -329,11 +329,19 @@ export interface CliOptions {
 
 // ── Hooks Config (for settings.json) ──
 
-export interface XrayHookEntry {
+export interface XrayHttpHookEntry {
   type: 'http';
   url: string;
   timeout?: number;
 }
+
+export interface XrayCommandHookEntry {
+  type: 'command';
+  command: string;
+  timeout?: number;
+}
+
+export type XrayHookEntry = XrayHttpHookEntry | XrayCommandHookEntry;
 
 export interface XrayHookConfig {
   matcher: string;

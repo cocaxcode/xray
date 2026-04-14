@@ -1,11 +1,12 @@
 {
   "name": "@cocaxcode/xray",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Real-time dashboard for all your Claude Code sessions across projects",
   "license": "MIT",
   "author": "cocaxcode",
   "bin": {
-    "cxc-xray": "./packages/server/bin/cxc-xray.js"
+    "cxc-xray": "./packages/server/bin/cxc-xray.js",
+    "cxc-xray-hook": "./packages/server/bin/cxc-xray-hook.js"
   },
   "scripts": {
     "build:dashboard": "pnpm --filter @cocaxcode/xray-dashboard build",

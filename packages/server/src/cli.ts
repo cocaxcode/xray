@@ -59,7 +59,7 @@ export function createCli(): Command {
       // Setup hooks if needed
       if (!isXrayConfigured(port)) {
         console.log('\n  xray necesita configurar hooks en ~/.claude/settings.json');
-        console.log('  Se anadiran hooks HTTP para estos eventos:\n');
+        console.log('  Se anadiran hooks para estos eventos:\n');
         for (const event of getHookEventList()) {
           console.log(`    - ${event}`);
         }
