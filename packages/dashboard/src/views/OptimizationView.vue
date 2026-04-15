@@ -54,6 +54,58 @@ const data = ref<GlobalOptData | null>(null);
 const loading = ref(true);
 const expandedProject = ref<string | null>(null);
 
+// ── Date filter ──────────────────────────────────────────────────────────────
+type DatePreset = 'today' | '7d' | '30d' | 'all' | 'custom';
+const preset = ref<DatePreset>('all');
+const fromDate = ref('');
+const toDate = ref('');
+
+function toIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function setPreset(p: DatePreset): void {
+  preset.value = p;
+  const today = new Date();
+  if (p === 'today') {
+    fromDate.value = toIsoDate(today);
+    toDate.value = toIsoDate(today);
+  } else if (p === '7d') {
+    fromDate.value = toIsoDate(addDays(today, -7));
+    toDate.value = toIsoDate(today);
+  } else if (p === '30d') {
+    fromDate.value = toIsoDate(addDays(today, -30));
+    toDate.value = toIsoDate(today);
+  } else {
+    fromDate.value = '';
+    toDate.value = '';
+  }
+  loadData();
+}
+
+function onDateChange(): void {
+  preset.value = 'custom';
+  loadData();
+}
+
+function buildFilterParams(): string {
+  const params = new URLSearchParams();
+  if (fromDate.value) params.set('from', fromDate.value);
+  if (toDate.value) {
+    // Make toDate inclusive: pass the day after as exclusive upper bound
+    params.set('to', toIsoDate(addDays(new Date(toDate.value + 'T00:00:00'), 1)));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Live feed of the most recent events (capped at 30)
 const liveEvents = ref<LiveEvent[]>([]);
 let liveCounter = 0;
@@ -70,7 +122,7 @@ const liveCounts = ref<Record<string, number>>({
 
 async function loadData(): Promise<void> {
   try {
-    const res = await fetch('/api/optimization', { headers: getAuthHeaders() });
+    const res = await fetch(`/api/optimization${buildFilterParams()}`, { headers: getAuthHeaders() });
     if (res.ok) data.value = await res.json();
   } catch {
     /* silent */
@@ -285,6 +337,37 @@ const optimizationScore = computed(() => {
 
 <template>
   <div class="flex-1 overflow-y-auto p-4 space-y-5">
+    <!-- Date filter bar -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-1">
+        <button
+          v-for="p in [{ key: 'today', label: 'Hoy' }, { key: '7d', label: '7 días' }, { key: '30d', label: 'Mes' }, { key: 'all', label: 'Todo' }]"
+          :key="p.key"
+          class="px-3 py-1 text-[11px] font-mono rounded border transition-colors"
+          :class="preset === p.key
+            ? 'bg-cyan/10 border-cyan/50 text-cyan'
+            : 'bg-surface border-border text-muted hover:text-text hover:border-border/80'"
+          @click="setPreset(p.key as DatePreset)"
+        >{{ p.label }}</button>
+      </div>
+      <div class="flex items-center gap-1.5 text-muted text-[11px] font-mono">
+        <span class="text-border">|</span>
+        <input
+          type="date"
+          v-model="fromDate"
+          @change="onDateChange"
+          class="bg-surface border border-border rounded px-2 py-0.5 text-[11px] font-mono text-text focus:outline-none focus:border-cyan/50"
+        />
+        <span>→</span>
+        <input
+          type="date"
+          v-model="toDate"
+          @change="onDateChange"
+          class="bg-surface border border-border rounded px-2 py-0.5 text-[11px] font-mono text-text focus:outline-none focus:border-cyan/50"
+        />
+      </div>
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="text-muted text-sm font-mono text-center mt-10">
       Cargando datos de optimización…

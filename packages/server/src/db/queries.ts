@@ -463,7 +463,7 @@ export class Queries {
     };
   }
 
-  getOptimizationGlobalStats(): {
+  getOptimizationGlobalStats(since?: string, until?: string): {
     projects: Array<{
       projectPath: string;
       projectName: string;
@@ -480,8 +480,21 @@ export class Queries {
     global_by_source: OptimizationSourceBreakdown[];
     global_by_tool: Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
   } {
-    // Per-project breakdown — prefer project_path from optimization_events (direct from token-optimizer)
-    // Fall back to sessions.project_path for events without project context
+    // Build date filter fragments
+    const filterParts = [
+      since ? 'oe.created_at >= ?' : null,
+      until ? 'oe.created_at < ?' : null,
+    ].filter((x): x is string => x !== null);
+    const dirFilterParts = [
+      since ? 'created_at >= ?' : null,
+      until ? 'created_at < ?' : null,
+    ].filter((x): x is string => x !== null);
+    const filterParams: string[] = [...(since ? [since] : []), ...(until ? [until] : [])];
+    const oeWhere = filterParts.length ? `WHERE ${filterParts.join(' AND ')}` : '';
+    const oeAnd = filterParts.length ? `AND ${filterParts.join(' AND ')}` : '';
+    const dirWhere = dirFilterParts.length ? `WHERE ${dirFilterParts.join(' AND ')}` : '';
+
+    // Per-project breakdown
     const projectRows = this.db.prepare(`
       SELECT
         COALESCE(oe.project_path, s.project_path) as project_path,
@@ -491,9 +504,10 @@ export class Queries {
         COUNT(DISTINCT oe.session_id) as session_count
       FROM optimization_events oe
       LEFT JOIN sessions s ON oe.session_id = s.id
+      ${oeWhere}
       GROUP BY COALESCE(oe.project_path, s.project_path)
       ORDER BY total_tokens DESC
-    `).all() as Array<{ project_path: string; project_name: string; total_tokens: number; total_events: number; session_count: number }>;
+    `).all(...filterParams) as Array<{ project_path: string; project_name: string; total_tokens: number; total_events: number; session_count: number }>;
 
     const projects = projectRows.map((row) => {
       const bySource = this.db.prepare(`
@@ -501,8 +515,9 @@ export class Queries {
         FROM optimization_events oe
         LEFT JOIN sessions s ON oe.session_id = s.id
         WHERE COALESCE(oe.project_path, s.project_path) = ?
+        ${oeAnd}
         GROUP BY oe.source ORDER BY tokens DESC
-      `).all(row.project_path) as OptimizationSourceBreakdown[];
+      `).all(row.project_path, ...filterParams) as OptimizationSourceBreakdown[];
 
       const byTool = this.db.prepare(`
         SELECT tool_name, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens,
@@ -510,8 +525,9 @@ export class Queries {
         FROM optimization_events oe
         LEFT JOIN sessions s ON oe.session_id = s.id
         WHERE COALESCE(oe.project_path, s.project_path) = ?
+        ${oeAnd}
         GROUP BY tool_name ORDER BY tokens DESC LIMIT 10
-      `).all(row.project_path) as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
+      `).all(row.project_path, ...filterParams) as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
 
       const mtok = row.total_tokens / 1_000_000;
       return {
@@ -533,15 +549,17 @@ export class Queries {
       SELECT tool_name, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens,
              ROUND(CAST(COALESCE(SUM(tokens_estimated), 0) AS REAL) / MAX(COUNT(*), 1)) as avg_tokens
       FROM optimization_events
+      ${dirWhere}
       GROUP BY tool_name ORDER BY tokens DESC LIMIT 10
-    `).all() as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
+    `).all(...filterParams) as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
 
     // Global by source
     const globalBySource = this.db.prepare(`
       SELECT source, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens
       FROM optimization_events
+      ${dirWhere}
       GROUP BY source ORDER BY tokens DESC
-    `).all() as OptimizationSourceBreakdown[];
+    `).all(...filterParams) as OptimizationSourceBreakdown[];
 
     // Global totals
     const totalTokens = projects.reduce((s, p) => s + p.total_tokens, 0);

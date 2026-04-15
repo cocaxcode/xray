@@ -222,8 +222,9 @@ export function registerApiRoutes(
   });
 
   // Global optimization stats (all projects)
-  fastify.get('/api/optimization', async () => {
-    return queries.getOptimizationGlobalStats();
+  fastify.get('/api/optimization', async (request) => {
+    const { from, to } = request.query as { from?: string; to?: string };
+    return queries.getOptimizationGlobalStats(from, to);
   });
 
   // ── Health ──
