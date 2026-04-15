@@ -205,6 +205,7 @@ function relativeTs(ts: number): string {
 }
 
 // Serena savings: conservative factor (5×) applied to observed serena tokens.
+// Real range is 3-10×; we use 5× as the middle of the distribution.
 const SERENA_SAVINGS_FACTOR = 5;
 const serenaSavings = computed(() => {
   if (!data.value?.global_by_source) return null;
@@ -218,6 +219,34 @@ const serenaSavings = computed(() => {
     saved,
     calls: serena.count,
   };
+});
+
+// RTK savings: conservative factor (4×) applied to observed rtk tokens.
+// RTK filters advertise 60-99% reduction depending on the command — 4× is
+// equivalent to ~75% reduction, which is mid-range and honest about the
+// fact that some commands (e.g. `rtk git status`) save less than `rtk vitest`.
+const RTK_SAVINGS_FACTOR = 4;
+const rtkSavings = computed(() => {
+  if (!data.value?.global_by_source) return null;
+  const rtk = data.value.global_by_source.find((s) => s.source === 'rtk');
+  if (!rtk || rtk.tokens === 0) return null;
+  const wouldHaveCost = rtk.tokens * RTK_SAVINGS_FACTOR;
+  const saved = wouldHaveCost - rtk.tokens;
+  return {
+    rtkTokens: rtk.tokens,
+    wouldHaveCost,
+    saved,
+    calls: rtk.count,
+  };
+});
+
+// Combined total savings: sum of serena + rtk estimated savings.
+const totalSavings = computed(() => {
+  const s = serenaSavings.value?.saved ?? 0;
+  const r = rtkSavings.value?.saved ?? 0;
+  const total = s + r;
+  if (total === 0) return null;
+  return total;
 });
 
 // Optimization score = (serena + rtk calls) / (serena + rtk + builtin calls)
@@ -377,58 +406,127 @@ const optimizationScore = computed(() => {
         </div>
       </div>
 
-      <!-- Serena savings estimate -->
+      <!-- Combined savings banner -->
       <div
-        v-if="serenaSavings"
-        class="bg-purple/5 border border-purple/20 rounded-lg p-4"
+        v-if="totalSavings"
+        class="bg-green/5 border border-green/20 rounded-lg p-4 flex items-baseline justify-between gap-4"
       >
-        <div class="flex items-baseline justify-between mb-2">
-          <div class="text-purple text-xs font-mono font-semibold">
-            Ahorro estimado con Serena
-          </div>
-          <div class="text-muted/70 text-[9px] font-mono">
-            ESTIMACIÓN &middot; factor fijo 5×
+        <div>
+          <div class="text-green text-xs font-mono font-semibold">Ahorro total estimado</div>
+          <div class="text-muted text-[10px] font-mono mt-0.5">
+            Suma de los ahorros estimados de serena y rtk sobre el histórico de esta instalación.
           </div>
         </div>
-        <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
-          <strong class="text-text">Qué es:</strong> serena lee sólo el símbolo que pides
-          (una función, una clase) en vez del archivo entero.<br />
-          <strong class="text-text">Por qué ahorra:</strong> si el archivo tiene 500 líneas
-          y sólo necesitas 1 función, Read devuelve las 500 — serena devuelve ~20.<br />
-          <strong class="text-text">Cómo se calcula:</strong> tokens_serena × 5 = lo que
-          habría costado con Read (regla fija, no medido exacto).
+        <div class="text-right">
+          <div class="text-green text-2xl font-mono font-semibold leading-none">
+            ~{{ formatTokens(totalSavings) }}
+          </div>
+          <div class="text-muted/70 text-[9px] font-mono mt-1">tokens que Claude no ha tenido que leer</div>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
-          <div title="Número de veces que Claude ha llamado a una tool de serena en total.">
-            <div class="text-muted text-[10px]">Llamadas vía Serena</div>
-            <div class="text-text font-semibold">{{ serenaSavings.calls }}</div>
-          </div>
-          <div title="Tokens reales que esas llamadas han consumido (medido, no estimado).">
-            <div class="text-muted text-[10px]">Tokens consumidos</div>
-            <div class="text-text font-semibold">
-              {{ formatTokens(serenaSavings.serenaTokens) }}
+      </div>
+
+      <!-- Serena + RTK savings side by side -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Serena -->
+        <div
+          v-if="serenaSavings"
+          class="bg-purple/5 border border-purple/20 rounded-lg p-4"
+        >
+          <div class="flex items-baseline justify-between mb-2">
+            <div class="text-purple text-xs font-mono font-semibold">
+              Ahorro estimado con Serena
+            </div>
+            <div class="text-muted/70 text-[9px] font-mono">
+              ESTIMACIÓN &middot; factor fijo 5×
             </div>
           </div>
-          <div
-            title="Proyección: si esas mismas lecturas las hubieras hecho con Read, habrían costado aproximadamente esto."
-          >
-            <div class="text-muted text-[10px]">Habría costado con Read</div>
-            <div class="text-red font-semibold">
-              ~{{ formatTokens(serenaSavings.wouldHaveCost) }}
+          <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
+            <strong class="text-text">Qué hace:</strong> lee sólo el símbolo que pides
+            (función, clase, método) en vez del archivo entero.<br />
+            <strong class="text-text">Por qué ahorra:</strong> si el archivo tiene 500
+            líneas y sólo necesitas 1 función, Read devuelve las 500 — serena devuelve ~20.<br />
+            <strong class="text-text">Cómo se calcula:</strong> tokens_serena × 5 = lo que
+            habría costado con Read.
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div title="Número de veces que Claude ha llamado a una tool de serena.">
+              <div class="text-muted text-[10px]">Llamadas</div>
+              <div class="text-text font-semibold">{{ serenaSavings.calls }}</div>
+            </div>
+            <div title="Tokens reales que esas llamadas han consumido (medido).">
+              <div class="text-muted text-[10px]">Tokens consumidos</div>
+              <div class="text-text font-semibold">
+                {{ formatTokens(serenaSavings.serenaTokens) }}
+              </div>
+            </div>
+            <div title="Proyección: si esas lecturas las hubieras hecho con Read.">
+              <div class="text-muted text-[10px]">Habría costado con Read</div>
+              <div class="text-red font-semibold">
+                ~{{ formatTokens(serenaSavings.wouldHaveCost) }}
+              </div>
+            </div>
+            <div title="Diferencia entre Read hipotético y serena real.">
+              <div class="text-muted text-[10px]">Ahorro estimado</div>
+              <div class="text-green font-semibold">
+                ~{{ formatTokens(serenaSavings.saved) }}
+              </div>
             </div>
           </div>
-          <div
-            title="Diferencia entre lo que habría costado con Read y lo que realmente ha costado con serena."
-          >
-            <div class="text-muted text-[10px]">Ahorro estimado</div>
-            <div class="text-green font-semibold">
-              ~{{ formatTokens(serenaSavings.saved) }}
-            </div>
+          <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
+            Ratio 5× = valor conservador del rango real 3-10×. Archivos grandes ahorran más
+            (hasta 10×); ficheros pequeños tienden a 3×.
           </div>
         </div>
-        <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
-          Ratio 5× = valor conservador del rango real 3-10×. Con archivos grandes el ahorro
-          es mayor (hasta 10×); en ficheros pequeños tiende a 3×.
+
+        <!-- RTK -->
+        <div
+          v-if="rtkSavings"
+          class="bg-green/5 border border-green/20 rounded-lg p-4"
+        >
+          <div class="flex items-baseline justify-between mb-2">
+            <div class="text-green text-xs font-mono font-semibold">
+              Ahorro estimado con RTK
+            </div>
+            <div class="text-muted/70 text-[9px] font-mono">
+              ESTIMACIÓN &middot; factor fijo 4×
+            </div>
+          </div>
+          <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
+            <strong class="text-text">Qué hace:</strong> wrap de Bash que filtra el output
+            antes de que llegue al modelo (rtk git status, rtk vitest, rtk cargo build…).<br />
+            <strong class="text-text">Por qué ahorra:</strong> agrupa errores, deduplica líneas,
+            quita diagnósticos ruidosos — devuelve sólo lo que importa.<br />
+            <strong class="text-text">Cómo se calcula:</strong> tokens_rtk × 4 = lo que habría
+            costado con Bash crudo.
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div title="Número de veces que Claude ha llamado a una Bash envuelta con rtk.">
+              <div class="text-muted text-[10px]">Llamadas</div>
+              <div class="text-text font-semibold">{{ rtkSavings.calls }}</div>
+            </div>
+            <div title="Tokens reales que esas llamadas han consumido (medido).">
+              <div class="text-muted text-[10px]">Tokens consumidos</div>
+              <div class="text-text font-semibold">
+                {{ formatTokens(rtkSavings.rtkTokens) }}
+              </div>
+            </div>
+            <div title="Proyección: si esas mismas calls hubieran ido a Bash sin filtrar.">
+              <div class="text-muted text-[10px]">Habría costado Bash crudo</div>
+              <div class="text-red font-semibold">
+                ~{{ formatTokens(rtkSavings.wouldHaveCost) }}
+              </div>
+            </div>
+            <div title="Diferencia entre Bash hipotético y rtk real.">
+              <div class="text-muted text-[10px]">Ahorro estimado</div>
+              <div class="text-green font-semibold">
+                ~{{ formatTokens(rtkSavings.saved) }}
+              </div>
+            </div>
+          </div>
+          <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
+            Ratio 4× = ~75% reducción, rango honesto del real 60-99%. Comandos con mucho ruido
+            (vitest, cargo, git log) rompen el 90%; comandos ya cortos (git status) rondan el 60%.
+          </div>
         </div>
       </div>
 
