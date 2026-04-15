@@ -1,10 +1,25 @@
 import { Command } from 'commander';
 import { createServer as createNetServer } from 'node:net';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { installHooks, uninstallHooks, isXrayConfigured, getHookEventList } from './setup/hooks-installer.js';
 import { startServer } from './index.js';
 import { createInterface } from 'node:readline';
 
-const VERSION = '0.1.0';
+// Read the real version from the root package.json (not this subpackage).
+// Compiled layout: <root>/packages/server/dist/cli.js → three levels up.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function readRootVersion(): string {
+  try {
+    const rootPkgPath = join(__dirname, '..', '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(rootPkgPath, 'utf8')) as { version?: string };
+    return pkg.version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+const VERSION = readRootVersion();
 
 function checkPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
