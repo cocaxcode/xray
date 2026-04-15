@@ -33,14 +33,15 @@ const filteredGroups = computed<ProjectGroup[]>(() => {
     groups = groups.filter(g => g.path === selectedProject.value);
   }
 
-  // Filter by search query
+  // Filter by search query. Both `alias` and `session.model` can be null on
+  // fresh sessions, so we must guard before calling toLowerCase.
   if (query) {
     groups = groups.filter(g => {
-      const alias = getProjectAlias(g.path) || g.name;
+      const alias = getProjectAlias(g.path) || g.name || '';
       if (alias.toLowerCase().includes(query)) return true;
       return g.sessions.some(s =>
-        s.id.toLowerCase().includes(query) ||
-        s.model.toLowerCase().includes(query)
+        (s.id ?? '').toLowerCase().includes(query) ||
+        (s.model ?? '').toLowerCase().includes(query)
       );
     });
   }

@@ -2,8 +2,12 @@
  * claude-opus-4-6 → "Opus 4.6"
  * claude-sonnet-4-6 → "Sonnet 4.6"
  * claude-haiku-4-5 → "Haiku 4.5"
+ *
+ * Accepts null / undefined so the card can render before the session model
+ * is known — Claude Code may post an event with model=null until the first
+ * assistant turn is emitted.
  */
-export function formatModel(model: string): string {
+export function formatModel(model: string | null | undefined): string {
   if (!model) return 'Unknown';
   const lower = model.toLowerCase();
 
@@ -31,9 +35,11 @@ function extractVersion(model: string): string {
 }
 
 /**
- * Model color for badges
+ * Model color for badges. Returns the muted color when model is null so the
+ * card still renders before the session announces its model.
  */
-export function getModelColor(model: string): string {
+export function getModelColor(model: string | null | undefined): string {
+  if (!model) return 'var(--color-muted)';
   const lower = model.toLowerCase();
   if (lower.includes('opus')) return 'var(--color-purple)';
   if (lower.includes('sonnet')) return 'var(--color-cyan)';
