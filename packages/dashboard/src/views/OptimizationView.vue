@@ -78,6 +78,23 @@ async function loadData(): Promise<void> {
   loading.value = false;
 }
 
+// Debounced refresh: after each optimization:event we schedule a single
+// loadData() call 600 ms in the future. If more events arrive inside that
+// window they get coalesced into the same fetch. This keeps the whole panel
+// (totals, score, by_source, top_tool, savings, projects) updating in real
+// time without hammering /api/optimization on every single call. 600 ms is
+// above the optimizer-watcher poll interval in the worst case (mirror happens
+// within ~3 s of the source row, then the scheduled fetch sees it).
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+const REFRESH_DEBOUNCE_MS = 600;
+function scheduleRefresh(): void {
+  if (refreshTimer) return;
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    loadData();
+  }, REFRESH_DEBOUNCE_MS);
+}
+
 let stopWs: (() => void) | null = null;
 
 onMounted(() => {
@@ -108,16 +125,18 @@ onMounted(() => {
     }
     liveCounts.value[evt.source]++;
 
-    // Refresh the aggregate cards every 10 live events so cumulative
-    // numbers track reality without hammering the API.
-    if (liveCounter % 10 === 0) {
-      loadData();
-    }
+    // Refresh aggregate cards (totals, score, by_source, savings, projects) —
+    // debounced so bursts collapse into a single fetch.
+    scheduleRefresh();
   });
 });
 
 onUnmounted(() => {
   if (stopWs) stopWs();
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
 });
 
 const SOURCE_LABELS: Record<string, string> = {
