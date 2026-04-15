@@ -319,6 +319,42 @@ export class Queries {
     );
   }
 
+  /**
+   * Highest source row id currently mirrored from the token-optimizer global DB.
+   * The watcher stashes the source id as a numeric string in input_hash, so we
+   * take the MAX over rows that parse as integers. Returns null when nothing has
+   * been mirrored yet.
+   */
+  getMaxMirroredSourceId(): number | null {
+    const row = this.db
+      .prepare(
+        `SELECT MAX(CAST(input_hash AS INTEGER)) as max_id
+         FROM optimization_events
+         WHERE input_hash GLOB '[0-9]*'`,
+      )
+      .get() as { max_id: number | null } | undefined;
+    if (!row || row.max_id === null || row.max_id === undefined) return null;
+    return row.max_id > 0 ? row.max_id : null;
+  }
+
+  /**
+   * Counts and tokens grouped by source across a recent window, used by the
+   * live OptimizationView cards. We join to sessions for project filters but
+   * the window filter is applied on optimization_events.created_at which is
+   * set from the source DB (not the mirror time).
+   */
+  optimizationBySourceRecent(sinceIso: string): Array<{ source: string; count: number; tokens: number }> {
+    return this.db
+      .prepare(
+        `SELECT source, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens
+         FROM optimization_events
+         WHERE created_at >= ?
+         GROUP BY source
+         ORDER BY tokens DESC`,
+      )
+      .all(sinceIso) as Array<{ source: string; count: number; tokens: number }>;
+  }
+
   upsertOptimizationSummary(summary: TokenOptimizerSummary): void {
     this.db.prepare(`
       INSERT OR REPLACE INTO optimization_summaries

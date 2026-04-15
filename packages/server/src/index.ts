@@ -17,6 +17,7 @@ import { PermissionHandler } from './hooks/permission.js';
 import { registerHookRoutes } from './hooks/router.js';
 import { registerApiRoutes } from './api/routes.js';
 import { registerWebSocket, createBroadcast } from './websocket.js';
+import { createOptimizerWatcher } from './sessions/optimizer-watcher.js';
 import { registerAuthMiddleware } from './auth/middleware.js';
 import { createAuthState } from './auth/token.js';
 import { displayAuthInfo } from './auth/qr.js';
@@ -79,6 +80,16 @@ export async function startServer(options: CliOptions): Promise<void> {
     }
   }, 5 * 60 * 1000);
 
+  // Mirror new rows from the token-optimizer global DB in real time. The hook
+  // writes to its own SQLite DB synchronously and we read from it; no more
+  // lossy fire-and-forget HTTP POSTs racing with process.exit(0).
+  const optimizerWatcher = createOptimizerWatcher({
+    queries,
+    broadcast,
+    log: (msg, meta) => fastify.log.info(meta ?? {}, msg),
+  });
+  optimizerWatcher.start();
+
   // Start server
   const host = options.expose ? '0.0.0.0' : '127.0.0.1';
   try {
@@ -104,6 +115,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   // Graceful shutdown
   const shutdown = async () => {
     clearInterval(stalenessInterval);
+    optimizerWatcher.stop();
     permissionHandler.cleanup();
     await fastify.close();
     db.close();
