@@ -71,8 +71,10 @@ export function readTopicFromTranscript(transcriptPath: string): string | null {
             const textBlock = entry.message.content.find((c: { type: string; text?: string }) => c.type === 'text');
             text = textBlock?.text || '';
           }
-          if (text) {
-            return text.replace(/\n/g, ' ').trim().slice(0, 100);
+          // Strip XML/system tags injected by Claude Code harness
+          const stripped = text.replace(/<[^>]*>[\s\S]*?<\/[^>]*>/g, '').replace(/<[^>]*>/g, '').trim();
+          if (stripped.length >= 3) {
+            return stripped.replace(/\n/g, ' ').trim().slice(0, 100);
           }
         }
       } catch {
