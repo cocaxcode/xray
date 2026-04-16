@@ -44,6 +44,7 @@ interface LiveEvent {
   source: string;
   tokens: number;
   toolName: string;
+  commandPreview?: string;
   ts: number;
 }
 
@@ -165,6 +166,7 @@ onMounted(() => {
       source: string;
       tokens: number;
       toolName: string;
+      commandPreview?: string;
     };
 
     liveCounter++;
@@ -174,6 +176,7 @@ onMounted(() => {
       source: evt.source,
       tokens: evt.tokens,
       toolName: evt.toolName,
+      commandPreview: evt.commandPreview,
       ts: Date.now(),
     };
     liveEvents.value = [next, ...liveEvents.value].slice(0, 30);
@@ -443,7 +446,10 @@ const optimizationScore = computed(() => {
             >
               {{ sourceLabel(evt.source) }}
             </span>
-            <span class="flex-1 text-text truncate">{{ evt.toolName }}</span>
+            <span class="flex-1 text-text truncate">
+              {{ evt.toolName }}
+              <span v-if="evt.commandPreview" class="text-muted ml-1">— {{ evt.commandPreview }}</span>
+            </span>
             <span class="text-muted w-20 text-right">{{ formatTokens(evt.tokens) }} tok</span>
             <span class="text-muted/60 w-16 text-right text-[9px]">{{ relativeTs(evt.ts) }}</span>
           </div>

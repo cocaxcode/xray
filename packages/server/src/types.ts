@@ -224,7 +224,7 @@ export type ServerWSEvent =
   | { type: 'config:updated'; data: Record<string, unknown> }
   | { type: 'config:auto-approve'; data: { enabled: boolean } }
   | { type: 'permission:auto-approved'; data: PendingPermission }
-  | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string } }
+  | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string; commandPreview?: string } }
   | { type: 'optimization:summary'; data: { sessionId: string } };
 
 export type ClientWSEvent =
@@ -264,6 +264,7 @@ export interface TokenOptimizerEvent {
   project_path?: string;
   project_name?: string;
   project_hash?: string;
+  command_preview?: string;
 }
 
 export interface TokenOptimizerSummary {

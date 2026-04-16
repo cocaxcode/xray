@@ -310,6 +310,7 @@ export class HookHandlers {
         source: event.source,
         tokens: event.tokens_estimated,
         toolName: event.tool_name,
+        ...(event.command_preview !== undefined && { commandPreview: event.command_preview }),
       },
     });
   }

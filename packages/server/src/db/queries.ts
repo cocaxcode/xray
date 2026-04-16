@@ -302,8 +302,8 @@ export class Queries {
 
   insertOptimizationEvent(event: TokenOptimizerEvent): void {
     this.db.prepare(`
-      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       event.session_id,
       event.tool_name,
@@ -316,6 +316,7 @@ export class Queries {
       event.created_at,
       event.project_path ?? null,
       event.project_name ?? null,
+      event.command_preview ?? null,
     );
   }
 

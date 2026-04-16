@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -20,12 +20,14 @@ export function initSchema(db: Database.Database): void {
     migrateToV2(db);
     migrateToV3(db);
     migrateToV4(db);
+    migrateToV5(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
     if (currentVersion < 2) migrateToV2(db);
     if (currentVersion < 3) migrateToV3(db);
     if (currentVersion < 4) migrateToV4(db);
+    if (currentVersion < 5) migrateToV5(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -187,6 +189,16 @@ function migrateToV4(db: Database.Database): void {
   }
   if (!colNames.has('project_name')) {
     db.exec("ALTER TABLE optimization_events ADD COLUMN project_name TEXT");
+  }
+}
+
+/** v5: command_preview en optimization_events */
+function migrateToV5(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info('optimization_events')").all() as Array<{ name: string }>;
+  const colNames = new Set(columns.map(c => c.name));
+
+  if (!colNames.has('command_preview')) {
+    db.exec("ALTER TABLE optimization_events ADD COLUMN command_preview TEXT");
   }
 }
 

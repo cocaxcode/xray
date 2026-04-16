@@ -162,7 +162,7 @@ export type ServerWSEvent =
   | { type: 'notification'; data: { sessionId: string; type: string; message: string } }
   | { type: 'config:auto-approve'; data: { enabled: boolean } }
   | { type: 'permission:auto-approved'; data: PendingPermission }
-  | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string } }
+  | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string; commandPreview?: string } }
   | { type: 'optimization:summary'; data: { sessionId: string } };
 
 export type ClientWSEvent =
