@@ -140,9 +140,10 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       if (!db) return 0;
       initLastId(db);
 
-      // Check once whether the source DB has the command_preview column.
-      // Older token-optimizer DBs won't have it until the migration runs.
-      if (hasCommandPreview === null) {
+      // Check whether the source DB has the command_preview column.
+      // Re-check every poll when false so we pick it up as soon as
+      // token-optimizer migrates the DB (which happens on first tool call).
+      if (hasCommandPreview === null || hasCommandPreview === false) {
         const cols = db.prepare(`PRAGMA table_info('tool_calls')`).all() as Array<{ name: string }>;
         hasCommandPreview = cols.some((c) => c.name === 'command_preview');
       }
