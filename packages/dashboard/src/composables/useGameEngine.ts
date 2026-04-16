@@ -1,4 +1,4 @@
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 import type { Session, Agent, ToolEvent } from '../types';
 import type { TemplateConfig, MapDef, GameState, Character, Position, Camera } from '../engine/types';
 import { CharacterState } from '../engine/types';
@@ -33,6 +33,7 @@ const tick = ref(0); // Incremented each frame to force legend reactivity
 let sessionCounter = 0;
 const idleTimers = new Map<string, number>(); // charId → setTimeout ID
 const sessionHueShifts = new Map<string, number>();
+let stopConfigWatch: (() => void) | null = null;
 
 // ── Init ──
 
@@ -70,6 +71,32 @@ function init(
   for (const session of currentSessions) {
     addSessionCharacter(session);
   }
+
+  // Watch avatar config changes and update existing character names immediately
+  const { config } = useConfig();
+  const { sessions: sessionsRef } = useSessions();
+  if (stopConfigWatch) stopConfigWatch();
+  stopConfigWatch = watch(
+    () => config.value?.avatar,
+    (avatar) => {
+      if (!gameState.value || !avatar) return;
+      const nameConfig: NameConfig = {
+        avatarName: avatar.name,
+        agentTypeNames: (avatar as { name: string; agentTypeNames?: Record<string, string> }).agentTypeNames,
+      };
+      for (const [id, char] of gameState.value.characters) {
+        if (!char.isCompanion) {
+          const session = sessionsRef.value.get(id);
+          if (session) {
+            char.name = session.projectName || resolveCharacterName(null, nameConfig, gameState.value.template);
+          }
+        } else if (char.agentType) {
+          char.name = resolveCharacterName(char.agentType, nameConfig, gameState.value.template);
+        }
+      }
+    },
+    { deep: true },
+  );
 }
 
 // ── Map Selection ──
@@ -513,6 +540,8 @@ function destroy(): void {
   // Clean up idle timers
   for (const timer of idleTimers.values()) clearTimeout(timer);
   idleTimers.clear();
+  // Clean up config watcher
+  if (stopConfigWatch) { stopConfigWatch(); stopConfigWatch = null; }
 }
 
 // ── Helpers ──

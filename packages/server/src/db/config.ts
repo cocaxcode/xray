@@ -37,6 +37,10 @@ export interface XrayConfig {
     retentionEventsDays: number;
     retentionSessionsHours: number;
   };
+  avatar: {
+    name: string;
+    agentTypeNames?: Record<string, string>;
+  };
 }
 
 const DEFAULTS: XrayConfig = {
@@ -47,6 +51,7 @@ const DEFAULTS: XrayConfig = {
   projects: { aliases: {}, colors: {}, hidden: [] },
   display: { contextBar: true, tokens: true, mcps: true, skills: true, agents: true },
   data: { retentionEventsDays: 7, retentionSessionsHours: 24 },
+  avatar: { name: '', agentTypeNames: {} },
 };
 
 export function initConfigTable(db: Database.Database): void {
@@ -103,6 +108,10 @@ export function getConfig(db: Database.Database): XrayConfig {
     data: {
       retentionEventsDays: parseInt(stored['data.retention_events_days'] || '') || DEFAULTS.data.retentionEventsDays,
       retentionSessionsHours: parseInt(stored['data.retention_sessions_hours'] || '') || DEFAULTS.data.retentionSessionsHours,
+    },
+    avatar: {
+      name: stored['avatar.name'] || DEFAULTS.avatar.name,
+      agentTypeNames: stored['avatar.agent_type_names'] ? JSON.parse(stored['avatar.agent_type_names']) : DEFAULTS.avatar.agentTypeNames,
     },
   };
 }
