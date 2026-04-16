@@ -60,8 +60,9 @@ const preset = ref<DatePreset>('all');
 const fromDate = ref('');
 const toDate = ref('');
 
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+// Returns YYYY-MM-DD in LOCAL time (drives <input type="date"> values)
+function toLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -70,18 +71,26 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
+// Converts a local YYYY-MM-DD string to a UTC datetime string for SQLite comparison.
+// SQLite stores created_at as UTC (datetime('now')), so we must send UTC bounds.
+function localDateToUtcStr(dateStr: string, nextDay = false): string {
+  const d = new Date(dateStr + 'T00:00:00'); // parse as local midnight
+  if (nextDay) d.setDate(d.getDate() + 1);  // exclusive upper bound = next local midnight
+  return d.toISOString().slice(0, 19).replace('T', ' '); // → "YYYY-MM-DD HH:MM:SS" UTC
+}
+
 function setPreset(p: DatePreset): void {
   preset.value = p;
   const today = new Date();
   if (p === 'today') {
-    fromDate.value = toIsoDate(today);
-    toDate.value = toIsoDate(today);
+    fromDate.value = toLocalDateStr(today);
+    toDate.value = toLocalDateStr(today);
   } else if (p === '7d') {
-    fromDate.value = toIsoDate(addDays(today, -7));
-    toDate.value = toIsoDate(today);
+    fromDate.value = toLocalDateStr(addDays(today, -7));
+    toDate.value = toLocalDateStr(today);
   } else if (p === '30d') {
-    fromDate.value = toIsoDate(addDays(today, -30));
-    toDate.value = toIsoDate(today);
+    fromDate.value = toLocalDateStr(addDays(today, -30));
+    toDate.value = toLocalDateStr(today);
   } else {
     fromDate.value = '';
     toDate.value = '';
@@ -96,11 +105,8 @@ function onDateChange(): void {
 
 function buildFilterParams(): string {
   const params = new URLSearchParams();
-  if (fromDate.value) params.set('from', fromDate.value);
-  if (toDate.value) {
-    // Make toDate inclusive: pass the day after as exclusive upper bound
-    params.set('to', toIsoDate(addDays(new Date(toDate.value + 'T00:00:00'), 1)));
-  }
+  if (fromDate.value) params.set('from', localDateToUtcStr(fromDate.value));
+  if (toDate.value) params.set('to', localDateToUtcStr(toDate.value, true)); // inclusive of toDate
   const qs = params.toString();
   return qs ? `?${qs}` : '';
 }
