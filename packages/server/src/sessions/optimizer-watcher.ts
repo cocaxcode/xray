@@ -40,6 +40,7 @@ interface ToolCallRow {
   tokens_actual: number | null;
   duration_ms: number | null;
   estimation_method: string | null;
+  command_preview: string | null;
   created_at: string;
 }
 
@@ -125,6 +126,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       // input_hash piggybacks the source row id so we can resume without duplicates
       input_hash: String(row.id),
       created_at: row.created_at,
+      ...(row.command_preview != null && { command_preview: row.command_preview }),
     };
   }
 
@@ -139,7 +141,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       const rows = db
         .prepare(
           `SELECT id, session_id, tool_name, source, output_bytes, tokens_estimated,
-                  tokens_actual, duration_ms, estimation_method, created_at
+                  tokens_actual, duration_ms, estimation_method, command_preview, created_at
            FROM tool_calls
            WHERE id > ?
            ORDER BY id ASC
@@ -161,6 +163,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
               source: row.source,
               tokens: row.tokens_estimated,
               toolName: row.tool_name,
+              ...(row.command_preview != null && { commandPreview: row.command_preview }),
             },
           });
           mirrored++;
