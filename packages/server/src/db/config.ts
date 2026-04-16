@@ -18,7 +18,6 @@ export interface XrayConfig {
   permissions: {
     mode: 'intercept' | 'observe';
     timeoutSeconds: number;
-    sound: boolean;
     autoApprove: string[];
   };
   projects: {
@@ -47,7 +46,7 @@ const DEFAULTS: XrayConfig = {
   server: { domain: '' },
   dashboard: { theme: 'dark', compact: false, language: 'es' },
   sessions: { stalenessMinutes: 30, autoCleanupHours: 24, maxEvents: 500, truncateResponseBytes: 1024 },
-  permissions: { mode: 'intercept', timeoutSeconds: 120, sound: false, autoApprove: [] },
+  permissions: { mode: 'intercept', timeoutSeconds: 120, autoApprove: [] },
   projects: { aliases: {}, colors: {}, hidden: [] },
   display: { contextBar: true, tokens: true, mcps: true, skills: true, agents: true },
   data: { retentionEventsDays: 7, retentionSessionsHours: 24 },
@@ -71,7 +70,6 @@ export function getConfig(db: Database.Database): XrayConfig {
     stored[row.key] = row.value;
   }
 
-  // Merge stored values with defaults
   return {
     server: {
       domain: stored['server.domain'] || DEFAULTS.server.domain,
@@ -90,7 +88,6 @@ export function getConfig(db: Database.Database): XrayConfig {
     permissions: {
       mode: (stored['permissions.mode'] as XrayConfig['permissions']['mode']) || DEFAULTS.permissions.mode,
       timeoutSeconds: parseInt(stored['permissions.timeout_seconds'] || '') || DEFAULTS.permissions.timeoutSeconds,
-      sound: stored['permissions.sound'] === 'true',
       autoApprove: stored['permissions.auto_approve'] ? JSON.parse(stored['permissions.auto_approve']) : DEFAULTS.permissions.autoApprove,
     },
     projects: {

@@ -141,15 +141,6 @@ async function updateSetting(key: string, value: unknown): Promise<void> {
                 </button>
               </div>
             </div>
-            <label class="flex items-center justify-between text-xs">
-              <span class="text-text">Sonido</span>
-              <input
-                type="checkbox"
-                :checked="config.permissions.sound"
-                @change="updateSetting('permissions.sound', ($event.target as HTMLInputElement).checked)"
-                class="h-4 w-4 accent-cyan"
-              />
-            </label>
           </div>
         </section>
 
