@@ -1,6 +1,6 @@
 {
   "name": "@cocaxcode/xray",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "Real-time dashboard for all your Claude Code sessions across projects",
   "license": "MIT",
   "author": "cocaxcode",
