@@ -67,6 +67,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
   let lastId: number | null = null;
   let sourceDb: Database.Database | null = null;
   let running = false;
+  let hasCommandPreview: boolean | null = null; // null = not yet checked
 
   function openSource(): Database.Database | null {
     if (sourceDb) return sourceDb;
@@ -91,6 +92,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
         // swallow
       }
       sourceDb = null;
+      hasCommandPreview = null; // re-check on next open
     }
   }
 
@@ -138,10 +140,22 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       if (!db) return 0;
       initLastId(db);
 
+      // Check once whether the source DB has the command_preview column.
+      // Older token-optimizer DBs won't have it until the migration runs.
+      if (hasCommandPreview === null) {
+        const cols = db.prepare(`PRAGMA table_info('tool_calls')`).all() as Array<{ name: string }>;
+        hasCommandPreview = cols.some((c) => c.name === 'command_preview');
+      }
+
+      const selectCols = hasCommandPreview
+        ? `id, session_id, tool_name, source, output_bytes, tokens_estimated,
+           tokens_actual, duration_ms, estimation_method, command_preview, created_at`
+        : `id, session_id, tool_name, source, output_bytes, tokens_estimated,
+           tokens_actual, duration_ms, estimation_method, null as command_preview, created_at`;
+
       const rows = db
         .prepare(
-          `SELECT id, session_id, tool_name, source, output_bytes, tokens_estimated,
-                  tokens_actual, duration_ms, estimation_method, command_preview, created_at
+          `SELECT ${selectCols}
            FROM tool_calls
            WHERE id > ?
            ORDER BY id ASC
