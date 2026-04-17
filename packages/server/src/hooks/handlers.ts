@@ -301,7 +301,22 @@ export class HookHandlers {
   // ── Token Optimizer Integration ──
 
   handleTokenOptimizerEvent(event: TokenOptimizerEvent): void {
-    this.queries.insertOptimizationEvent(event);
+    // Dedup de origen: el HTTP POST del hook llega SIN input_hash (el hook
+    // inserta en su DB source y no propaga el lastInsertRowid). El watcher
+    // polling SÍ trae input_hash = id de la row source. Si insertamos los
+    // HTTP sin hash, el UNIQUE INDEX parcial no los deduplica (permite
+    // múltiples NULL) y acaban apareciendo en mirror dos veces (una por
+    // HTTP con NULL, otra por watcher con id). Solución: ignorar inserts
+    // sin input_hash y delegar en el watcher, que los capturará en <3s.
+    //
+    // El broadcast al dashboard sí sigue pasando — la UI en vivo beneficia
+    // del HTTP directo aunque la fila definitiva se persista vía watcher.
+    const hasHash = event.input_hash !== undefined
+      && event.input_hash !== null
+      && event.input_hash !== '';
+    if (hasHash) {
+      this.queries.insertOptimizationEvent(event);
+    }
 
     this.broadcast({
       type: 'optimization:event',

@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 7;
+const CURRENT_VERSION = 8;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -23,6 +23,7 @@ export function initSchema(db: Database.Database): void {
     migrateToV5(db);
     migrateToV6(db);
     migrateToV7(db);
+    migrateToV8(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
@@ -32,6 +33,7 @@ export function initSchema(db: Database.Database): void {
     if (currentVersion < 5) migrateToV5(db);
     if (currentVersion < 6) migrateToV6(db);
     if (currentVersion < 7) migrateToV7(db);
+    if (currentVersion < 8) migrateToV8(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -268,6 +270,55 @@ function migrateToV7(db: Database.Database): void {
         WHERE input_hash IS NOT NULL
     `);
   }
+}
+
+
+/**
+ * v8: eliminar legacy rows con input_hash NULL en optimization_events.
+ *
+ * Contexto: antes de v0.3.7 el handler HTTP POST insertaba el event sin
+ * input_hash porque el hook del token-optimizer no propagaba el lastInsert
+ * Rowid de la source DB. El watcher polling luego insertaba el MISMO event
+ * con input_hash correcto. Resultado: la row del HTTP queda en mirror con
+ * NULL y la del watcher queda con id — duplicado efectivo.
+ *
+ * A partir de v0.3.7 el handler HTTP descarta inserts sin input_hash
+ * (delega al watcher). Esta migración limpia los duplicados legacy que
+ * se acumularon antes del fix.
+ *
+ * NOTA: puede haber rows con input_hash NULL legítimas (events antiguos
+ * de versiones muy viejas donde input_hash no existía en el schema). Por
+ * eso sólo borramos cuando EXISTE OTRA row con el mismo session_id +
+ * tool_name + created_at que SÍ tenga input_hash — es el patrón claro
+ * de duplicado por los dos caminos.
+ */
+/**
+ * v8: eliminar legacy rows con input_hash NULL en optimization_events.
+ *
+ * Contexto: antes de v0.3.7 el handler HTTP POST insertaba el event sin
+ * input_hash porque el hook del token-optimizer no propaga el lastInsert
+ * Rowid de la source DB. El watcher polling luego insertaba el MISMO event
+ * con input_hash correcto. El UNIQUE INDEX parcial (WHERE input_hash IS
+ * NOT NULL) permitía múltiples NULL, así que la row del HTTP sobrevivía
+ * aunque ya existiera su gemela del watcher. Resultado observado: 179
+ * builtin events con NULL huérfanos, de sesiones que ya no existen en
+ * la source DB.
+ *
+ * A partir de v0.3.7 el handler HTTP descarta inserts sin input_hash
+ * (delega al watcher que sí trae el id). Esta migración limpia los
+ * NULL legacy que se acumularon antes del fix. Ya no se producirán
+ * nuevos NULL, así que un DELETE total es seguro.
+ */
+function migrateToV8(db: Database.Database): void {
+  const tables = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='optimization_events'",
+  ).all() as Array<{ name: string }>;
+  if (tables.length === 0) return;
+
+  db.exec(`
+    DELETE FROM optimization_events
+    WHERE input_hash IS NULL OR input_hash = ''
+  `);
 }
 
 export function purgeOldEvents(db: Database.Database, daysOld = 7): number {

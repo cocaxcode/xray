@@ -533,10 +533,14 @@ const optimizationScore = computed(() => {
           </div>
           <div>
             <span class="text-text">Tokens gastados (~X tok):</span>
-            lo que la tool devolvió al modelo, convertido a tokens con heurística
-            <code class="text-text">chars × 0.27</code>. No es facturación exacta de Anthropic
-            (para eso mira el header de cada sesión), pero es una aproximación cercana del
-            tamaño del output.
+            tamaño del output que la tool devolvió al modelo, convertido a tokens con la
+            fórmula <code class="text-text">chars × 0.27</code> — es decir, ~1 token cada
+            3.7 caracteres. La regla clásica en inglés es ~4 chars/token (0.25),
+            pero los outputs de devtools mezclan mucho código y JSON (símbolos `{}[]():`,
+            paths, hashes) que son más densos en tokens; 0.27 es el valor medio medido
+            sobre tool outputs típicos de Claude Code. No es facturación exacta de
+            Anthropic (para eso mira el header de cada sesión con tokens del transcript),
+            pero es una aproximación honesta del tamaño del output con error típico de ±10 %.
           </div>
           <div>
             <span class="text-green/80">Sin esa tool (~Y tok):</span>
