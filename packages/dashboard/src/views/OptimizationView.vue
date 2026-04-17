@@ -619,28 +619,23 @@ const optimizationScore = computed(() => {
         >
           <div class="flex items-baseline justify-between mb-2">
             <div class="text-purple text-xs font-mono font-semibold">
-              Ahorro estimado con Serena
+              Ahorro MEDIDO con Serena
             </div>
             <div
-              v-if="serenaSavings.factorSource === 'measured' && serenaSavings.confidence === 'low'"
+              v-if="serenaSavings.factorSource === 'measured'"
               class="text-muted/70 text-[9px] font-mono"
-              :title="`Factor mediana de ${serenaSavings.measuredCalls} calls tuyas con shadow_delta_tokens medido. Confianza baja por muestra pequeña; desde 10 calls sube a media.`"
+              :title="serenaSavings.confidence === 'low'
+                ? `Factor mediana de ${serenaSavings.measuredCalls} calls tuyas. Informativo: cuántas veces más grande es el archivo completo que el símbolo pedido. Muestra pequeña (<10), puede variar.`
+                : `Factor mediana de ${serenaSavings.measuredCalls} calls tuyas. Informativo: cuántas veces más grande es el archivo completo que el símbolo pedido.`"
             >
-              PRELIMINAR · factor {{ serenaSavings.factor.toFixed(2) }}× (n={{ serenaSavings.measuredCalls }})
-            </div>
-            <div
-              v-else-if="serenaSavings.factorSource === 'measured'"
-              class="text-muted/70 text-[9px] font-mono"
-              :title="`Factor mediana de ${serenaSavings.measuredCalls} calls tuyas con shadow_delta_tokens medido (confianza ${serenaSavings.confidence}).`"
-            >
-              MEDIDO · factor {{ serenaSavings.factor.toFixed(2) }}× (n={{ serenaSavings.measuredCalls }})
+              factor {{ serenaSavings.factor.toFixed(2) }}× · n={{ serenaSavings.measuredCalls }}
             </div>
             <div
               v-else
               class="text-muted/70 text-[9px] font-mono"
               title="Aún no hay ninguna call con shadow medido. El cable requiere shadow_measurement.serena=true en ~/.token-optimizer/config.json y se activa automáticamente con `token-optimizer-mcp install` cuando detecta serena."
             >
-              BASELINE · factor fijo 5× (sin datos medidos)
+              sin datos medidos todavía
             </div>
           </div>
           <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
@@ -684,8 +679,8 @@ const optimizationScore = computed(() => {
           <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
             <template v-if="serenaSavings.factorSource === 'measured'">
               El factor del badge ({{ serenaSavings.factor.toFixed(2) }}×) es informativo:
-              cuántas veces más grande sería el archivo completo que el símbolo que pediste, mediana
-              sobre {{ serenaSavings.measuredCalls }} call{{ serenaSavings.measuredCalls === 1 ? '' : 's' }}.
+              cuántas veces más grande es el archivo completo que el símbolo que pediste, mediana
+              sobre {{ serenaSavings.measuredCalls }} call{{ serenaSavings.measuredCalls === 1 ? '' : 's' }}{{ serenaSavings.confidence === 'low' ? ' (muestra pequeña, puede variar)' : '' }}.
               Los números de la card son datos duros del shadow — no se proyectan a las calls sin medir
               (write_memory, read_memory, etc.).
             </template>
@@ -706,28 +701,23 @@ const optimizationScore = computed(() => {
         >
           <div class="flex items-baseline justify-between mb-2">
             <div class="text-green text-xs font-mono font-semibold">
-              Ahorro estimado con RTK
+              Ahorro MEDIDO con RTK
             </div>
             <div
-              v-if="rtkSavings.factorSource === 'measured' && rtkSavings.confidence === 'low'"
+              v-if="rtkSavings.factorSource === 'measured'"
               class="text-muted/70 text-[9px] font-mono"
-              :title="`Factor mediana de ${rtkSavings.measuredCalls} calls tuyas con shadow medido. Confianza baja por muestra pequeña; desde 10 calls sube a media.`"
+              :title="rtkSavings.confidence === 'low'
+                ? `Factor mediana de ${rtkSavings.measuredCalls} calls tuyas. Informativo: cuánto más grande sería el output sin filtrar. Muestra pequeña (<10), puede variar.`
+                : `Factor mediana de ${rtkSavings.measuredCalls} calls tuyas. Informativo: cuánto más grande sería el output sin filtrar.`"
             >
-              PRELIMINAR · factor {{ rtkSavings.factor.toFixed(2) }}× (n={{ rtkSavings.measuredCalls }})
-            </div>
-            <div
-              v-else-if="rtkSavings.factorSource === 'measured'"
-              class="text-muted/70 text-[9px] font-mono"
-              :title="`Factor mediana de ${rtkSavings.measuredCalls} calls tuyas con shadow medido (confianza ${rtkSavings.confidence}).`"
-            >
-              MEDIDO · factor {{ rtkSavings.factor.toFixed(2) }}× (n={{ rtkSavings.measuredCalls }})
+              factor {{ rtkSavings.factor.toFixed(2) }}× · n={{ rtkSavings.measuredCalls }}
             </div>
             <div
               v-else
               class="text-muted/70 text-[9px] font-mono"
               title="Sin datos medidos todavía. token-optimizer-mcp >= v0.5 tiene el cable rtk-reader activo; las nuevas calls RTK empezarán a llenar shadow_delta_tokens automáticamente."
             >
-              BASELINE · factor fijo 4× (sin datos medidos)
+              sin datos medidos todavía
             </div>
           </div>
           <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
@@ -772,7 +762,7 @@ const optimizationScore = computed(() => {
             <template v-if="rtkSavings.factorSource === 'measured'">
               El factor del badge ({{ rtkSavings.factor.toFixed(2) }}×) es informativo:
               cuánto más grande sería el output sin filtrar, mediana sobre
-              {{ rtkSavings.measuredCalls }} call{{ rtkSavings.measuredCalls === 1 ? '' : 's' }}.
+              {{ rtkSavings.measuredCalls }} call{{ rtkSavings.measuredCalls === 1 ? '' : 's' }}{{ rtkSavings.confidence === 'low' ? ' (muestra pequeña, puede variar)' : '' }}.
               Comandos cortos (git status) tiran del factor hacia abajo; ruidosos (vitest, cargo) lo suben.
               Los números de la card son datos duros del shadow.
             </template>
