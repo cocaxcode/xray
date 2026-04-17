@@ -45,6 +45,12 @@ interface LiveEvent {
   tokens: number;
   toolName: string;
   commandPreview?: string;
+  /**
+   * Tokens ahorrados por esta call concreta (shadow_delta_tokens del backend).
+   * Sólo presente en eventos de source=serena con cable shadow, o source=rtk
+   * con cable rtk-reader. Ausente en builtin/mcp/own/xray.
+   */
+  shadowDelta?: number;
   ts: number;
 }
 
@@ -188,6 +194,7 @@ onMounted(() => {
       tokens: number;
       toolName: string;
       commandPreview?: string;
+      shadowDelta?: number;
     };
 
     liveCounter++;
@@ -198,6 +205,7 @@ onMounted(() => {
       tokens: evt.tokens,
       toolName: evt.toolName,
       commandPreview: evt.commandPreview,
+      shadowDelta: evt.shadowDelta,
       ts: Date.now(),
     };
     liveEvents.value = [next, ...liveEvents.value].slice(0, 30);
@@ -344,7 +352,10 @@ function buildSavingsCard(
   const useMeasured = measured !== null && measured.calls >= 1;
 
   const factor = useMeasured ? measured.factor_median : fallbackFactor;
-  const wouldHaveCost = breakdown.tokens * factor;
+  // Redondeo a entero: los tokens son siempre enteros, los float propagan
+  // ruido numérico del JS tipo 989.8119999999999. Math.round es fiable y
+  // hace que saved = wouldHaveCost - tokens también sea entero.
+  const wouldHaveCost = Math.round(breakdown.tokens * factor);
   const saved = wouldHaveCost - breakdown.tokens;
 
   return {
@@ -495,6 +506,17 @@ const optimizationScore = computed(() => {
               <span v-if="evt.commandPreview" class="text-muted ml-1">— {{ evt.commandPreview }}</span>
             </span>
             <span class="text-muted w-20 text-right" :title="'~' + formatTokens(evt.tokens) + ' tokens (estimado chars × 0.27)'">~{{ formatTokens(evt.tokens) }} tok</span>
+            <span
+              v-if="evt.shadowDelta != null && evt.shadowDelta > 0"
+              class="text-green/70 w-28 text-right"
+              :title="`Sin ${sourceLabel(evt.source)} habrías gastado ~${formatTokens(evt.tokens + evt.shadowDelta)} tokens. El ahorro medido de esta call es ~${formatTokens(evt.shadowDelta)}.`"
+            >
+              sin {{ sourceLabel(evt.source).toLowerCase() }}: ~{{ formatTokens(evt.tokens + evt.shadowDelta) }}
+            </span>
+            <span
+              v-else
+              class="w-28"
+            ></span>
             <span class="text-muted/60 w-16 text-right text-[9px]">{{ relativeTs(evt.ts) }}</span>
           </div>
         </div>

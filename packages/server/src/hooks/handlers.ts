@@ -311,6 +311,7 @@ export class HookHandlers {
         tokens: event.tokens_estimated,
         toolName: event.tool_name,
         ...(event.command_preview !== undefined && { commandPreview: event.command_preview }),
+        ...(event.shadow_delta_tokens != null && { shadowDelta: event.shadow_delta_tokens }),
       },
     });
   }

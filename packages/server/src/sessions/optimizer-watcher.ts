@@ -186,6 +186,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
               tokens: row.tokens_estimated,
               toolName: row.tool_name,
               ...(row.command_preview != null && { commandPreview: row.command_preview }),
+              ...(row.shadow_delta_tokens != null && { shadowDelta: row.shadow_delta_tokens }),
             },
           });
           mirrored++;
