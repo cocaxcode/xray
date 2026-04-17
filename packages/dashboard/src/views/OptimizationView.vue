@@ -344,31 +344,32 @@ function buildSavingsCard(
   if (!breakdown || breakdown.tokens === 0) return null;
 
   const measured = savingsFactors.value?.[sourceKey] ?? null;
-  // Umbral: desde la 1ª call medida mostramos factor real. La confianza
-  // (low/medium/high) se calcula en el backend por volumen de datos y se
-  // usa para etiquetar el badge (PRELIMINAR si low, MEDIDO si medium/high).
-  // Sólo caemos a baseline cuando literalmente no hay NINGUNA call medida,
-  // que es cuando el cable aún no ha ejecutado o el flag está off.
   const useMeasured = measured !== null && measured.calls >= 1;
 
+  // El factor se muestra como métrica informativa en el badge (MEDIDO
+  // 51.05×). Ya NO se usa para extrapolar el ahorro al total: sólo
+  // contamos como ahorro lo que el shadow midió de verdad, call por call.
   const factor = useMeasured ? measured.factor_median : fallbackFactor;
-  // Redondeo a entero: los tokens son siempre enteros, los float propagan
-  // ruido numérico del JS tipo 989.8119999999999. Math.round es fiable y
-  // hace que saved = wouldHaveCost - tokens también sea entero.
-  const wouldHaveCost = Math.round(breakdown.tokens * factor);
-  const saved = wouldHaveCost - breakdown.tokens;
+
+  // Datos DUROS del shadow (no extrapolación):
+  //   - consumed medido: suma de tokens_estimated de calls con shadow
+  //   - saved medido:    suma de shadow_delta_tokens de esas calls
+  //   - wouldHaveCost:   consumed + saved (lo que habrías leído sin la tool)
+  const measuredConsumed = measured?.total_consumed ?? 0;
+  const measuredSaved = measured?.total_saved ?? 0;
+  const wouldHaveCost = measuredConsumed + measuredSaved;
 
   return {
-    tokens: breakdown.tokens,
-    wouldHaveCost,
-    saved,
-    calls: breakdown.count,
-    factor,
+    tokens: breakdown.tokens,              // total de tokens heurística (todas las calls)
+    wouldHaveCost,                          // dato duro: consumed + saved de las medidas
+    saved: measuredSaved,                   // dato duro: ahorro real medido
+    calls: breakdown.count,                 // total de llamadas (incl. las no medibles)
+    factor,                                 // informativo en badge
     factorSource: useMeasured ? 'measured' : 'fallback',
     measuredCalls: measured?.calls ?? 0,
     confidence: measured?.confidence ?? null,
-    measuredSaved: measured?.total_saved ?? 0,
-    measuredConsumed: measured?.total_consumed ?? 0,
+    measuredSaved,
+    measuredConsumed,
   };
 }
 
@@ -595,14 +596,15 @@ const optimizationScore = computed(() => {
         class="bg-green/5 border border-green/20 rounded-lg p-4 flex items-baseline justify-between gap-4"
       >
         <div>
-          <div class="text-green text-xs font-mono font-semibold">Ahorro total estimado</div>
+          <div class="text-green text-xs font-mono font-semibold">Ahorro total REAL medido</div>
           <div class="text-muted text-[10px] font-mono mt-0.5">
-            Suma de los ahorros estimados de serena y rtk sobre el histórico de esta instalación.
+            Suma directa de shadow_delta_tokens de las calls donde el cable midió.
+            Dato duro, sin factor ni extrapolación.
           </div>
         </div>
         <div class="text-right">
           <div class="text-green text-2xl font-mono font-semibold leading-none">
-            ~{{ formatTokens(totalSavings) }}
+            {{ formatTokens(totalSavings) }}
           </div>
           <div class="text-muted/70 text-[9px] font-mono mt-1">tokens que Claude no ha tenido que leer</div>
         </div>
@@ -646,59 +648,49 @@ const optimizationScore = computed(() => {
             (función, clase, método) en vez del archivo entero.<br />
             <strong class="text-text">Por qué ahorra:</strong> si el archivo tiene 500
             líneas y sólo necesitas 1 función, Read devuelve las 500 — serena devuelve ~20.<br />
-            <strong class="text-text">Cómo se calcula:</strong>
-            tokens_serena × {{ serenaSavings.factor.toFixed(2) }} = lo que habría costado con Read.
+            <strong class="text-text">Datos:</strong> suma directa de shadow_delta_tokens
+            de las calls donde el cable midió (find_symbol / get_symbols_overview con path).
+            Sin factor, sin extrapolación.
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-            <div title="Número de veces que Claude ha llamado a una tool de serena (dato real).">
-              <div class="text-muted text-[10px]">Llamadas</div>
-              <div class="text-text font-semibold">{{ serenaSavings.calls }}</div>
-            </div>
-            <div title="Tokens del output de serena, estimados con heurística chars × 0.27 (no es lo facturado por Anthropic).">
-              <div class="text-muted text-[10px]">Tokens consumidos (est.)</div>
+            <div title="Total de llamadas a serena. Entre paréntesis las que tuvieron shadow medido — el resto (write_memory, initial_instructions…) no son comparables con Read.">
+              <div class="text-muted text-[10px]">Llamadas totales</div>
               <div class="text-text font-semibold">
-                ~{{ formatTokens(serenaSavings.tokens) }}
+                {{ serenaSavings.calls }}
+                <span v-if="serenaSavings.measuredCalls !== serenaSavings.calls" class="text-muted/60 text-[10px] font-normal">
+                  ({{ serenaSavings.measuredCalls }} medidas)
+                </span>
               </div>
             </div>
-            <div title="Proyección: tokens consumidos × factor (medido o baseline). Aproxima lo que habrías leído con Read completo sobre todas las calls.">
-              <div class="text-muted text-[10px]">Habría costado con Read</div>
+            <div title="Suma de tokens_estimated sobre las calls con shadow medido. Heurística chars × 0.27.">
+              <div class="text-muted text-[10px]">Tokens leídos con serena</div>
+              <div class="text-text font-semibold">
+                ~{{ formatTokens(serenaSavings.measuredConsumed) }}
+              </div>
+            </div>
+            <div title="Dato duro: suma de (tokens_estimated + shadow_delta_tokens) de las calls medidas = lo que habrías leído haciendo Read completo del archivo.">
+              <div class="text-muted text-[10px]">Sin serena habrías leído</div>
               <div class="text-red font-semibold">
                 ~{{ formatTokens(serenaSavings.wouldHaveCost) }}
               </div>
             </div>
-            <div title="Proyección: Habría costado − Tokens consumidos. Aplica el factor al total (incluye calls sin shadow medido, extrapolación).">
-              <div class="text-muted text-[10px]">Ahorro estimado</div>
+            <div title="Dato duro: suma directa de shadow_delta_tokens. Lo que el cable midió call por call, sin factor ni extrapolación.">
+              <div class="text-muted text-[10px]">Ahorro REAL medido</div>
               <div class="text-green font-semibold">
-                ~{{ formatTokens(serenaSavings.saved) }}
-              </div>
-            </div>
-            <div
-              v-if="serenaSavings.measuredCalls > 0"
-              class="col-span-2 pt-2 mt-1 border-t border-purple/20 flex items-baseline justify-between"
-              title="Suma directa de shadow_delta_tokens de las calls CON shadow medido. Dato duro sin proyección ni factor — es lo que el cable registró evento a evento."
-            >
-              <div class="text-muted text-[10px]">
-                Ahorro MEDIDO real <span class="text-muted/60">(sobre {{ serenaSavings.measuredCalls }} call{{ serenaSavings.measuredCalls === 1 ? '' : 's' }})</span>
-              </div>
-              <div class="text-green font-semibold">
-                {{ formatTokens(serenaSavings.measuredSaved) }}
+                {{ formatTokens(serenaSavings.saved) }}
               </div>
             </div>
           </div>
           <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
-            <template v-if="serenaSavings.factorSource === 'measured' && serenaSavings.confidence === 'low'">
-              Factor PRELIMINAR {{ serenaSavings.factor.toFixed(2) }}× con
-              {{ serenaSavings.measuredCalls }} call{{ serenaSavings.measuredCalls === 1 ? '' : 's' }}
-              medida{{ serenaSavings.measuredCalls === 1 ? '' : 's' }}. Se recalibra automáticamente según vas usando
-              serena; a partir de 10 calls la confianza sube a media.
-            </template>
-            <template v-else-if="serenaSavings.factorSource === 'measured'">
-              Factor {{ serenaSavings.factor.toFixed(2) }}× calculado sobre la mediana de tus
-              propias lecturas con shadow_delta_tokens (confianza {{ serenaSavings.confidence }},
-              n={{ serenaSavings.measuredCalls }}). Se recalibra solo.
+            <template v-if="serenaSavings.factorSource === 'measured'">
+              El factor del badge ({{ serenaSavings.factor.toFixed(2) }}×) es informativo:
+              cuántas veces más grande sería el archivo completo que el símbolo que pediste, mediana
+              sobre {{ serenaSavings.measuredCalls }} call{{ serenaSavings.measuredCalls === 1 ? '' : 's' }}.
+              Los números de la card son datos duros del shadow — no se proyectan a las calls sin medir
+              (write_memory, read_memory, etc.).
             </template>
             <template v-else>
-              Factor fijo 5×, baseline del rango 3-10×. Activa
+              Sin datos medidos todavía. Activa
               <span class="text-cyan">shadow_measurement.serena=true</span> en
               ~/.token-optimizer/config.json (o ejecuta
               <span class="text-cyan">npx @cocaxcode/token-optimizer-mcp install</span>
@@ -743,60 +735,49 @@ const optimizationScore = computed(() => {
             antes de que llegue al modelo (rtk git status, rtk vitest, rtk cargo build…).<br />
             <strong class="text-text">Por qué ahorra:</strong> agrupa errores, deduplica líneas,
             quita diagnósticos ruidosos — devuelve sólo lo que importa.<br />
-            <strong class="text-text">Cómo se calcula:</strong>
-            tokens_rtk × {{ rtkSavings.factor.toFixed(2) }} = lo que habría costado con Bash crudo.
+            <strong class="text-text">Datos:</strong> suma directa de shadow_delta_tokens
+            de las calls donde el cable midió (marker, tracking.db o fallback).
+            Sin factor, sin extrapolación.
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-            <div title="Número de veces que Claude ha llamado a una Bash envuelta con rtk (dato real).">
-              <div class="text-muted text-[10px]">Llamadas</div>
-              <div class="text-text font-semibold">{{ rtkSavings.calls }}</div>
-            </div>
-            <div title="Tokens del output de RTK (ya filtrado), estimados con heurística chars × 0.27. No es lo facturado.">
-              <div class="text-muted text-[10px]">Tokens consumidos (est.)</div>
+            <div title="Total de llamadas a Bash envueltas por RTK. Entre paréntesis las que tuvieron shadow medido.">
+              <div class="text-muted text-[10px]">Llamadas totales</div>
               <div class="text-text font-semibold">
-                ~{{ formatTokens(rtkSavings.tokens) }}
+                {{ rtkSavings.calls }}
+                <span v-if="rtkSavings.measuredCalls !== rtkSavings.calls" class="text-muted/60 text-[10px] font-normal">
+                  ({{ rtkSavings.measuredCalls }} medidas)
+                </span>
               </div>
             </div>
-            <div title="Proyección: tokens consumidos × factor sobre todo el volumen (incluye calls sin shadow medido, extrapolación).">
-              <div class="text-muted text-[10px]">Habría costado Bash crudo</div>
+            <div title="Suma de tokens_estimated sobre las calls con shadow medido. Heurística chars × 0.27.">
+              <div class="text-muted text-[10px]">Tokens leídos con RTK</div>
+              <div class="text-text font-semibold">
+                ~{{ formatTokens(rtkSavings.measuredConsumed) }}
+              </div>
+            </div>
+            <div title="Dato duro: suma de (tokens_estimated + shadow_delta_tokens) de las calls medidas = lo que habrías leído con Bash crudo sin filtro.">
+              <div class="text-muted text-[10px]">Sin RTK habrías leído</div>
               <div class="text-red font-semibold">
                 ~{{ formatTokens(rtkSavings.wouldHaveCost) }}
               </div>
             </div>
-            <div title="Proyección: Habría costado − Tokens consumidos.">
-              <div class="text-muted text-[10px]">Ahorro estimado</div>
+            <div title="Dato duro: suma directa de shadow_delta_tokens. Lo que RTK ha filtrado de verdad, medido call por call.">
+              <div class="text-muted text-[10px]">Ahorro REAL medido</div>
               <div class="text-green font-semibold">
-                ~{{ formatTokens(rtkSavings.saved) }}
-              </div>
-            </div>
-            <div
-              v-if="rtkSavings.measuredCalls > 0"
-              class="col-span-2 pt-2 mt-1 border-t border-green/20 flex items-baseline justify-between"
-              title="Suma directa de shadow_delta_tokens de las calls CON shadow medido (marker, tracking.db o fallback ratio). Dato duro sin proyección."
-            >
-              <div class="text-muted text-[10px]">
-                Ahorro MEDIDO real <span class="text-muted/60">(sobre {{ rtkSavings.measuredCalls }} call{{ rtkSavings.measuredCalls === 1 ? '' : 's' }})</span>
-              </div>
-              <div class="text-green font-semibold">
-                {{ formatTokens(rtkSavings.measuredSaved) }}
+                {{ formatTokens(rtkSavings.saved) }}
               </div>
             </div>
           </div>
           <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
-            <template v-if="rtkSavings.factorSource === 'measured' && rtkSavings.confidence === 'low'">
-              Factor PRELIMINAR {{ rtkSavings.factor.toFixed(2) }}× con
-              {{ rtkSavings.measuredCalls }} call{{ rtkSavings.measuredCalls === 1 ? '' : 's' }}
-              medida{{ rtkSavings.measuredCalls === 1 ? '' : 's' }}. Comandos cortos (git status)
-              tiran del factor hacia abajo; comandos ruidosos (vitest, cargo) lo suben.
-              A partir de 10 calls la confianza sube a media.
-            </template>
-            <template v-else-if="rtkSavings.factorSource === 'measured'">
-              Factor {{ rtkSavings.factor.toFixed(2) }}× calculado sobre la mediana de tus
-              propias calls a RTK (confianza {{ rtkSavings.confidence }},
-              n={{ rtkSavings.measuredCalls }}).
+            <template v-if="rtkSavings.factorSource === 'measured'">
+              El factor del badge ({{ rtkSavings.factor.toFixed(2) }}×) es informativo:
+              cuánto más grande sería el output sin filtrar, mediana sobre
+              {{ rtkSavings.measuredCalls }} call{{ rtkSavings.measuredCalls === 1 ? '' : 's' }}.
+              Comandos cortos (git status) tiran del factor hacia abajo; ruidosos (vitest, cargo) lo suben.
+              Los números de la card son datos duros del shadow.
             </template>
             <template v-else>
-              Factor fijo 4×, baseline conservador. Instala
+              Sin datos medidos todavía. Instala
               <span class="text-cyan">@cocaxcode/token-optimizer-mcp@latest</span> para
               que el cable rtk-reader rellene shadow_delta_tokens en cada call.
             </template>
