@@ -301,8 +301,12 @@ export class Queries {
   // ── Optimization (token-optimizer integration) ──
 
   insertOptimizationEvent(event: TokenOptimizerEvent): void {
+    // INSERT OR IGNORE + UNIQUE INDEX en input_hash: si el watcher y el hook
+    // HTTP envían el mismo evento (ambos ocurren en arranque de sesión), el
+    // segundo queda silenciado. Sin esto, la mirror tenía hasta 3-4× más
+    // events que la source DB.
     this.db.prepare(`
-      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview, shadow_delta_tokens)
+      INSERT OR IGNORE INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview, shadow_delta_tokens)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       event.session_id,

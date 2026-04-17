@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 6;
+const CURRENT_VERSION = 7;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -22,6 +22,7 @@ export function initSchema(db: Database.Database): void {
     migrateToV4(db);
     migrateToV5(db);
     migrateToV6(db);
+    migrateToV7(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
@@ -30,6 +31,7 @@ export function initSchema(db: Database.Database): void {
     if (currentVersion < 4) migrateToV4(db);
     if (currentVersion < 5) migrateToV5(db);
     if (currentVersion < 6) migrateToV6(db);
+    if (currentVersion < 7) migrateToV7(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -218,6 +220,53 @@ function migrateToV6(db: Database.Database): void {
 
   if (!colNames.has('shadow_delta_tokens')) {
     db.exec("ALTER TABLE optimization_events ADD COLUMN shadow_delta_tokens INTEGER");
+  }
+}
+
+
+/**
+ * v7: dedup optimization_events por input_hash + UNIQUE INDEX para prevenir
+ * dobles inserts futuros.
+ *
+ * Contexto del bug: los eventos de token-optimizer llegan a xray por DOS
+ * caminos — (a) HTTP POST directo desde el hook PostToolUse a
+ * /hooks/token-optimizer/event, (b) polling del watcher contra la DB source.
+ * Ambos llaman a insertOptimizationEvent con el mismo input_hash (= id de la
+ * fila en token-optimizer analytics.db). Sin constraint UNIQUE, se insertan
+ * dos veces. Resultado visible: "builtin events=239" en xray vs "events=66"
+ * en la source DB.
+ *
+ * Fix: 1) borrar las duplicadas conservando sólo la primera por input_hash,
+ * 2) crear UNIQUE INDEX para que futuros INSERT OR IGNORE se deduplen solos.
+ */
+function migrateToV7(db: Database.Database): void {
+  // Verificar que la tabla existe (puede ser instalación desde 0 con createTablesV1 que no la crea)
+  const tables = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='optimization_events'",
+  ).all() as Array<{ name: string }>;
+  if (tables.length === 0) return; // nada que migrar
+
+  // 1. Borrar duplicados por input_hash conservando el id mínimo (primer insert)
+  db.exec(`
+    DELETE FROM optimization_events
+    WHERE input_hash IS NOT NULL
+      AND id NOT IN (
+        SELECT MIN(id) FROM optimization_events WHERE input_hash IS NOT NULL GROUP BY input_hash
+      )
+  `);
+
+  // 2. UNIQUE INDEX parcial: sólo sobre input_hash NOT NULL (permite múltiples nulls,
+  // que es lo que SQLite hace por defecto en UNIQUE columns). Partial index para
+  // no forzar NOT NULL en filas pre-existentes sin input_hash.
+  const indexes = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_opt_events_input_hash_unique'",
+  ).all() as Array<{ name: string }>;
+  if (indexes.length === 0) {
+    db.exec(`
+      CREATE UNIQUE INDEX idx_opt_events_input_hash_unique
+        ON optimization_events(input_hash)
+        WHERE input_hash IS NOT NULL
+    `);
   }
 }
 

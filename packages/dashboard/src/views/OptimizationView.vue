@@ -521,6 +521,37 @@ const optimizationScore = computed(() => {
             <span class="text-muted/60 w-16 text-right text-[9px]">{{ relativeTs(evt.ts) }}</span>
           </div>
         </div>
+
+        <!-- Leyenda: qué significa cada número del feed -->
+        <div
+          v-if="liveEvents.length > 0"
+          class="mt-3 border-t border-border pt-3 text-[10px] font-mono leading-relaxed text-muted space-y-1.5"
+        >
+          <div>
+            <strong class="text-text">Qué ves en cada línea:</strong>
+            fuente (color) · tool · (preview) · <span class="text-text">tokens gastados</span> · <span class="text-green/80">sin esa tool habrías gastado</span> · tiempo.
+          </div>
+          <div>
+            <span class="text-text">Tokens gastados (~X tok):</span>
+            lo que la tool devolvió al modelo, convertido a tokens con heurística
+            <code class="text-text">chars × 0.27</code>. No es facturación exacta de Anthropic
+            (para eso mira el header de cada sesión), pero es una aproximación cercana del
+            tamaño del output.
+          </div>
+          <div>
+            <span class="text-green/80">Sin esa tool (~Y tok):</span>
+            sólo aparece en <span class="text-purple">Serena</span> y
+            <span class="text-green">RTK</span>. Es el coste medido que habría tenido sin usar el
+            optimizador (archivo completo con Read / output Bash sin filtrar).
+            La diferencia entre <span class="text-text">~Y</span> y <span class="text-text">~X</span>
+            es el ahorro de esa call concreta.
+          </div>
+          <div>
+            <span class="text-muted">Nativas (Read/Bash/Grep/Glob/TodoWrite), MCP y tools propias:</span>
+            no tienen "sin tool" porque no hay alternativa filtrada con la que comparar — el
+            número muestra sólo lo que leyeron tal cual.
+          </div>
+        </div>
       </div>
 
       <!-- Global summary cards (no dollars, only tokens) -->
