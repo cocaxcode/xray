@@ -643,9 +643,17 @@ const optimizationScore = computed(() => {
             (función, clase, método) en vez del archivo entero.<br />
             <strong class="text-text">Por qué ahorra:</strong> si el archivo tiene 500
             líneas y sólo necesitas 1 función, Read devuelve las 500 — serena devuelve ~20.<br />
-            <strong class="text-text">Datos:</strong> suma directa de shadow_delta_tokens
-            de las calls donde el cable midió (find_symbol / get_symbols_overview con path).
-            Sin factor, sin extrapolación.
+            <strong class="text-text">De dónde salen los números:</strong> cada vez que
+            Claude pide un símbolo con serena, comparamos el tamaño del archivo completo
+            (lo que habrías leído con Read) contra lo que serena devolvió. Sumamos esas
+            diferencias call por call. Sin estimaciones, sin proyectar a otras llamadas.
+          </div>
+          <div class="bg-purple/10 border-l-2 border-purple/40 rounded-r text-[9px] font-mono leading-tight px-2.5 py-1.5 mb-3 text-muted">
+            <strong class="text-purple/90">Qué medimos en cada call:</strong>
+            Claude → <code class="text-text">find_symbol('loginHandler', 'auth.ts')</code><br />
+            → serena devuelve ~200 tokens de esa función.<br />
+            → el cable mira el archivo en disco: <code class="text-text">auth.ts</code> pesa ~6 KB ≈ ~1.6K tokens si lo leyeras entero.<br />
+            → <span class="text-green">ahorro de esta call = 1.6K − 200 = ~1.4K tokens</span>. Se guarda y se suma al total.
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
             <div title="Total de llamadas a serena. Entre paréntesis las que tuvieron shadow medido — el resto (write_memory, initial_instructions…) no son comparables con Read.">
@@ -725,9 +733,17 @@ const optimizationScore = computed(() => {
             antes de que llegue al modelo (rtk git status, rtk vitest, rtk cargo build…).<br />
             <strong class="text-text">Por qué ahorra:</strong> agrupa errores, deduplica líneas,
             quita diagnósticos ruidosos — devuelve sólo lo que importa.<br />
-            <strong class="text-text">Datos:</strong> suma directa de shadow_delta_tokens
-            de las calls donde el cable midió (marker, tracking.db o fallback).
-            Sin factor, sin extrapolación.
+            <strong class="text-text">De dónde salen los números:</strong> cada vez que
+            Claude ejecuta un comando envuelto por RTK, el propio RTK registra cuántos
+            tokens cortó del output antes de devolverlo. Sumamos esos recortes comando a
+            comando. Sin estimaciones, sin proyectar.
+          </div>
+          <div class="bg-green/10 border-l-2 border-green/40 rounded-r text-[9px] font-mono leading-tight px-2.5 py-1.5 mb-3 text-muted">
+            <strong class="text-green/90">Qué medimos en cada call:</strong>
+            Claude pide <code class="text-text">git log</code>, PreToolUse lo reescribe a <code class="text-text">rtk git log</code>.<br />
+            → el output original era ~2 KB, RTK filtra ruido y deja ~400 bytes.<br />
+            → RTK registra "filtré 1.6K bytes" en su tracking.db o en el marker del output.<br />
+            → <span class="text-green">ahorro de esta call ≈ ~430 tokens</span> (heurística chars × 0.27). Se guarda y se suma al total.
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
             <div title="Total de llamadas a Bash envueltas por RTK. Entre paréntesis las que tuvieron shadow medido.">
