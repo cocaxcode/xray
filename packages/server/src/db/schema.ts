@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 6;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -21,6 +21,7 @@ export function initSchema(db: Database.Database): void {
     migrateToV3(db);
     migrateToV4(db);
     migrateToV5(db);
+    migrateToV6(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
@@ -28,6 +29,7 @@ export function initSchema(db: Database.Database): void {
     if (currentVersion < 3) migrateToV3(db);
     if (currentVersion < 4) migrateToV4(db);
     if (currentVersion < 5) migrateToV5(db);
+    if (currentVersion < 6) migrateToV6(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -199,6 +201,23 @@ function migrateToV5(db: Database.Database): void {
 
   if (!colNames.has('command_preview')) {
     db.exec("ALTER TABLE optimization_events ADD COLUMN command_preview TEXT");
+  }
+}
+
+/**
+ * v6: shadow_delta_tokens en optimization_events.
+ *
+ * Lo que aporta: el token-optimizer-mcp rellena esta columna por cada evento
+ * donde sabe medir el delta vs la alternativa (serena vs Read, rtk vs Bash).
+ * Con esto, xray puede calcular el factor de ahorro MEDIDO en vez de aplicar
+ * la constante ×5 / ×4 que traía hardcodeada en la UI.
+ */
+function migrateToV6(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info('optimization_events')").all() as Array<{ name: string }>;
+  const colNames = new Set(columns.map(c => c.name));
+
+  if (!colNames.has('shadow_delta_tokens')) {
+    db.exec("ALTER TABLE optimization_events ADD COLUMN shadow_delta_tokens INTEGER");
   }
 }
 

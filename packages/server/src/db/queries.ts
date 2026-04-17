@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Session, ToolEvent, PendingPermission, SessionSummary, ProjectGroup, McpServer, Agent, TokenOptimizerEvent, TokenOptimizerSummary, OptimizationSourceBreakdown, OptimizationData } from '../types.js';
+import type { Session, ToolEvent, PendingPermission, SessionSummary, ProjectGroup, McpServer, Agent, TokenOptimizerEvent, TokenOptimizerSummary, OptimizationSourceBreakdown, OptimizationData, SavingsFactorStats } from '../types.js';
 
 export class Queries {
   private db: Database.Database;
@@ -302,8 +302,8 @@ export class Queries {
 
   insertOptimizationEvent(event: TokenOptimizerEvent): void {
     this.db.prepare(`
-      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview, shadow_delta_tokens)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       event.session_id,
       event.tool_name,
@@ -317,6 +317,7 @@ export class Queries {
       event.project_path ?? null,
       event.project_name ?? null,
       event.command_preview ?? null,
+      event.shadow_delta_tokens ?? null,
     );
   }
 
@@ -580,6 +581,82 @@ export class Queries {
       },
       global_by_source: globalBySource,
       global_by_tool: globalByTool,
+    };
+  }
+
+
+  /**
+   * Calcula el factor de ahorro MEDIDO para serena y rtk a partir de los
+   * `shadow_delta_tokens` que el optimizador ha rellenado en cada evento.
+   *
+   * Por cada source (serena, rtk):
+   *   - calls: número de eventos con shadow_delta_tokens medido
+   *   - total_consumed: suma de tokens que esas calls consumieron (output post-filtro)
+   *   - total_saved:    suma de tokens que NO se leyeron (shadow_delta_tokens)
+   *   - factor_aggregate: (consumed + saved) / consumed  (ratio agregado)
+   *   - factor_median:    mediana del factor por cada call, robusta a outliers
+   *   - factor_mean:      media aritmética del factor por call (puede inflarse)
+   *   - confidence:       'low' (<10 calls) | 'medium' (10-99) | 'high' (100+)
+   *
+   * Si un source no tiene ningún evento con shadow_delta_tokens, devuelve null
+   * en esa clave: el frontend puede caer a su constante baseline con etiqueta
+   * honesta.
+   */
+  getSavingsFactors(since?: string, until?: string): {
+    serena: SavingsFactorStats | null;
+    rtk: SavingsFactorStats | null;
+  } {
+    const dirFilterParts = [
+      since ? 'created_at >= ?' : null,
+      until ? 'created_at < ?' : null,
+    ].filter((x): x is string => x !== null);
+    const filterParams: string[] = [...(since ? [since] : []), ...(until ? [until] : [])];
+    const dateFilter = dirFilterParts.length ? `AND ${dirFilterParts.join(' AND ')}` : '';
+
+    const compute = (source: 'serena' | 'rtk'): SavingsFactorStats | null => {
+      const rows = this.db.prepare(`
+        SELECT tokens_estimated, shadow_delta_tokens
+        FROM optimization_events
+        WHERE source = ?
+          AND shadow_delta_tokens IS NOT NULL
+          AND shadow_delta_tokens > 0
+          AND tokens_estimated > 0
+          ${dateFilter}
+      `).all(source, ...filterParams) as Array<{ tokens_estimated: number; shadow_delta_tokens: number }>;
+
+      if (rows.length === 0) return null;
+
+      const factors: number[] = [];
+      let totalConsumed = 0;
+      let totalSaved = 0;
+      for (const r of rows) {
+        const f = (r.tokens_estimated + r.shadow_delta_tokens) / r.tokens_estimated;
+        factors.push(f);
+        totalConsumed += r.tokens_estimated;
+        totalSaved += r.shadow_delta_tokens;
+      }
+
+      factors.sort((a, b) => a - b);
+      const median = factors[Math.floor(factors.length / 2)];
+      const mean = factors.reduce((a, b) => a + b, 0) / factors.length;
+
+      const confidence: 'low' | 'medium' | 'high' =
+        rows.length < 10 ? 'low' : rows.length < 100 ? 'medium' : 'high';
+
+      return {
+        calls: rows.length,
+        total_consumed: totalConsumed,
+        total_saved: totalSaved,
+        factor_aggregate: Number(((totalConsumed + totalSaved) / totalConsumed).toFixed(3)),
+        factor_median: Number(median.toFixed(3)),
+        factor_mean: Number(mean.toFixed(3)),
+        confidence,
+      };
+    };
+
+    return {
+      serena: compute('serena'),
+      rtk: compute('rtk'),
     };
   }
 

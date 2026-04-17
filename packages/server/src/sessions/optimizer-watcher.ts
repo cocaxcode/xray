@@ -41,6 +41,7 @@ interface ToolCallRow {
   duration_ms: number | null;
   estimation_method: string | null;
   command_preview: string | null;
+  shadow_delta_tokens: number | null;
   created_at: string;
 }
 
@@ -68,6 +69,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
   let sourceDb: Database.Database | null = null;
   let running = false;
   let hasCommandPreview: boolean | null = null; // null = not yet checked
+  let hasShadowDelta: boolean | null = null; // null = not yet checked
 
   function openSource(): Database.Database | null {
     if (sourceDb) return sourceDb;
@@ -93,6 +95,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       }
       sourceDb = null;
       hasCommandPreview = null; // re-check on next open
+      hasShadowDelta = null;
     }
   }
 
@@ -129,6 +132,7 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       input_hash: String(row.id),
       created_at: row.created_at,
       ...(row.command_preview != null && { command_preview: row.command_preview }),
+      ...(row.shadow_delta_tokens != null && { shadow_delta_tokens: row.shadow_delta_tokens }),
     };
   }
 
@@ -140,19 +144,22 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       if (!db) return 0;
       initLastId(db);
 
-      // Check whether the source DB has the command_preview column.
-      // Re-check every poll when false so we pick it up as soon as
-      // token-optimizer migrates the DB (which happens on first tool call).
-      if (hasCommandPreview === null || hasCommandPreview === false) {
+      // Check whether the source DB has columns that were added in later
+      // token-optimizer versions. Re-check while false so we pick them up as
+      // soon as token-optimizer migrates the DB (on first tool call).
+      if (hasCommandPreview === null || hasCommandPreview === false
+          || hasShadowDelta === null || hasShadowDelta === false) {
         const cols = db.prepare(`PRAGMA table_info('tool_calls')`).all() as Array<{ name: string }>;
-        hasCommandPreview = cols.some((c) => c.name === 'command_preview');
+        const colNames = new Set(cols.map((c) => c.name));
+        hasCommandPreview = colNames.has('command_preview');
+        hasShadowDelta = colNames.has('shadow_delta_tokens');
       }
 
-      const selectCols = hasCommandPreview
-        ? `id, session_id, tool_name, source, output_bytes, tokens_estimated,
-           tokens_actual, duration_ms, estimation_method, command_preview, created_at`
-        : `id, session_id, tool_name, source, output_bytes, tokens_estimated,
-           tokens_actual, duration_ms, estimation_method, null as command_preview, created_at`;
+      const commandPreviewExpr = hasCommandPreview ? 'command_preview' : 'null as command_preview';
+      const shadowDeltaExpr = hasShadowDelta ? 'shadow_delta_tokens' : 'null as shadow_delta_tokens';
+      const selectCols =
+        `id, session_id, tool_name, source, output_bytes, tokens_estimated,
+         tokens_actual, duration_ms, estimation_method, ${commandPreviewExpr}, ${shadowDeltaExpr}, created_at`;
 
       const rows = db
         .prepare(

@@ -48,10 +48,26 @@ interface LiveEvent {
   ts: number;
 }
 
+interface SavingsFactorStats {
+  calls: number;
+  total_consumed: number;
+  total_saved: number;
+  factor_aggregate: number;
+  factor_median: number;
+  factor_mean: number;
+  confidence: 'low' | 'medium' | 'high';
+}
+
+interface SavingsFactorsResponse {
+  serena: SavingsFactorStats | null;
+  rtk: SavingsFactorStats | null;
+}
+
 const { getAuthHeaders } = useAuth();
 const { onMessage } = useWebSocket();
 
 const data = ref<GlobalOptData | null>(null);
+const savingsFactors = ref<SavingsFactorsResponse | null>(null);
 const loading = ref(true);
 const expandedProject = ref<string | null>(null);
 
@@ -128,9 +144,14 @@ const liveCounts = ref<Record<string, number>>({
 });
 
 async function loadData(): Promise<void> {
+  const params = buildFilterParams();
   try {
-    const res = await fetch(`/api/optimization${buildFilterParams()}`, { headers: getAuthHeaders() });
-    if (res.ok) data.value = await res.json();
+    const [optRes, factorsRes] = await Promise.all([
+      fetch(`/api/optimization${params}`, { headers: getAuthHeaders() }),
+      fetch(`/api/savings-factors${params}`, { headers: getAuthHeaders() }),
+    ]);
+    if (optRes.ok) data.value = await optRes.json();
+    if (factorsRes.ok) savingsFactors.value = await factorsRes.json();
   } catch {
     /* silent */
   }
@@ -284,41 +305,55 @@ function relativeTs(ts: number): string {
   return `hace ${Math.round(diff / 60_000)} min`;
 }
 
-// Serena savings: conservative factor (5×) applied to observed serena tokens.
-// Real range is 3-10×; we use 5× as the middle of the distribution.
-const SERENA_SAVINGS_FACTOR = 5;
-const serenaSavings = computed(() => {
-  if (!data.value?.global_by_source) return null;
-  const serena = data.value.global_by_source.find((s) => s.source === 'serena');
-  if (!serena || serena.tokens === 0) return null;
-  const wouldHaveCost = serena.tokens * SERENA_SAVINGS_FACTOR;
-  const saved = wouldHaveCost - serena.tokens;
-  return {
-    serenaTokens: serena.tokens,
-    wouldHaveCost,
-    saved,
-    calls: serena.count,
-  };
-});
+// Fallback factors cuando no hay shadow_delta_tokens medidos.
+// El rango real de serena es 3-10×; usamos 5× como mid. RTK 60-99% reducción = ~4×.
+// Cuando /api/savings-factors devuelve un factor medido sobre tus datos
+// reales, usamos ese en lugar de la constante.
+const SERENA_FALLBACK_FACTOR = 5;
+const RTK_FALLBACK_FACTOR = 4;
 
-// RTK savings: conservative factor (4×) applied to observed rtk tokens.
-// RTK filters advertise 60-99% reduction depending on the command — 4× is
-// equivalent to ~75% reduction, which is mid-range and honest about the
-// fact that some commands (e.g. `rtk git status`) save less than `rtk vitest`.
-const RTK_SAVINGS_FACTOR = 4;
-const rtkSavings = computed(() => {
+interface SavingsCardData {
+  tokens: number;           // tokens consumidos por la source (heurística chars × 0.27)
+  wouldHaveCost: number;    // proyección: tokens × factor
+  saved: number;            // wouldHaveCost − tokens
+  calls: number;            // número de llamadas (real)
+  factor: number;           // factor aplicado
+  factorSource: 'measured' | 'fallback';  // de dónde viene el factor
+  measuredCalls: number;    // nº de calls con shadow_delta_tokens medido (0 si fallback)
+  confidence: 'low' | 'medium' | 'high' | null;  // null si fallback
+}
+
+function buildSavingsCard(
+  sourceKey: 'serena' | 'rtk',
+  fallbackFactor: number,
+): SavingsCardData | null {
   if (!data.value?.global_by_source) return null;
-  const rtk = data.value.global_by_source.find((s) => s.source === 'rtk');
-  if (!rtk || rtk.tokens === 0) return null;
-  const wouldHaveCost = rtk.tokens * RTK_SAVINGS_FACTOR;
-  const saved = wouldHaveCost - rtk.tokens;
+  const breakdown = data.value.global_by_source.find((s) => s.source === sourceKey);
+  if (!breakdown || breakdown.tokens === 0) return null;
+
+  const measured = savingsFactors.value?.[sourceKey] ?? null;
+  // Umbral mínimo: necesitamos al menos 10 calls medidas para confiar en
+  // la mediana. Con menos, mostramos la constante con disclaimer.
+  const useMeasured = measured !== null && measured.calls >= 10;
+
+  const factor = useMeasured ? measured.factor_median : fallbackFactor;
+  const wouldHaveCost = breakdown.tokens * factor;
+  const saved = wouldHaveCost - breakdown.tokens;
+
   return {
-    rtkTokens: rtk.tokens,
+    tokens: breakdown.tokens,
     wouldHaveCost,
     saved,
-    calls: rtk.count,
+    calls: breakdown.count,
+    factor,
+    factorSource: useMeasured ? 'measured' : 'fallback',
+    measuredCalls: measured?.calls ?? 0,
+    confidence: measured?.confidence ?? null,
   };
-});
+}
+
+const serenaSavings = computed(() => buildSavingsCard('serena', SERENA_FALLBACK_FACTOR));
+const rtkSavings = computed(() => buildSavingsCard('rtk', RTK_FALLBACK_FACTOR));
 
 // Combined total savings: sum of serena + rtk estimated savings.
 const totalSavings = computed(() => {
@@ -401,8 +436,8 @@ const optimizationScore = computed(() => {
       <div class="bg-surface border border-border rounded-lg p-4">
         <div class="flex items-baseline justify-between mb-3">
           <div class="text-text text-sm font-mono font-semibold">Actividad en vivo</div>
-          <div class="text-muted text-[10px] font-mono">
-            Las últimas llamadas a herramientas que ha hecho Claude — se actualiza en tiempo real
+          <div class="text-muted text-[10px] font-mono" title="Los tokens mostrados son estimación (chars × 0.27) del output que devolvió cada tool. Para la factura real de Anthropic mira el header de cada sesión (tokens del transcript).">
+            Últimas tool calls · tokens estimados (heurística chars × 0.27)
           </div>
         </div>
 
@@ -450,7 +485,7 @@ const optimizationScore = computed(() => {
               {{ evt.toolName }}
               <span v-if="evt.commandPreview" class="text-muted ml-1">— {{ evt.commandPreview }}</span>
             </span>
-            <span class="text-muted w-20 text-right">{{ formatTokens(evt.tokens) }} tok</span>
+            <span class="text-muted w-20 text-right" :title="'~' + formatTokens(evt.tokens) + ' tokens (estimado chars × 0.27)'">~{{ formatTokens(evt.tokens) }} tok</span>
             <span class="text-muted/60 w-16 text-right text-[9px]">{{ relativeTs(evt.ts) }}</span>
           </div>
         </div>
@@ -460,15 +495,18 @@ const optimizationScore = computed(() => {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div
           class="bg-surface border border-border rounded-lg p-3"
-          title="Bytes que las tools han devuelto a Claude, convertidos a tokens. Es el input que el modelo ha tenido que leer — no incluye prompts, respuestas del modelo ni thinking."
+          title="Estimación heurística (chars × 0.27) de los bytes que las tools han devuelto a Claude. No es la factura real de Anthropic — para eso mira los tokens del header de cada sesión."
         >
-          <div class="text-muted text-[10px] font-mono mb-1">Tokens totales</div>
+          <div class="flex items-baseline justify-between mb-1">
+            <div class="text-muted text-[10px] font-mono">Tokens totales tools</div>
+            <div class="text-muted/60 text-[8px] font-mono uppercase tracking-wide">est.</div>
+          </div>
           <div class="text-text text-lg font-mono font-semibold">
-            {{ formatTokens(data.totals.total_tokens) }}
+            ~{{ formatTokens(data.totals.total_tokens) }}
           </div>
           <div class="text-muted text-[9px] font-mono leading-tight mt-1">
-            Output de herramientas que Claude ha tenido que leer.<br />
-            <span class="text-muted/70">Bajar esto = ahorrar contexto real.</span>
+            Output de tools (heurística chars × 0.27).<br />
+            <span class="text-muted/70">Bajar esto = menos ruido en el contexto.</span>
           </div>
         </div>
 
@@ -550,8 +588,19 @@ const optimizationScore = computed(() => {
             <div class="text-purple text-xs font-mono font-semibold">
               Ahorro estimado con Serena
             </div>
-            <div class="text-muted/70 text-[9px] font-mono">
-              ESTIMACIÓN &middot; factor fijo 5×
+            <div
+              v-if="serenaSavings.factorSource === 'measured'"
+              class="text-muted/70 text-[9px] font-mono"
+              :title="`Factor mediana de ${serenaSavings.measuredCalls} calls tuyas con shadow_delta_tokens medido.`"
+            >
+              MEDIDO · factor {{ serenaSavings.factor.toFixed(2) }}× (n={{ serenaSavings.measuredCalls }})
+            </div>
+            <div
+              v-else
+              class="text-muted/70 text-[9px] font-mono"
+              title="Aún no hay suficientes calls medidas (<10). Se usa factor baseline 5×. Activa shadow_measurement.serena=true para empezar a medir."
+            >
+              BASELINE · factor fijo 5× (sin datos medidos)
             </div>
           </div>
           <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
@@ -559,21 +608,21 @@ const optimizationScore = computed(() => {
             (función, clase, método) en vez del archivo entero.<br />
             <strong class="text-text">Por qué ahorra:</strong> si el archivo tiene 500
             líneas y sólo necesitas 1 función, Read devuelve las 500 — serena devuelve ~20.<br />
-            <strong class="text-text">Cómo se calcula:</strong> tokens_serena × 5 = lo que
-            habría costado con Read.
+            <strong class="text-text">Cómo se calcula:</strong>
+            tokens_serena × {{ serenaSavings.factor.toFixed(2) }} = lo que habría costado con Read.
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
             <div title="Número de veces que Claude ha llamado a una tool de serena.">
               <div class="text-muted text-[10px]">Llamadas</div>
               <div class="text-text font-semibold">{{ serenaSavings.calls }}</div>
             </div>
-            <div title="Tokens reales que esas llamadas han consumido (medido).">
-              <div class="text-muted text-[10px]">Tokens consumidos</div>
+            <div title="Tokens del output de serena, estimados con heurística chars × 0.27 (no es lo facturado por Anthropic).">
+              <div class="text-muted text-[10px]">Tokens consumidos (est.)</div>
               <div class="text-text font-semibold">
-                {{ formatTokens(serenaSavings.serenaTokens) }}
+                ~{{ formatTokens(serenaSavings.tokens) }}
               </div>
             </div>
-            <div title="Proyección: si esas lecturas las hubieras hecho con Read.">
+            <div title="Proyección: si esas lecturas las hubieras hecho con Read, asumiendo archivo entero.">
               <div class="text-muted text-[10px]">Habría costado con Read</div>
               <div class="text-red font-semibold">
                 ~{{ formatTokens(serenaSavings.wouldHaveCost) }}
@@ -587,8 +636,16 @@ const optimizationScore = computed(() => {
             </div>
           </div>
           <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
-            Ratio 5× = valor conservador del rango real 3-10×. Archivos grandes ahorran más
-            (hasta 10×); ficheros pequeños tienden a 3×.
+            <template v-if="serenaSavings.factorSource === 'measured'">
+              Factor {{ serenaSavings.factor.toFixed(2) }}× calculado sobre la mediana de tus
+              propias lecturas con shadow_delta_tokens (confianza {{ serenaSavings.confidence }}).
+              Se recalibra solo según va entrando data.
+            </template>
+            <template v-else>
+              Factor fijo 5×, baseline del rango 3-10×. Activa
+              <span class="text-cyan">shadow_measurement.serena=true</span> en
+              ~/.token-optimizer/config.json para que el factor se mida con tus datos.
+            </template>
           </div>
         </div>
 
@@ -601,8 +658,19 @@ const optimizationScore = computed(() => {
             <div class="text-green text-xs font-mono font-semibold">
               Ahorro estimado con RTK
             </div>
-            <div class="text-muted/70 text-[9px] font-mono">
-              ESTIMACIÓN &middot; factor fijo 4×
+            <div
+              v-if="rtkSavings.factorSource === 'measured'"
+              class="text-muted/70 text-[9px] font-mono"
+              :title="`Factor mediana de ${rtkSavings.measuredCalls} calls tuyas con shadow_delta_tokens medido por token-optimizer (marker / rtk.db / fallback).`"
+            >
+              MEDIDO · factor {{ rtkSavings.factor.toFixed(2) }}× (n={{ rtkSavings.measuredCalls }})
+            </div>
+            <div
+              v-else
+              class="text-muted/70 text-[9px] font-mono"
+              title="Sin datos medidos todavía. token-optimizer >= v0.5 cablea el shadow de RTK en PostToolUse (marker / tracking.db / fallback ratio)."
+            >
+              BASELINE · factor fijo 4× (sin datos medidos)
             </div>
           </div>
           <div class="text-muted text-[10px] font-mono mb-3 leading-tight">
@@ -610,18 +678,18 @@ const optimizationScore = computed(() => {
             antes de que llegue al modelo (rtk git status, rtk vitest, rtk cargo build…).<br />
             <strong class="text-text">Por qué ahorra:</strong> agrupa errores, deduplica líneas,
             quita diagnósticos ruidosos — devuelve sólo lo que importa.<br />
-            <strong class="text-text">Cómo se calcula:</strong> tokens_rtk × 4 = lo que habría
-            costado con Bash crudo.
+            <strong class="text-text">Cómo se calcula:</strong>
+            tokens_rtk × {{ rtkSavings.factor.toFixed(2) }} = lo que habría costado con Bash crudo.
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono">
             <div title="Número de veces que Claude ha llamado a una Bash envuelta con rtk.">
               <div class="text-muted text-[10px]">Llamadas</div>
               <div class="text-text font-semibold">{{ rtkSavings.calls }}</div>
             </div>
-            <div title="Tokens reales que esas llamadas han consumido (medido).">
-              <div class="text-muted text-[10px]">Tokens consumidos</div>
+            <div title="Tokens del output de RTK (ya filtrado), estimados con heurística chars × 0.27. No es lo facturado.">
+              <div class="text-muted text-[10px]">Tokens consumidos (est.)</div>
               <div class="text-text font-semibold">
-                {{ formatTokens(rtkSavings.rtkTokens) }}
+                ~{{ formatTokens(rtkSavings.tokens) }}
               </div>
             </div>
             <div title="Proyección: si esas mismas calls hubieran ido a Bash sin filtrar.">
@@ -638,8 +706,14 @@ const optimizationScore = computed(() => {
             </div>
           </div>
           <div class="text-muted text-[9px] font-mono mt-2 leading-tight">
-            Ratio 4× = ~75% reducción, rango honesto del real 60-99%. Comandos con mucho ruido
-            (vitest, cargo, git log) rompen el 90%; comandos ya cortos (git status) rondan el 60%.
+            <template v-if="rtkSavings.factorSource === 'measured'">
+              Factor {{ rtkSavings.factor.toFixed(2) }}× calculado sobre la mediana de tus
+              propias calls a RTK (confianza {{ rtkSavings.confidence }}).
+            </template>
+            <template v-else>
+              Factor fijo 4× = ~75% reducción. Para medir con tus datos, actualiza a
+              token-optimizer-mcp con el cable rtk-reader activo.
+            </template>
           </div>
         </div>
       </div>

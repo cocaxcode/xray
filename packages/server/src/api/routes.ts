@@ -227,6 +227,14 @@ export function registerApiRoutes(
     return queries.getOptimizationGlobalStats(from, to);
   });
 
+  // Savings factors medidos sobre shadow_delta_tokens de cada source.
+  // Si una source no tiene ningun evento medido, devuelve null en su clave:
+  // el frontend lo interpreta como "sin datos medidos, usar baseline".
+  fastify.get('/api/savings-factors', async (request) => {
+    const { from, to } = request.query as { from?: string; to?: string };
+    return queries.getSavingsFactors(from, to);
+  });
+
   // ── Health ──
   fastify.get('/api/health', async () => {
     const projects = manager.getProjectGroups();

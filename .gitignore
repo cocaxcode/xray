@@ -10,3 +10,5 @@ dist/
 .env.local
 .token-optimizer/
 .serena/
+.database-mcp/
+.idea/

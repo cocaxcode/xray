@@ -265,6 +265,33 @@ export interface TokenOptimizerEvent {
   project_name?: string;
   project_hash?: string;
   command_preview?: string;
+  /**
+   * Tokens que el optimizador estima haber ahorrado en este evento
+   * concreto (vs. la alternativa sin optimización). Sólo se rellena cuando
+   * el MCP sabe medirlo:
+   *   - serena: fullFileTokens − output_tokens (necesita shadow_measurement.serena=true)
+   *   - rtk:    filtered_tokens del tracking.db de RTK, marker, o fallback ratio
+   * null cuando no aplica (builtin, mcp, own, xray) o no se pudo medir.
+   */
+  shadow_delta_tokens?: number | null;
+}
+
+/**
+ * Factor de ahorro calculado sobre datos reales de cada source. Lo genera
+ * getSavingsFactors() a partir de las filas con shadow_delta_tokens rellenado.
+ */
+export interface SavingsFactorStats {
+  calls: number;
+  total_consumed: number;
+  total_saved: number;
+  /** Factor agregado: (consumed + saved) / consumed. */
+  factor_aggregate: number;
+  /** Mediana del factor por call — robusta a outliers. Recomendado para la UI. */
+  factor_median: number;
+  /** Media aritmética del factor por call — sensible a outliers. */
+  factor_mean: number;
+  /** <10 calls = low, 10-99 = medium, 100+ = high. */
+  confidence: 'low' | 'medium' | 'high';
 }
 
 export interface TokenOptimizerSummary {

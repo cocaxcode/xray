@@ -29,7 +29,29 @@ Dashboard en tiempo real para visualizar todas las sesiones de Claude Code activ
 - PermissionRequest mantiene la conexion HTTP abierta hasta respuesta del usuario (max 540s)
 - El dashboard NO es un terminal — muestra estado, actividad e historial
 - Modo remoto: --expose con auth QR + PIN de 6 digitos
-- Tokens reales extraidos del transcript JSONL de cada sesion
+- Tokens reales (SessionCard header) extraidos del transcript JSONL de cada sesion
+- Tokens per-tool (OptimizationView) son ESTIMADOS por token-optimizer-mcp con
+  heuristica chars × 0.27 — no son lo facturado por Anthropic. Etiquetado
+  como tal en la UI.
+
+## Schema mirror de token-optimizer
+
+- Tabla `optimization_events`: replica de `tool_calls` de token-optimizer
+  con polling cada 3s (optimizer-watcher.ts). Resume desde el id maximo
+  mirrored (guardado en `input_hash` como string para no requerir schema extra).
+- Columnas relevantes: `source`, `tokens_estimated`, `estimation_method`,
+  `shadow_delta_tokens` (schema v6+, propagado automaticamente desde la
+  source si token-optimizer tiene el campo relleno).
+
+## Savings factors (endpoint `/api/savings-factors`)
+
+Calcula el factor de ahorro MEDIDO sobre `shadow_delta_tokens` por source:
+- Para cada source (`serena`, `rtk`): toma todas las filas con shadow
+  medido, calcula factor por call `(consumed + saved) / consumed`, devuelve
+  mediana + media + confianza (low/medium/high segun n).
+- OptimizationView lo consume en paralelo a `/api/optimization` y sustituye
+  las constantes fallback `×5` (serena) y `×4` (rtk) por el factor medido
+  cuando hay >=10 calls. Cada card indica `MEDIDO` o `BASELINE` en el badge.
 
 ## Desarrollo
 ```bash
