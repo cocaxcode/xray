@@ -110,7 +110,7 @@ describe('processTurnBreakdown via handleStop', () => {
     expect(row.command_preview).toContain('cifrado');
   });
 
-  it('is idempotent across multiple handleStop invocations', () => {
+  it('is idempotent across multiple handleStop invocations (DB + broadcast)', () => {
     manager.handleSessionStart({
       session_id: 's2', cwd: '/tmp/p', model: 'claude-opus-4-7',
       source: 'startup', transcript_path: transcriptPath,
@@ -128,6 +128,13 @@ describe('processTurnBreakdown via handleStop', () => {
       "SELECT COUNT(*) as c FROM optimization_events WHERE source = 'thinking'"
     ).get() as { c: number }).c;
     expect(count).toBe(1);
+
+    // Broadcasts: sólo la PRIMERA Stop emite; las siguientes son no-op por
+    // dedup en INSERT OR IGNORE. Evita duplicados en el live feed.
+    const thinkingBroadcasts = broadcasts.filter(
+      (b) => b.type === 'optimization:event' && (b.data as { source: string }).source === 'thinking'
+    );
+    expect(thinkingBroadcasts).toHaveLength(1);
   });
 
   it('processes only new turns on subsequent Stop', () => {

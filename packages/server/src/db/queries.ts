@@ -314,12 +314,20 @@ export class Queries {
 
   // ── Optimization (token-optimizer integration) ──
 
-  insertOptimizationEvent(event: TokenOptimizerEvent): void {
+  /**
+   * Inserta un evento de optimización. Devuelve `true` si la fila se insertó
+   * nuevamente, `false` si el UNIQUE INDEX la dedujo (ya existía).
+   *
+   * Los callers usan el resultado para decidir si emitir broadcast al
+   * dashboard — evita duplicados en el live feed cuando hay re-entry de
+   * hooks o colisión entre watcher y HTTP POST.
+   */
+  insertOptimizationEvent(event: TokenOptimizerEvent): boolean {
     // INSERT OR IGNORE + UNIQUE INDEX en input_hash: si el watcher y el hook
     // HTTP envían el mismo evento (ambos ocurren en arranque de sesión), el
     // segundo queda silenciado. Sin esto, la mirror tenía hasta 3-4× más
     // events que la source DB.
-    this.db.prepare(`
+    const res = this.db.prepare(`
       INSERT OR IGNORE INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview, shadow_delta_tokens)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -337,6 +345,7 @@ export class Queries {
       event.command_preview ?? null,
       event.shadow_delta_tokens ?? null,
     );
+    return res.changes > 0;
   }
 
   /**

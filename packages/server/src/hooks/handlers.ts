@@ -386,7 +386,11 @@ export class HookHandlers {
       command_preview: data.command_preview,
     };
 
-    this.queries.insertOptimizationEvent(event);
+    // Sólo broadcast si la fila se insertó de verdad. Si el UNIQUE INDEX
+    // la dedujo (hook re-entry, compact, resume), no propagamos al feed.
+    const inserted = this.queries.insertOptimizationEvent(event);
+    if (!inserted) return;
+
     this.broadcast({
       type: 'optimization:event',
       data: {
