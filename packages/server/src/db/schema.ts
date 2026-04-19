@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 8;
+const CURRENT_VERSION = 9;
 
 /**
  * Sistema de migraciones para SQLite.
@@ -24,6 +24,7 @@ export function initSchema(db: Database.Database): void {
     migrateToV6(db);
     migrateToV7(db);
     migrateToV8(db);
+    migrateToV9(db);
     db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_VERSION);
   } else {
     // Migraciones incrementales
@@ -34,6 +35,7 @@ export function initSchema(db: Database.Database): void {
     if (currentVersion < 6) migrateToV6(db);
     if (currentVersion < 7) migrateToV7(db);
     if (currentVersion < 8) migrateToV8(db);
+    if (currentVersion < 9) migrateToV9(db);
 
     // Actualizar version
     if (currentVersion < CURRENT_VERSION) {
@@ -319,6 +321,25 @@ function migrateToV8(db: Database.Database): void {
     DELETE FROM optimization_events
     WHERE input_hash IS NULL OR input_hash = ''
   `);
+}
+
+/**
+ * v9: sessions.last_parsed_message_id — offset para parseTurnBreakdown.
+ *
+ * handleStop parsea el transcript JSONL extrayendo thinking/text/tool_use
+ * blocks de cada assistant message. Para no reparsear mensajes ya
+ * procesados en Stops previos (compact, resume), guardamos el último
+ * message.id visto. La siguiente corrida salta mensajes <= ese id.
+ *
+ * El UNIQUE INDEX sobre input_hash sigue siendo la red de seguridad si
+ * por alguna razón se reparsea — los INSERT OR IGNORE se deduplican solos.
+ */
+function migrateToV9(db: Database.Database): void {
+  const cols = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
+  const hasCol = cols.some((c) => c.name === 'last_parsed_message_id');
+  if (!hasCol) {
+    db.exec('ALTER TABLE sessions ADD COLUMN last_parsed_message_id TEXT');
+  }
 }
 
 export function purgeOldEvents(db: Database.Database, daysOld = 7): number {

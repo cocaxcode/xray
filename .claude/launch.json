@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["dev:dashboard"],
       "port": 5173
+    },
+    {
+      "name": "xray-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["packages/server/bin/cxc-xray.js", "--port", "9191"],
+      "port": 9191
     }
   ]
 }

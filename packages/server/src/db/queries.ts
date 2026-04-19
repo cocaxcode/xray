@@ -27,6 +27,7 @@ export class Queries {
     'model', 'status', 'context_percent', 'context_units', 'last_event_at',
     'last_message', 'topic', 'event_count', 'skills', 'mcps', 'agents',
     'transcript_path', 'transcript_offset', 'input_tokens', 'output_tokens',
+    'last_parsed_message_id',
   ]);
 
   updateSession(id: string, fields: Record<string, unknown>): void {
@@ -48,6 +49,19 @@ export class Queries {
     const row = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as Record<string, unknown> | undefined;
     if (!row) return null;
     return this.rowToSession(row);
+  }
+
+  getLastParsedMessageId(sessionId: string): string | null {
+    const row = this.db
+      .prepare('SELECT last_parsed_message_id FROM sessions WHERE id = ?')
+      .get(sessionId) as { last_parsed_message_id: string | null } | undefined;
+    return row?.last_parsed_message_id ?? null;
+  }
+
+  setLastParsedMessageId(sessionId: string, messageId: string): void {
+    this.db
+      .prepare('UPDATE sessions SET last_parsed_message_id = ? WHERE id = ?')
+      .run(messageId, sessionId);
   }
 
   sessionExists(id: string): boolean {
@@ -500,7 +514,7 @@ export class Queries {
     const oeAnd = filterParts.length ? `AND ${filterParts.join(' AND ')}` : '';
     const dirWhere = dirFilterParts.length ? `WHERE ${dirFilterParts.join(' AND ')}` : '';
 
-    // Per-project breakdown
+    // Per-project breakdown (incluye TODO: tools + output del modelo)
     const projectRows = this.db.prepare(`
       SELECT
         COALESCE(oe.project_path, s.project_path) as project_path,
@@ -531,6 +545,7 @@ export class Queries {
         FROM optimization_events oe
         LEFT JOIN sessions s ON oe.session_id = s.id
         WHERE COALESCE(oe.project_path, s.project_path) = ?
+          AND oe.source NOT IN ('thinking','response')
         ${oeAnd}
         GROUP BY tool_name ORDER BY tokens DESC LIMIT 10
       `).all(row.project_path, ...filterParams) as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
@@ -550,12 +565,15 @@ export class Queries {
       };
     });
 
-    // Global top tools
+    // Global top tools (excluye turn breakdown sources)
+    const globalByToolFilter = dirWhere
+      ? `${dirWhere} AND source NOT IN ('thinking','response')`
+      : `WHERE source NOT IN ('thinking','response')`;
     const globalByTool = this.db.prepare(`
       SELECT tool_name, COUNT(*) as count, COALESCE(SUM(tokens_estimated), 0) as tokens,
              ROUND(CAST(COALESCE(SUM(tokens_estimated), 0) AS REAL) / MAX(COUNT(*), 1)) as avg_tokens
       FROM optimization_events
-      ${dirWhere}
+      ${globalByToolFilter}
       GROUP BY tool_name ORDER BY tokens DESC LIMIT 10
     `).all(...filterParams) as Array<{ tool_name: string; count: number; tokens: number; avg_tokens: number }>;
 

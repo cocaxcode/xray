@@ -236,6 +236,8 @@ const SOURCE_LABELS: Record<string, string> = {
   mcp: 'MCPs',
   own: 'Optimizer',
   xray: 'Xray',
+  thinking: 'Thinking',
+  response: 'Respuesta',
 };
 
 // Visible color (hex) for dots and badges — Tailwind JIT cannot deal with
@@ -247,6 +249,8 @@ const SOURCE_COLOR_HEX: Record<string, string> = {
   mcp: '#00F5D4', // cyan
   own: '#3F3F46',
   xray: '#3F3F46',
+  thinking: '#6366F1', // indigo
+  response: '#64748B', // slate
 };
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
@@ -258,6 +262,10 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
   mcp: 'Tools de MCP servers externos (logbook, database, api-testing…). Coste variable: depende del server — un list() puede devolver megas.',
   own: 'Tools del propio token-optimizer (budget_*, coach_tips, toon_*). No cuentan como coste externo: son observabilidad.',
   xray: 'Tools internas de xray. Coste despreciable a efectos de optimización.',
+  thinking:
+    'Razonamiento del modelo (bloques `thinking` del turn). Facturado por Anthropic como output_tokens — no lo ahorra serena ni RTK. Estimado chars × 0.27. En Claude 4.7+ el razonamiento viene cifrado; se estima desde la signature.',
+  response:
+    'Texto de respuesta del modelo al usuario (bloques `text`). Parte del output_tokens facturado.',
 };
 
 const SOURCE_IMPACT: Record<string, { label: string; tone: 'save' | 'raw' | 'ext' | 'free' }> = {
@@ -267,7 +275,17 @@ const SOURCE_IMPACT: Record<string, { label: string; tone: 'save' | 'raw' | 'ext
   mcp: { label: 'externo', tone: 'ext' },
   own: { label: 'propio', tone: 'free' },
   xray: { label: 'propio', tone: 'free' },
+  thinking: { label: 'output modelo', tone: 'raw' },
+  response: { label: 'output modelo', tone: 'raw' },
 };
+
+// Sources que representan OUTPUT DEL MODELO (thinking/response). El tool_use
+// markup NO se cuenta aparte: la tool call ya se contabiliza en su source
+// original (mcp/builtin/rtk…) vía PostToolUse.
+const MODEL_OUTPUT_SOURCES = new Set(['thinking', 'response']);
+function isModelOutput(s: string): boolean {
+  return MODEL_OUTPUT_SOURCES.has(s);
+}
 
 const IMPACT_COLORS: Record<string, string> = {
   save: 'text-green border-green/40 bg-green/5',
@@ -383,6 +401,19 @@ const totalSavings = computed(() => {
   const total = s + r;
   if (total === 0) return null;
   return total;
+});
+
+// Split global_by_source en dos: tools (lo que consume Claude desde fuera)
+// vs output del modelo (thinking/response/tool_use markup — facturado por
+// Anthropic como output_tokens, no lo ahorra serena ni RTK).
+const toolSources = computed(() => {
+  return (data.value?.global_by_source ?? []).filter((s) => !isModelOutput(s.source));
+});
+const modelOutputSources = computed(() => {
+  return (data.value?.global_by_source ?? []).filter((s) => isModelOutput(s.source));
+});
+const modelOutputTotal = computed(() => {
+  return modelOutputSources.value.reduce((sum, s) => sum + s.tokens, 0);
 });
 
 // Optimization score = (serena + rtk calls) / (serena + rtk + builtin calls)
@@ -503,8 +534,13 @@ const optimizationScore = computed(() => {
               {{ sourceLabel(evt.source) }}
             </span>
             <span class="flex-1 text-text truncate">
-              {{ evt.toolName }}
-              <span v-if="evt.commandPreview" class="text-muted ml-1">— {{ evt.commandPreview }}</span>
+              <template v-if="isModelOutput(evt.source)">
+                <span class="text-muted">{{ evt.commandPreview || '' }}</span>
+              </template>
+              <template v-else>
+                {{ evt.toolName }}
+                <span v-if="evt.commandPreview" class="text-muted ml-1">— {{ evt.commandPreview }}</span>
+              </template>
             </span>
             <span class="text-muted w-20 text-right" :title="'~' + formatTokens(evt.tokens) + ' tokens (estimado chars × 0.27)'">~{{ formatTokens(evt.tokens) }} tok</span>
             <span
@@ -840,7 +876,7 @@ const optimizationScore = computed(() => {
           </div>
           <div class="space-y-2">
             <div
-              v-for="source in data.global_by_source"
+              v-for="source in toolSources"
               :key="source.source"
               class="space-y-0.5"
             >
@@ -850,7 +886,7 @@ const optimizationScore = computed(() => {
                   <div
                     class="h-full rounded transition-all duration-500"
                     :style="{
-                      width: barWidth(source.tokens, data.global_by_source),
+                      width: barWidth(source.tokens, toolSources),
                       backgroundColor: sourceColor(source.source),
                       opacity: 0.75,
                     }"
@@ -874,6 +910,53 @@ const optimizationScore = computed(() => {
                 >
                   {{ sourceImpact(source.source).label }}
                 </span>
+                <span class="text-muted leading-tight">{{ sourceDesc(source.source) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desglose output del modelo (thinking / response / tool_use markup) -->
+        <div v-if="modelOutputSources.length > 0" class="bg-surface border border-border rounded-lg p-4">
+          <div class="text-muted text-xs font-mono mb-1">Desglose output del modelo</div>
+          <div class="text-muted text-[9px] font-mono mb-3 leading-tight">
+            Tokens que genera el propio modelo en cada turn — parseado del transcript JSONL (bloques
+            <code class="text-text">thinking</code> · <code class="text-text">text</code> ·
+            <code class="text-text">tool_use</code>). Facturado por Anthropic como
+            <code class="text-text">output_tokens</code>. No lo ahorra serena ni RTK.
+            <br />
+            <span class="text-muted/70">
+              Estimado con chars × 0.27. Total:
+              <strong class="text-text">~{{ formatTokens(modelOutputTotal) }} tok</strong>
+            </span>
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="source in modelOutputSources"
+              :key="source.source"
+              class="space-y-0.5"
+            >
+              <div class="flex items-center gap-2 text-xs font-mono">
+                <span class="w-28 text-right text-text">{{ sourceLabel(source.source) }}</span>
+                <div class="flex-1 h-5 bg-bg rounded overflow-hidden">
+                  <div
+                    class="h-full rounded transition-all duration-500"
+                    :style="{
+                      width: barWidth(source.tokens, modelOutputSources),
+                      backgroundColor: sourceColor(source.source),
+                      opacity: 0.75,
+                    }"
+                  />
+                </div>
+                <span class="w-20 text-right text-text">
+                  ~{{ formatTokens(source.tokens) }}
+                </span>
+                <span class="w-10 text-right text-muted">×{{ source.count }}</span>
+              </div>
+              <div
+                class="flex items-start gap-1.5 text-[9px] font-mono"
+                style="margin-left: 7.5rem"
+              >
                 <span class="text-muted leading-tight">{{ sourceDesc(source.source) }}</span>
               </div>
             </div>

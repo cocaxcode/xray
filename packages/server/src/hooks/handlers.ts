@@ -15,6 +15,7 @@ import type {
 import type { SessionManager } from '../sessions/manager.js';
 import type { Queries } from '../db/queries.js';
 import type { PermissionHandler } from './permission.js';
+import { parseTurnBreakdown, estimateTokensFromChars } from '../sessions/transcript-reader.js';
 
 export class HookHandlers {
   private manager: SessionManager;
@@ -285,6 +286,10 @@ export class HookHandlers {
     // Update tokens one last time
     this.manager.updateTokens(payload.session_id);
 
+    // Parsear desglose output modelo (thinking/response/tool_use) y emitir
+    // eventos por turn. Ver CLAUDE.md — decisión 2026-04-17.
+    this.processTurnBreakdown(payload.session_id);
+
     const session = this.manager.getSession(payload.session_id);
     if (session) {
       // Guardar snapshot de tokens al momento del Stop para calcular delta
@@ -296,6 +301,102 @@ export class HookHandlers {
         inputTokensAtStop: session.inputTokensAtStop, outputTokensAtStop: session.outputTokensAtStop,
       } });
     }
+  }
+
+  /**
+   * Parsea el transcript de una sesión y emite hasta 3 eventos por turn
+   * (thinking / response / tool_use) con dedup via input_hash UNIQUE.
+   *
+   * - Reanuda desde `sessions.last_parsed_message_id` para no reparsear.
+   * - Tokens: heurística chars × 0.27 (igual que token-optimizer-mcp).
+   * - tool_name = source ('thinking'/'response'/'tool_use'). Las queries
+   *   de top-tools filtran por source para no contaminar.
+   * - command_preview = model simplificado (ej "sonnet-4.6").
+   */
+  private processTurnBreakdown(sessionId: string): void {
+    const session = this.queries.getSession(sessionId);
+    const info = this.queries.getSessionTranscriptInfo(sessionId);
+    if (!session || !info || !info.transcriptPath) return;
+
+    const since = this.queries.getLastParsedMessageId(sessionId);
+    const { turns, lastMessageId } = parseTurnBreakdown(info.transcriptPath, since);
+    if (turns.length === 0) return;
+
+    for (const turn of turns) {
+      const modelLabel = simplifyModel(turn.model);
+
+      // Claude 4.7+ devuelve thinking cifrado (thinking="", signature=base64).
+      // Si no hay chars plaintext pero sí signature, usamos signature×0.75 como
+      // proxy del tamaño en bytes del razonamiento cifrado.
+      const thinkingEffective = turn.thinkingChars > 0
+        ? turn.thinkingChars
+        : Math.round(turn.thinkingSignatureChars * 0.75);
+
+      // thinking
+      if (thinkingEffective > 0) {
+        this.insertTurnEvent(session, turn.messageId, turn.timestamp, {
+          source: 'thinking',
+          tool_name: 'thinking',
+          chars: thinkingEffective,
+          input_hash: `thinking:${turn.messageId}`,
+          command_preview: turn.thinkingChars > 0
+            ? modelLabel
+            : `${modelLabel} · cifrado`,
+        });
+      }
+      // response (text block)
+      if (turn.textChars > 0) {
+        this.insertTurnEvent(session, turn.messageId, turn.timestamp, {
+          source: 'response',
+          tool_name: 'response',
+          chars: turn.textChars,
+          input_hash: `response:${turn.messageId}`,
+          command_preview: modelLabel,
+        });
+      }
+      // NO emitir tool_use como línea separada: la tool call real ya se
+      // contabiliza vía PostToolUse con su source original (mcp/builtin/rtk…).
+      // Emitirla aquí también crearía dos líneas del mismo evento en el feed.
+    }
+
+    if (lastMessageId) {
+      this.queries.setLastParsedMessageId(sessionId, lastMessageId);
+    }
+  }
+
+  private insertTurnEvent(
+    session: { id: string; projectPath?: string; projectName?: string },
+    _messageId: string,
+    timestamp: string,
+    data: { source: 'thinking' | 'response'; tool_name: string; chars: number; input_hash: string; command_preview: string },
+  ): void {
+    const tokens = estimateTokensFromChars(data.chars);
+    const event: TokenOptimizerEvent = {
+      session_id: session.id,
+      tool_name: data.tool_name,
+      source: data.source,
+      tokens_estimated: tokens,
+      output_bytes: data.chars,
+      duration_ms: null,
+      estimation_method: 'estimated_heuristic',
+      input_hash: data.input_hash,
+      created_at: timestamp,
+      project_path: session.projectPath,
+      project_name: session.projectName,
+      command_preview: data.command_preview,
+    };
+
+    this.queries.insertOptimizationEvent(event);
+    this.broadcast({
+      type: 'optimization:event',
+      data: {
+        sessionId: event.session_id,
+        source: event.source,
+        tokens: event.tokens_estimated,
+        toolName: event.tool_name,
+        commandPreview: event.command_preview,
+      },
+    });
   }
 
   // ── Token Optimizer Integration ──
@@ -351,4 +452,17 @@ export class HookHandlers {
 
     this.broadcast({ type: 'session:end', data: { id: sessionId } });
   }
+}
+
+/**
+ * Simplifica el model string del transcript para UI:
+ *   claude-sonnet-4-5-20250929 → sonnet-4.5
+ *   claude-opus-4-6            → opus-4.6
+ *   claude-haiku-4-5-20251001  → haiku-4.5
+ * Cae al string original si no encaja el patrón.
+ */
+function simplifyModel(model: string): string {
+  const m = model.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)/);
+  if (!m) return model;
+  return `${m[1]}-${m[2]}.${m[3]}`;
 }

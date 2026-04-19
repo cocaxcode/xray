@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readNewTokens } from '../sessions/transcript-reader.js';
+import { readNewTokens, parseTurnBreakdown, estimateTokensFromChars } from '../sessions/transcript-reader.js';
 
 let tmpDir: string;
 
@@ -93,5 +93,104 @@ describe('readNewTokens', () => {
     const result = readNewTokens(filePath, 0);
     expect(result.inputTokens).toBe(10);
     expect(result.outputTokens).toBe(5);
+  });
+});
+
+describe('estimateTokensFromChars', () => {
+  it('applies chars × 0.27 rounded up', () => {
+    expect(estimateTokensFromChars(100)).toBe(27);
+    expect(estimateTokensFromChars(1000)).toBe(270);
+    expect(estimateTokensFromChars(1)).toBe(1);
+    expect(estimateTokensFromChars(0)).toBe(0);
+  });
+});
+
+describe('parseTurnBreakdown', () => {
+  const makeAssistant = (id: string, blocks: Array<Record<string, unknown>>) =>
+    JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-04-19T12:00:00Z',
+      message: { id, model: 'claude-sonnet-4-6-20250514', content: blocks },
+    });
+
+  it('extracts thinking, text and tool_use blocks from a turn', () => {
+    const filePath = join(tmpDir, 't.jsonl');
+    const content = [
+      JSON.stringify({ type: 'user', message: { content: 'hi' } }),
+      makeAssistant('msg_01A', [
+        { type: 'thinking', thinking: 'a'.repeat(300) },
+        { type: 'text', text: 'b'.repeat(100) },
+        { type: 'tool_use', id: 'toolu_01X', name: 'Bash', input: { command: 'ls' } },
+      ]),
+    ].join('\n') + '\n';
+    writeFileSync(filePath, content);
+
+    const { turns, lastMessageId } = parseTurnBreakdown(filePath, null);
+    expect(turns).toHaveLength(1);
+    expect(turns[0].messageId).toBe('msg_01A');
+    expect(turns[0].model).toBe('claude-sonnet-4-6-20250514');
+    expect(turns[0].thinkingChars).toBe(300);
+    expect(turns[0].textChars).toBe(100);
+    expect(turns[0].toolUses).toHaveLength(1);
+    expect(turns[0].toolUses[0].id).toBe('toolu_01X');
+    expect(turns[0].toolUses[0].name).toBe('Bash');
+    expect(turns[0].toolUses[0].inputChars).toBe(JSON.stringify({ command: 'ls' }).length);
+    expect(lastMessageId).toBe('msg_01A');
+  });
+
+  it('resumes from sinceMessageId (skips processed turns)', () => {
+    const filePath = join(tmpDir, 't.jsonl');
+    const content = [
+      makeAssistant('msg_A', [{ type: 'thinking', thinking: 'one' }]),
+      makeAssistant('msg_B', [{ type: 'text', text: 'two' }]),
+      makeAssistant('msg_C', [{ type: 'text', text: 'three' }]),
+    ].join('\n') + '\n';
+    writeFileSync(filePath, content);
+
+    const { turns, lastMessageId } = parseTurnBreakdown(filePath, 'msg_A');
+    expect(turns.map((t) => t.messageId)).toEqual(['msg_B', 'msg_C']);
+    expect(lastMessageId).toBe('msg_C');
+  });
+
+  it('ignores non-assistant entries', () => {
+    const filePath = join(tmpDir, 't.jsonl');
+    const content = [
+      JSON.stringify({ type: 'user', message: { content: 'hi' } }),
+      JSON.stringify({ type: 'system', content: 'prompt' }),
+      makeAssistant('msg_X', [{ type: 'text', text: 'hello' }]),
+    ].join('\n') + '\n';
+    writeFileSync(filePath, content);
+
+    const { turns } = parseTurnBreakdown(filePath, null);
+    expect(turns).toHaveLength(1);
+    expect(turns[0].messageId).toBe('msg_X');
+  });
+
+  it('skips assistant messages without message.id', () => {
+    const filePath = join(tmpDir, 't.jsonl');
+    const content = [
+      JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'no id' }] } }),
+      makeAssistant('msg_Z', [{ type: 'text', text: 'ok' }]),
+    ].join('\n') + '\n';
+    writeFileSync(filePath, content);
+
+    const { turns } = parseTurnBreakdown(filePath, null);
+    expect(turns.map((t) => t.messageId)).toEqual(['msg_Z']);
+  });
+
+  it('returns empty when file does not exist', () => {
+    const { turns, lastMessageId } = parseTurnBreakdown('/nope/x.jsonl', null);
+    expect(turns).toEqual([]);
+    expect(lastMessageId).toBeNull();
+  });
+
+  it('when sinceMessageId is not found, preserves it (no rewind)', () => {
+    const filePath = join(tmpDir, 't.jsonl');
+    const content = makeAssistant('msg_A', [{ type: 'text', text: 'x' }]) + '\n';
+    writeFileSync(filePath, content);
+
+    const { turns, lastMessageId } = parseTurnBreakdown(filePath, 'msg_UNKNOWN');
+    expect(turns).toEqual([]);
+    expect(lastMessageId).toBe('msg_UNKNOWN');
   });
 });

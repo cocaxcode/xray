@@ -254,7 +254,7 @@ export interface SessionEventsResponse {
 export interface TokenOptimizerEvent {
   session_id: string;
   tool_name: string;
-  source: 'own' | 'builtin' | 'mcp' | 'serena' | 'rtk' | 'xray';
+  source: 'own' | 'builtin' | 'mcp' | 'serena' | 'rtk' | 'xray' | 'thinking' | 'response';
   tokens_estimated: number;
   output_bytes: number;
   duration_ms: number | null;

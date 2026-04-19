@@ -6,6 +6,35 @@ export interface TokenResult {
   newOffset: number;
 }
 
+export interface TurnToolUse {
+  id: string;
+  name: string;
+  inputChars: number;
+}
+
+export interface TurnBreakdown {
+  messageId: string;
+  model: string;
+  timestamp: string;
+  thinkingChars: number;
+  /**
+   * Signature length del bloque thinking. Claude 4.7+ devuelve thinking
+   * cifrado con thinking="" y signature=base64. Si thinkingChars===0 pero
+   * thinkingSignatureChars>0, el modelo SÍ razonó pero no podemos leerlo.
+   * Usamos signature_length × 0.75 como proxy (base64 → bytes).
+   */
+  thinkingSignatureChars: number;
+  textChars: number;
+  toolUses: TurnToolUse[];
+  /** output_tokens reales del message.usage (facturados por Anthropic). */
+  outputTokens: number;
+}
+
+export interface TurnBreakdownResult {
+  turns: TurnBreakdown[];
+  lastMessageId: string | null;
+}
+
 /**
  * Lee las primeras lineas del transcript para extraer el modelo.
  * Busca campos "model" en las entradas del JSONL.
@@ -143,4 +172,105 @@ export function readNewTokens(transcriptPath: string, lastOffset: number): Token
   } finally {
     closeSync(fd);
   }
+}
+
+/**
+ * Parsea el transcript JSONL y extrae el desglose por turn (assistant message)
+ * de los bloques thinking/text/tool_use.
+ *
+ * Salta mensajes ya procesados: cuando se encuentra `sinceMessageId`, se
+ * reanuda desde el SIGUIENTE mensaje. Si sinceMessageId es null, devuelve
+ * todos los mensajes.
+ *
+ * El UNIQUE INDEX sobre input_hash en optimization_events deduplica
+ * inserts repetidos si por alguna razón se reparsea el mismo msg_id
+ * (ej: sesión resumida, compact).
+ */
+export function parseTurnBreakdown(
+  transcriptPath: string,
+  sinceMessageId: string | null,
+): TurnBreakdownResult {
+  const result: TurnBreakdownResult = { turns: [], lastMessageId: sinceMessageId };
+  let content: string;
+  try {
+    content = readFileSync(transcriptPath, 'utf-8');
+  } catch {
+    return result;
+  }
+
+  const lines = content.split('\n');
+  let skip = sinceMessageId !== null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let entry: Record<string, unknown>;
+    try {
+      entry = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+
+    if (entry.type !== 'assistant') continue;
+    const message = entry.message as Record<string, unknown> | undefined;
+    if (!message || typeof message !== 'object') continue;
+
+    const messageId = typeof message.id === 'string' ? message.id : null;
+    if (!messageId) continue;
+
+    if (skip) {
+      if (messageId === sinceMessageId) skip = false;
+      continue;
+    }
+
+    const model = typeof message.model === 'string' ? message.model : 'unknown';
+    const timestamp = typeof entry.timestamp === 'string' ? entry.timestamp : new Date().toISOString();
+    const contentBlocks = Array.isArray(message.content) ? (message.content as Array<Record<string, unknown>>) : [];
+    const usage = message.usage as Record<string, unknown> | undefined;
+    const outputTokens = typeof usage?.output_tokens === 'number' ? (usage.output_tokens as number) : 0;
+
+    const turn: TurnBreakdown = {
+      messageId,
+      model,
+      timestamp,
+      thinkingChars: 0,
+      thinkingSignatureChars: 0,
+      textChars: 0,
+      toolUses: [],
+      outputTokens,
+    };
+
+    for (const block of contentBlocks) {
+      const type = block.type;
+      if (type === 'thinking') {
+        const text = typeof block.thinking === 'string' ? block.thinking : '';
+        turn.thinkingChars += text.length;
+        const sig = typeof block.signature === 'string' ? block.signature : '';
+        turn.thinkingSignatureChars += sig.length;
+      } else if (type === 'text') {
+        const text = typeof block.text === 'string' ? block.text : '';
+        turn.textChars += text.length;
+      } else if (type === 'tool_use') {
+        const id = typeof block.id === 'string' ? block.id : null;
+        const name = typeof block.name === 'string' ? block.name : 'unknown';
+        const input = block.input;
+        const inputChars = input !== undefined ? JSON.stringify(input).length : 0;
+        if (id) turn.toolUses.push({ id, name, inputChars });
+      }
+    }
+
+    result.turns.push(turn);
+    result.lastMessageId = messageId;
+  }
+
+  return result;
+}
+
+/**
+ * chars × 0.27 — misma heurística que token-optimizer-mcp (estimation_method
+ * = 'estimated_heuristic'). Ver CLAUDE.md de xray: los tokens per-tool son
+ * estimados con esta fórmula y etiquetados como tal en la UI.
+ */
+export function estimateTokensFromChars(chars: number): number {
+  return Math.ceil(chars * 0.27);
 }
