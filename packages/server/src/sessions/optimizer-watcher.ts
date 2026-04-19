@@ -109,13 +109,29 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
       lastId = row;
       log('optimizer-watcher: resuming from last mirrored id', { lastId });
     } else {
-      // No prior mirrored rows: start from the tail of the source to avoid
-      // drowning the dashboard with thousands of historical rows on first start.
-      const tail = db.prepare(`SELECT MAX(id) as max_id FROM tool_calls`).get() as
-        | { max_id: number | null }
+      // No prior mirrored rows. If the source is small enough we backfill the
+      // full history (runOnce itself will paginate via MAX_BATCH). Only when
+      // the source is huge we skip to the tail to avoid drowning the dashboard.
+      // This way a wiped mirror recovers automatically instead of silently
+      // losing history.
+      const COLD_BACKFILL_LIMIT = 10_000;
+      const count = db.prepare(`SELECT COUNT(*) as n FROM tool_calls`).get() as
+        | { n: number | null }
         | undefined;
-      lastId = tail?.max_id ?? 0;
-      log('optimizer-watcher: cold start, skipping history', { lastId });
+      const n = count?.n ?? 0;
+      if (n <= COLD_BACKFILL_LIMIT) {
+        lastId = 0;
+        log('optimizer-watcher: cold start, backfilling history', { rows: n });
+      } else {
+        const tail = db.prepare(`SELECT MAX(id) as max_id FROM tool_calls`).get() as
+          | { max_id: number | null }
+          | undefined;
+        lastId = tail?.max_id ?? 0;
+        log('optimizer-watcher: cold start, skipping history (source too large)', {
+          lastId,
+          rows: n,
+        });
+      }
     }
   }
 
