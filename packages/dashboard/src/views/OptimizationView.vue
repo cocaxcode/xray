@@ -139,6 +139,39 @@ function buildFilterParams(): string {
 const liveEvents = ref<LiveEvent[]>([]);
 let liveCounter = 0;
 
+/**
+ * Feed colapsado: agrupa eventos consecutivos (adyacentes en el feed) con la
+ * misma `source` + `commandPreview` en una sola fila, sumando tokens y
+ * shadowDelta y contando ocurrencias. Evita que el feed se llene de 6 líneas
+ * "Thinking opus-4.7 · cifrado ~N tok" seguidas.
+ */
+interface DisplayedLiveEvent extends LiveEvent {
+  count: number;
+}
+const displayedLiveEvents = computed<DisplayedLiveEvent[]>(() => {
+  const out: DisplayedLiveEvent[] = [];
+  for (const evt of liveEvents.value) {
+    const last = out[out.length - 1];
+    if (
+      last &&
+      last.source === evt.source &&
+      (last.commandPreview ?? '') === (evt.commandPreview ?? '') &&
+      // sólo colapsamos output-del-modelo o llamadas idénticas a la misma tool
+      (isModelOutput(evt.source) || last.toolName === evt.toolName)
+    ) {
+      last.count += 1;
+      last.tokens += evt.tokens;
+      if (evt.shadowDelta != null) {
+        last.shadowDelta = (last.shadowDelta ?? 0) + evt.shadowDelta;
+      }
+      // mantener el ts más reciente (el primero del grupo, ya que el feed va desc)
+      continue;
+    }
+    out.push({ ...evt, count: 1 });
+  }
+  return out;
+});
+
 // Per-source live counter: increments each time an event of that source fires.
 // Resets to 0 on view mount so the user sees fresh numbers from "now".
 const liveCounts = ref<Record<string, number>>({
@@ -519,7 +552,7 @@ const optimizationScore = computed(() => {
         </div>
         <div v-else class="max-h-60 overflow-y-auto space-y-1 pr-1">
           <div
-            v-for="evt in liveEvents"
+            v-for="evt in displayedLiveEvents"
             :key="evt.id"
             class="flex items-center gap-2 text-[11px] font-mono bg-bg border border-border rounded px-2 py-1.5"
           >
@@ -541,8 +574,13 @@ const optimizationScore = computed(() => {
                 {{ evt.toolName }}
                 <span v-if="evt.commandPreview" class="text-muted ml-1">— {{ evt.commandPreview }}</span>
               </template>
+              <span
+                v-if="evt.count > 1"
+                class="ml-1 text-[10px] text-muted"
+                :title="`${evt.count} eventos consecutivos agrupados`"
+              >×{{ evt.count }}</span>
             </span>
-            <span class="text-muted w-20 text-right" :title="'~' + formatTokens(evt.tokens) + ' tokens (estimado chars × 0.27)'">~{{ formatTokens(evt.tokens) }} tok</span>
+            <span class="text-muted w-20 text-right" :title="evt.count > 1 ? `~${formatTokens(evt.tokens)} tokens totales de ${evt.count} eventos (estimado chars × 0.27)` : '~' + formatTokens(evt.tokens) + ' tokens (estimado chars × 0.27)'">~{{ formatTokens(evt.tokens) }} tok</span>
             <span
               v-if="evt.shadowDelta != null && evt.shadowDelta > 0"
               class="text-green/70 w-28 text-right"

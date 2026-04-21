@@ -28,6 +28,9 @@ export class Queries {
     'last_message', 'topic', 'event_count', 'skills', 'mcps', 'agents',
     'transcript_path', 'transcript_offset', 'input_tokens', 'output_tokens',
     'last_parsed_message_id',
+    // permitidos para reemplazar datos de una fila placeholder creada por
+    // ensureOptimizerSession cuando el hook HTTP oficial llega después
+    'project_path', 'project_name',
   ]);
 
   updateSession(id: string, fields: Record<string, unknown>): void {
@@ -322,11 +325,47 @@ export class Queries {
    * dashboard — evita duplicados en el live feed cuando hay re-entry de
    * hooks o colisión entre watcher y HTTP POST.
    */
+  /**
+   * Inserta una fila placeholder en `sessions` para el event.session_id si no
+   * existe. Usado por la mirror del watcher: los tool_calls de token-optimizer
+   * pueden referir session_ids que xray aún no ha visto por hooks HTTP.
+   *
+   * Valores fallback cuando el event no trae project info:
+   *   project_path = '<unknown>' · project_name = '(optimizer-only)'
+   *   status = 'stopped' (no la marcamos activa — xray no la tracea)
+   */
+  private ensureOptimizerSession(event: TokenOptimizerEvent): void {
+    if (!event.session_id) return;
+    this.db.prepare(`
+      INSERT OR IGNORE INTO sessions (
+        id, project_path, project_name, model, status,
+        started_at, last_event_at
+      )
+      VALUES (?, ?, ?, ?, 'stopped', ?, ?)
+    `).run(
+      event.session_id,
+      event.project_path ?? '<unknown>',
+      event.project_name ?? '(optimizer-only)',
+      null, // model unknown from tool_calls row
+      event.created_at,
+      event.created_at,
+    );
+  }
+
   insertOptimizationEvent(event: TokenOptimizerEvent): boolean {
     // INSERT OR IGNORE + UNIQUE INDEX en input_hash: si el watcher y el hook
     // HTTP envían el mismo evento (ambos ocurren en arranque de sesión), el
     // segundo queda silenciado. Sin esto, la mirror tenía hasta 3-4× más
     // events que la source DB.
+
+    // Garantizamos una fila placeholder en `sessions` antes de insertar — la
+    // FK `optimization_events.session_id → sessions(id)` rechazaba eventos
+    // mirror-eados desde el DB global de token-optimizer cuando la sesión no
+    // existía aún en xray (p.ej. calls de Serena durante arranque). Resultado:
+    // Serena aparecía siempre en 0. INSERT OR IGNORE es idempotente; si el hook
+    // oficial crea la sesión más tarde, se mantiene su fila.
+    this.ensureOptimizerSession(event);
+
     const res = this.db.prepare(`
       INSERT OR IGNORE INTO optimization_events (session_id, tool_name, source, tokens_estimated, output_bytes, duration_ms, estimation_method, input_hash, created_at, project_path, project_name, command_preview, shadow_delta_tokens)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -364,6 +403,27 @@ export class Queries {
       .get() as { max_id: number | null } | undefined;
     if (!row || row.max_id === null || row.max_id === undefined) return null;
     return row.max_id > 0 ? row.max_id : null;
+  }
+
+  /**
+   * Set de source_ids ya presentes en el mirror dentro del rango [fromId, toId].
+   * Usado por la reconciliación del watcher para detectar huecos históricos
+   * (filas que fallaron INSERT en pasadas anteriores — típicamente por la FK
+   * antes del fix de ensureOptimizerSession — y quedaron perdidas porque
+   * lastId avanza en error).
+   */
+  getMirroredSourceIdsInRange(fromId: number, toId: number): Set<number> {
+    const rows = this.db
+      .prepare(
+        `SELECT CAST(input_hash AS INTEGER) as sid
+         FROM optimization_events
+         WHERE input_hash GLOB '[0-9]*'
+           AND CAST(input_hash AS INTEGER) BETWEEN ? AND ?`,
+      )
+      .all(fromId, toId) as Array<{ sid: number }>;
+    const set = new Set<number>();
+    for (const r of rows) set.add(r.sid);
+    return set;
   }
 
   /**

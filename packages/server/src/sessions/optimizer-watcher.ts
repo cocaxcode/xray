@@ -224,9 +224,93 @@ export function createOptimizerWatcher(opts: OptimizerWatcherOptions): Optimizer
     }
   }
 
+  /**
+   * Reconciliación histórica: detecta filas en la source DB que nunca llegaron
+   * al mirror (porque el INSERT falló en pasadas anteriores — típico de la FK
+   * pre-fix `optimization_events.session_id → sessions(id)`). Al avanzar
+   * `lastId` incluso en error, esas filas quedaban permanentemente saltadas.
+   *
+   * Escanea el rango [minSourceId, maxMirroredId] buscando ids ausentes en el
+   * mirror y los re-inserta. Idempotente via UNIQUE INDEX en input_hash.
+   *
+   * Coste: O(rangoSource) una vez al arranque. No corre si el mirror está
+   * vacío (allí `runOnce` ya hace backfill completo).
+   */
+  function reconcileGaps(): number {
+    const db = openSource();
+    if (!db) return 0;
+
+    const maxMirrored = opts.queries.getMaxMirroredSourceId();
+    if (maxMirrored === null || maxMirrored <= 0) return 0;
+
+    const minRow = db.prepare(`SELECT MIN(id) as min_id FROM tool_calls`).get() as
+      | { min_id: number | null }
+      | undefined;
+    const minSourceId = minRow?.min_id ?? null;
+    if (minSourceId === null) return 0;
+
+    const mirroredSet = opts.queries.getMirroredSourceIdsInRange(minSourceId, maxMirrored);
+    const expectedCount = maxMirrored - minSourceId + 1;
+    if (mirroredSet.size >= expectedCount) return 0; // nada que reconciliar
+
+    // Detectar columnas opcionales (mismo flag logic que runOnce)
+    const cols = db.prepare(`PRAGMA table_info('tool_calls')`).all() as Array<{ name: string }>;
+    const colNames = new Set(cols.map((c) => c.name));
+    const hasCmdPreview = colNames.has('command_preview');
+    const hasShadow = colNames.has('shadow_delta_tokens');
+    const cmdExpr = hasCmdPreview ? 'command_preview' : 'null as command_preview';
+    const shadowExpr = hasShadow ? 'shadow_delta_tokens' : 'null as shadow_delta_tokens';
+    const selectCols =
+      `id, session_id, tool_name, source, output_bytes, tokens_estimated,
+       tokens_actual, duration_ms, estimation_method, ${cmdExpr}, ${shadowExpr}, created_at`;
+
+    // Traer en chunks para no cargar miles de filas a la vez.
+    const CHUNK = 500;
+    let recovered = 0;
+    let cursor = minSourceId - 1;
+    while (cursor < maxMirrored) {
+      const chunk = db
+        .prepare(
+          `SELECT ${selectCols}
+           FROM tool_calls
+           WHERE id > ? AND id <= ?
+           ORDER BY id ASC
+           LIMIT ?`,
+        )
+        .all(cursor, maxMirrored, CHUNK) as ToolCallRow[];
+      if (chunk.length === 0) break;
+      for (const row of chunk) {
+        if (mirroredSet.has(row.id)) continue;
+        try {
+          opts.queries.insertOptimizationEvent(mapRowToEvent(row));
+          recovered++;
+        } catch (err) {
+          log('optimizer-watcher: reconcile insert failed', {
+            id: row.id,
+            err: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      cursor = chunk[chunk.length - 1]!.id;
+    }
+
+    if (recovered > 0) {
+      log('optimizer-watcher: reconciled historic gaps', { recovered });
+    }
+    return recovered;
+  }
+
   return {
     start(): void {
       if (timer) return;
+      // Pasada de reconciliación histórica (una sola vez por proceso).
+      try {
+        reconcileGaps();
+      } catch (err) {
+        log('optimizer-watcher: reconcile pass failed', {
+          err: err instanceof Error ? err.message : String(err),
+        });
+      }
       // Kick once immediately so the dashboard is never stale on reload.
       runOnce();
       timer = setInterval(runOnce, intervalMs);

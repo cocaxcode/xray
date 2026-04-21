@@ -50,12 +50,17 @@ export class SessionManager {
     const projectName = this.extractProjectName(payload.cwd);
 
     if (this.queries.sessionExists(payload.session_id)) {
-      // Session resume (compact, clear, etc)
+      // Session resume (compact, clear, etc) — o upgrade de una fila
+      // placeholder creada por ensureOptimizerSession (project_path/name
+      // fallback a '<unknown>' / '(optimizer-only)'). Pasamos siempre el
+      // project real para pisar el placeholder si procede.
       const updates: Record<string, unknown> = {
         model: payload.model,
         status: 'active',
         last_event_at: new Date().toISOString(),
         transcript_path: payload.transcript_path,
+        project_path: projectPath,
+        project_name: projectName,
       };
 
       if (payload.source === 'compact') {
