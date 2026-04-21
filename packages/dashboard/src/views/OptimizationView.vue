@@ -147,22 +147,25 @@ let liveCounter = 0;
  */
 interface DisplayedLiveEvent extends LiveEvent {
   count: number;
+  /** true cuando el grupo mezcla `thinking` y `response` del mismo modelo. */
+  mixedModelOutput?: boolean;
 }
 const displayedLiveEvents = computed<DisplayedLiveEvent[]>(() => {
   const out: DisplayedLiveEvent[] = [];
   for (const evt of liveEvents.value) {
     const last = out[out.length - 1];
-    if (
-      last &&
-      last.source === evt.source &&
-      (last.commandPreview ?? '') === (evt.commandPreview ?? '') &&
-      // sólo colapsamos output-del-modelo o llamadas idénticas a la misma tool
-      (isModelOutput(evt.source) || last.toolName === evt.toolName)
-    ) {
+    const samePreview = last && (last.commandPreview ?? '') === (evt.commandPreview ?? '');
+    const bothModelOutput = last && isModelOutput(last.source) && isModelOutput(evt.source);
+    const sameTool = last && last.source === evt.source && last.toolName === evt.toolName;
+
+    if (last && samePreview && (bothModelOutput || sameTool)) {
       last.count += 1;
       last.tokens += evt.tokens;
       if (evt.shadowDelta != null) {
         last.shadowDelta = (last.shadowDelta ?? 0) + evt.shadowDelta;
+      }
+      if (bothModelOutput && last.source !== evt.source) {
+        last.mixedModelOutput = true;
       }
       // mantener el ts más reciente (el primero del grupo, ya que el feed va desc)
       continue;
@@ -171,6 +174,10 @@ const displayedLiveEvents = computed<DisplayedLiveEvent[]>(() => {
   }
   return out;
 });
+
+function liveEventLabel(evt: DisplayedLiveEvent): string {
+  return evt.mixedModelOutput ? 'Modelo' : sourceLabel(evt.source);
+}
 
 // Per-source live counter: increments each time an event of that source fires.
 // Resets to 0 on view mount so the user sees fresh numbers from "now".
@@ -564,7 +571,7 @@ const optimizationScore = computed(() => {
               class="w-20 text-[10px] uppercase tracking-wide shrink-0"
               :style="{ color: sourceColor(evt.source) }"
             >
-              {{ sourceLabel(evt.source) }}
+              {{ liveEventLabel(evt) }}
             </span>
             <span class="flex-1 text-text truncate">
               <template v-if="isModelOutput(evt.source)">
