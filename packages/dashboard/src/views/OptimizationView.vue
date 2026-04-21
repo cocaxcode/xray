@@ -199,7 +199,7 @@ const displayedLiveEvents = computed<DisplayedLiveEvent[]>(() => {
 });
 
 function liveEventLabel(evt: DisplayedLiveEvent): string {
-  return evt.mixedModelOutput ? 'Modelo' : sourceLabel(evt.source);
+  return evt.mixedModelOutput ? 'Thinking' : sourceLabel(evt.source);
 }
 
 // Per-source live counter: increments each time an event of that source fires.
