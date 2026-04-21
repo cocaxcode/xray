@@ -366,7 +366,7 @@ export class HookHandlers {
 
   private insertTurnEvent(
     session: { id: string; projectPath?: string; projectName?: string },
-    _messageId: string,
+    messageId: string,
     timestamp: string,
     data: { source: 'thinking' | 'response'; tool_name: string; chars: number; input_hash: string; command_preview: string },
   ): void {
@@ -399,6 +399,7 @@ export class HookHandlers {
         tokens: event.tokens_estimated,
         toolName: event.tool_name,
         commandPreview: event.command_preview,
+        turnId: messageId,
       },
     });
   }
@@ -423,6 +424,7 @@ export class HookHandlers {
       this.queries.insertOptimizationEvent(event);
     }
 
+    const turnId = deriveTurnId(event.source, event.input_hash);
     this.broadcast({
       type: 'optimization:event',
       data: {
@@ -432,6 +434,7 @@ export class HookHandlers {
         toolName: event.tool_name,
         ...(event.command_preview !== undefined && { commandPreview: event.command_preview }),
         ...(event.shadow_delta_tokens != null && { shadowDelta: event.shadow_delta_tokens }),
+        ...(turnId !== undefined && { turnId }),
       },
     });
   }
@@ -469,4 +472,17 @@ function simplifyModel(model: string): string {
   const m = model.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)/);
   if (!m) return model;
   return `${m[1]}-${m[2]}.${m[3]}`;
+}
+
+/**
+ * Extrae el messageId del turn a partir del input_hash de un evento
+ * thinking/response (formato `thinking:{id}` / `response:{id}`). Devuelve
+ * undefined para otras sources o hashes sin ese prefijo.
+ */
+export function deriveTurnId(source: string, inputHash: string | null | undefined): string | undefined {
+  if (source !== 'thinking' && source !== 'response') return undefined;
+  if (!inputHash) return undefined;
+  const idx = inputHash.indexOf(':');
+  if (idx < 0) return undefined;
+  return inputHash.slice(idx + 1) || undefined;
 }

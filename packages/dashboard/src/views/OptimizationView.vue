@@ -51,6 +51,9 @@ interface LiveEvent {
    * con cable rtk-reader. Ausente en builtin/mcp/own/xray.
    */
   shadowDelta?: number;
+  /** messageId del turn — presente sólo en source=thinking|response. Permite
+   * colapsar el par thinking+response de una misma respuesta en una fila. */
+  turnId?: string;
   ts: number;
 }
 
@@ -152,25 +155,45 @@ interface DisplayedLiveEvent extends LiveEvent {
 }
 const displayedLiveEvents = computed<DisplayedLiveEvent[]>(() => {
   const out: DisplayedLiveEvent[] = [];
+  // índice de filas del mismo turn (thinking+response de la misma respuesta)
+  // para poder fusionarlas aunque no lleguen consecutivas.
+  const byTurn = new Map<string, DisplayedLiveEvent>();
   for (const evt of liveEvents.value) {
+    // 1) Merge por turnId: thinking + response de la misma respuesta del
+    //    modelo colapsan en una única fila, aunque lleguen separadas.
+    if (evt.turnId && isModelOutput(evt.source)) {
+      const existing = byTurn.get(evt.turnId);
+      if (existing) {
+        existing.count += 1;
+        existing.tokens += evt.tokens;
+        if (evt.shadowDelta != null) {
+          existing.shadowDelta = (existing.shadowDelta ?? 0) + evt.shadowDelta;
+        }
+        if (existing.source !== evt.source) {
+          existing.mixedModelOutput = true;
+        }
+        continue;
+      }
+    }
+
+    // 2) Merge consecutivo por (source, preview) para tools repetidas.
     const last = out[out.length - 1];
     const samePreview = last && (last.commandPreview ?? '') === (evt.commandPreview ?? '');
-    const bothModelOutput = last && isModelOutput(last.source) && isModelOutput(evt.source);
     const sameTool = last && last.source === evt.source && last.toolName === evt.toolName;
-
-    if (last && samePreview && (bothModelOutput || sameTool)) {
+    if (last && samePreview && sameTool && !isModelOutput(evt.source)) {
       last.count += 1;
       last.tokens += evt.tokens;
       if (evt.shadowDelta != null) {
         last.shadowDelta = (last.shadowDelta ?? 0) + evt.shadowDelta;
       }
-      if (bothModelOutput && last.source !== evt.source) {
-        last.mixedModelOutput = true;
-      }
-      // mantener el ts más reciente (el primero del grupo, ya que el feed va desc)
       continue;
     }
-    out.push({ ...evt, count: 1 });
+
+    const row: DisplayedLiveEvent = { ...evt, count: 1 };
+    out.push(row);
+    if (evt.turnId && isModelOutput(evt.source)) {
+      byTurn.set(evt.turnId, row);
+    }
   }
   return out;
 });
@@ -235,6 +258,7 @@ onMounted(() => {
       toolName: string;
       commandPreview?: string;
       shadowDelta?: number;
+      turnId?: string;
     };
 
     liveCounter++;
@@ -246,6 +270,7 @@ onMounted(() => {
       toolName: evt.toolName,
       commandPreview: evt.commandPreview,
       shadowDelta: evt.shadowDelta,
+      turnId: evt.turnId,
       ts: Date.now(),
     };
     liveEvents.value = [next, ...liveEvents.value].slice(0, 30);
