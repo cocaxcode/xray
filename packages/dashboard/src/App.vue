@@ -12,6 +12,7 @@ import SettingsDrawer from './components/SettingsDrawer.vue';
 import PanelView from './views/PanelView.vue';
 import SceneView from './views/SceneView.vue';
 import OptimizationView from './views/OptimizationView.vue';
+import EngramView from './views/EngramView.vue';
 
 const { handleQrAuth, token, checkAuth } = useAuth();
 const { connect, onMessage } = useWebSocket();
@@ -77,6 +78,9 @@ function onAuthenticated(): void {
     />
     <OptimizationView
       v-else-if="viewMode === 'optimization'"
+    />
+    <EngramView
+      v-else-if="viewMode === 'engram'"
     />
     <SceneView
       v-else

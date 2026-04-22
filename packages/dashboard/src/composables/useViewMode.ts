@@ -10,7 +10,7 @@ const current = ref<ViewMode>(localStorage.getItem(STORAGE_KEY) || 'panel');
 const availableTemplates = ref<TemplateMeta[]>([]);
 
 function setView(mode: ViewMode): void {
-  if (mode !== 'panel' && mode !== 'optimization') {
+  if (mode !== 'panel' && mode !== 'optimization' && mode !== 'engram') {
     // Verify template exists
     const exists = availableTemplates.value.some(t => t.name.toLowerCase().replace(/\s+/g, '-') === mode);
     if (!exists) {

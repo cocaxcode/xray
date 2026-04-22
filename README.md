@@ -31,6 +31,7 @@ xray fixes all of that — in three views, from one dashboard, updated live.
 - **Never miss a permission again.** Approvals live in the dashboard. One click. Or flip on **Auto-approve** and forget they exist.
 - **Know exactly where your tokens are going.** The Optimization view shows a live breakdown by tool category, estimates how much Serena and RTK saved you, and gives you an optimization score — all updated as Claude works.
 - **Make it fun.** Switch to the Warriors view and watch your sessions fight goblin camps that grow with your token usage. Same data. Pixel-art RPG.
+- **Browse your AI's memory.** If you use [engram](https://github.com/Gentleman-Programming/engram), the Engram view turns every saved decision, bug fix and learning into a searchable, faceted browser — right next to your live sessions.
 - **100% local.** Your code never leaves your machine. SQLite database, Fastify server, Vue dashboard. No cloud. No telemetry.
 - **Access it from your phone.** Scan a QR, type a 6-digit PIN, and approve permissions from the couch.
 
@@ -114,6 +115,32 @@ The Optimization view connects to [token-optimizer MCP](https://github.com/cocax
 - **Date range filters** — preset buttons (Today, 7 days, 30 days, All) plus custom from/to date pickers. The entire view re-fetches on filter change.
 
 No token-optimizer installed? The view still loads but shows no data — you can install it later without any xray changes.
+
+### The Engram view — your AI's long-term memory, indexed
+
+Claude forgets. [**Engram**](https://github.com/Gentleman-Programming/engram) — by [Gentleman Programming](https://github.com/Gentleman-Programming) — fixes that: a persistent memory layer that saves decisions, bug fixes, architecture notes and learnings across every session, searchable from any Claude Code conversation.
+
+xray plugs straight into it. If you have engram installed, the **Engram view** reads its SQLite store directly (read-only, zero risk) and turns it into a full memory browser:
+
+- **Full-text search (FTS5)** across every observation — title, content, tool, type. Debounced as you type.
+- **Faceted filters** — pick any combination of project, type (`decision`, `bugfix`, `architecture`, `pattern`, `discovery`, `config`, `learning`, `session_summary`…), and scope (`project` or `personal`). Counts update live.
+- **Four tabs**, one dataset:
+  - **Observaciones** — every memory entry with type badge, project, topic, revision count, and creation date.
+  - **Sesiones** — every engram session with obs/prompt counts and a one-click filter to drill into its observations.
+  - **Prompts** — every user prompt engram has captured, FTS-searchable, cross-linked to its session.
+  - **Topics** — `topic_key`-grouped view showing how many times each topic has been revised and when it was last touched.
+- **30-day activity sparkline** — observations and prompts per day, stacked, filtered by the current project.
+- **Detail drawer** — click any observation to see full content, full metadata, and cross-links to its session and topic.
+- **Live status** — shows whether the engram HTTP server is up on `:7437`, its version, and the size of `~/.engram/engram.db`.
+
+No engram installed? The view shows a zero-state with the exact commands to install it. No xray changes needed once you do:
+
+```bash
+go install github.com/Gentleman-Programming/engram/cmd/engram@latest
+engram setup claude-code
+```
+
+Then open xray and click **Engram** in the top bar. Every memory Claude has saved — instantly searchable.
 
 ### Real tokens, not guesses
 

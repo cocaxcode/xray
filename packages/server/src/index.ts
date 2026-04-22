@@ -16,6 +16,7 @@ import { HookHandlers } from './hooks/handlers.js';
 import { PermissionHandler } from './hooks/permission.js';
 import { registerHookRoutes } from './hooks/router.js';
 import { registerApiRoutes } from './api/routes.js';
+import { registerEngramRoutes } from './engram/routes.js';
 import { registerWebSocket, createBroadcast } from './websocket.js';
 import { createOptimizerWatcher } from './sessions/optimizer-watcher.js';
 import { registerAuthMiddleware } from './auth/middleware.js';
@@ -71,6 +72,7 @@ export async function startServer(options: CliOptions): Promise<void> {
   registerHookRoutes(fastify, handlers, permissionHandler, manager, broadcast);
   registerApiRoutes(fastify, queries, manager, permissionHandler, authState, broadcast);
   registerConfigRoutes(fastify, db, queries, broadcast);
+  registerEngramRoutes(fastify);
 
   // Staleness check every 5 minutes
   const stalenessInterval = setInterval(() => {

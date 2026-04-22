@@ -87,6 +87,13 @@ function toggleSearch(): void {
         Tokens
       </button>
       <button
+        @click="setView('engram')"
+        class="text-[10px] font-mono px-2 py-1 rounded transition-colors"
+        :class="viewMode === 'engram' ? 'bg-purple/20 text-purple' : 'text-muted hover:text-text'"
+      >
+        Engram
+      </button>
+      <button
         v-for="template in availableTemplates"
         :key="template.name"
         @click="setView(template.name.toLowerCase().replace(/\s+/g, '-'))"
