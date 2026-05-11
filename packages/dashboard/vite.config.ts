@@ -2,9 +2,15 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+
+const rootPkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8')) as { version: string };
 
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  define: {
+    __APP_VERSION__: JSON.stringify(rootPkg.version),
+  },
   build: {
     outDir: resolve(__dirname, '../server/dist/dashboard'),
     emptyOutDir: true,

@@ -6,6 +6,8 @@ const emit = defineEmits<{ close: [] }>();
 const { config, saveConfig } = useConfig();
 const { isDark, toggle: toggleTheme } = useTheme();
 
+const version = __APP_VERSION__;
+
 async function setTheme(theme: 'dark' | 'light' | 'auto'): Promise<void> {
   await saveConfig({ dashboard: { theme } });
   if (theme === 'dark') { if (!isDark.value) toggleTheme(); }
@@ -33,9 +35,9 @@ async function updateSetting(key: string, value: unknown): Promise<void> {
   <div class="fixed inset-0 z-50 flex justify-end" @click.self="emit('close')">
     <div class="absolute inset-0 bg-black/40" @click="emit('close')" />
 
-    <div class="relative w-80 h-full bg-surface border-l border-border overflow-y-auto">
+    <div class="relative w-80 h-full bg-surface border-l border-border flex flex-col">
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 bg-surface z-10">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-surface z-10 shrink-0">
         <h2 class="text-sm font-heading font-semibold text-text">Configuracion</h2>
         <button @click="emit('close')" class="text-muted hover:text-text p-1">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,7 +46,7 @@ async function updateSetting(key: string, value: unknown): Promise<void> {
         </button>
       </div>
 
-      <div v-if="config" class="p-4 space-y-6">
+      <div v-if="config" class="p-4 space-y-6 overflow-y-auto flex-1">
         <!-- Server -->
         <section>
           <h3 class="text-xs font-mono text-muted uppercase tracking-wider mb-3">Servidor</h3>
@@ -196,6 +198,11 @@ async function updateSetting(key: string, value: unknown): Promise<void> {
             </div>
           </div>
         </section>
+      </div>
+
+      <!-- Footer: version -->
+      <div class="shrink-0 border-t border-border px-4 py-3 text-center bg-surface">
+        <span class="text-[10px] font-mono text-muted">xray v{{ version }}</span>
       </div>
     </div>
   </div>
