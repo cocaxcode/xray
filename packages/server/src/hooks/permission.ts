@@ -9,6 +9,14 @@ interface DeferredPermission {
 
 const PERMISSION_TIMEOUT_MS = 540_000; // 9 minutos
 
+// Tools que representan preguntas explícitas al usuario sobre qué camino tomar.
+// Nunca deben auto-aprobarse aunque el toggle global esté activo: el sentido
+// de estos tools es justamente esperar la decisión humana.
+const NEVER_AUTO_APPROVE = new Set<string>([
+  'AskUserQuestion',
+  'ExitPlanMode',
+]);
+
 export class PermissionHandler {
   private pending = new Map<number, DeferredPermission>();
   private queries: Queries;
@@ -24,6 +32,11 @@ export class PermissionHandler {
   set autoApprove(val: boolean) {
     this._autoApprove = val;
     console.log(`[xray] Auto-approve set to: ${val}`);
+  }
+
+  /** True si una solicitud para `toolName` será auto-aprobada con el estado actual. */
+  willAutoApprove(toolName: string): boolean {
+    return this._autoApprove && !NEVER_AUTO_APPROVE.has(toolName);
   }
 
   /**
@@ -52,7 +65,10 @@ export class PermissionHandler {
 
     // Auto-approve: resolve immediately without waiting
     console.log(`[xray] Permission request: tool=${toolName}, autoApprove=${this._autoApprove}`);
-    if (this._autoApprove) {
+    if (this._autoApprove && NEVER_AUTO_APPROVE.has(toolName)) {
+      console.log(`[xray] Skipping auto-approve for ${toolName} — explicit user question`);
+    }
+    if (this.willAutoApprove(toolName)) {
       console.log(`[xray] Auto-approving permission #${permissionId} for ${toolName}`);
       this.queries.updatePermission(permissionId, 'approved');
       this.broadcast({ type: 'permission:auto-approved', data: permission });

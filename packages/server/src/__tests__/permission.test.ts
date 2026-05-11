@@ -107,6 +107,61 @@ describe('Permission Duplicate', () => {
   });
 });
 
+describe('Auto-approve exclusions', () => {
+  it('auto-approves Bash immediately when autoApprove is on', async () => {
+    handler.autoApprove = true;
+    const result = await handler.handlePermissionRequest('sess-001', 'Bash', { command: 'ls' });
+    const output = (result as { hookSpecificOutput: { decision: { behavior: string } } }).hookSpecificOutput;
+    expect(output.decision.behavior).toBe('allow');
+    expect(broadcastedEvents.some(e => e.type === 'permission:auto-approved')).toBe(true);
+  });
+
+  it('does NOT auto-approve AskUserQuestion even when autoApprove is on', async () => {
+    handler.autoApprove = true;
+    const resultPromise = handler.handlePermissionRequest('sess-001', 'AskUserQuestion', { questions: [] });
+
+    await new Promise(r => setTimeout(r, 10));
+
+    // Should be pending, not auto-approved
+    expect(broadcastedEvents.some(e => e.type === 'permission:auto-approved')).toBe(false);
+    const pending = broadcastedEvents.find(e => e.type === 'permission:pending');
+    expect(pending).toBeDefined();
+
+    const pendingData = pending!.data as { id: number };
+    handler.resolvePermission(pendingData.id, 'approve');
+    const result = await resultPromise;
+    const output = (result as { hookSpecificOutput: { decision: { behavior: string } } }).hookSpecificOutput;
+    expect(output.decision.behavior).toBe('allow');
+  });
+
+  it('does NOT auto-approve ExitPlanMode even when autoApprove is on', async () => {
+    handler.autoApprove = true;
+    const resultPromise = handler.handlePermissionRequest('sess-001', 'ExitPlanMode', {});
+
+    await new Promise(r => setTimeout(r, 10));
+
+    expect(broadcastedEvents.some(e => e.type === 'permission:auto-approved')).toBe(false);
+    expect(broadcastedEvents.some(e => e.type === 'permission:pending')).toBe(true);
+
+    const pendingData = broadcastedEvents.find(e => e.type === 'permission:pending')!.data as { id: number };
+    handler.resolvePermission(pendingData.id, 'deny');
+    const result = await resultPromise;
+    const output = (result as { hookSpecificOutput: { decision: { behavior: string } } }).hookSpecificOutput;
+    expect(output.decision.behavior).toBe('deny');
+  });
+
+  it('willAutoApprove reflects toggle and exclusion list', () => {
+    handler.autoApprove = false;
+    expect(handler.willAutoApprove('Bash')).toBe(false);
+    expect(handler.willAutoApprove('AskUserQuestion')).toBe(false);
+
+    handler.autoApprove = true;
+    expect(handler.willAutoApprove('Bash')).toBe(true);
+    expect(handler.willAutoApprove('AskUserQuestion')).toBe(false);
+    expect(handler.willAutoApprove('ExitPlanMode')).toBe(false);
+  });
+});
+
 describe('Permission Cleanup', () => {
   it('should resolve all pending on cleanup', async () => {
     const resultPromise = handler.handlePermissionRequest(

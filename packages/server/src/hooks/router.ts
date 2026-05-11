@@ -105,19 +105,22 @@ export function registerHookRoutes(
     try {
       ensureSession(payload);
 
-      // Skip waiting_permission state when auto-approve is active
-      if (!permissionHandler.autoApprove) {
+      const toolName = payload.tool_name as string;
+      const willAutoApprove = permissionHandler.willAutoApprove(toolName);
+
+      // Skip waiting_permission state when this specific request will be auto-approved
+      if (!willAutoApprove) {
         manager.transitionTo(sessionId, 'waiting_permission');
         broadcast({ type: 'session:update', data: { id: sessionId, status: 'waiting_permission' } });
       }
 
       const response = await permissionHandler.handlePermissionRequest(
         sessionId,
-        payload.tool_name as string,
+        toolName,
         (payload.tool_input as Record<string, unknown>) ?? {},
       );
 
-      if (!permissionHandler.autoApprove) {
+      if (!willAutoApprove) {
         manager.transitionTo(sessionId, 'active');
         broadcast({ type: 'session:update', data: { id: sessionId, status: 'active' } });
       }
