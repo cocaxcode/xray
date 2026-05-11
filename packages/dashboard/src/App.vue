@@ -6,9 +6,11 @@ import { useSessions } from './composables/useSessions';
 import { useConfig } from './composables/useConfig';
 import { useViewMode } from './composables/useViewMode';
 import { useAutoApprove } from './composables/useAutoApprove';
+import { useUserQuestions } from './composables/useUserQuestions';
 import TopBar from './components/TopBar.vue';
 import AuthPrompt from './components/AuthPrompt.vue';
 import SettingsDrawer from './components/SettingsDrawer.vue';
+import UserQuestionToasts from './components/UserQuestionToasts.vue';
 import PanelView from './views/PanelView.vue';
 import SceneView from './views/SceneView.vue';
 import OptimizationView from './views/OptimizationView.vue';
@@ -20,6 +22,7 @@ const { handleWSEvent, loadInitialState } = useSessions();
 const { loadConfig } = useConfig();
 const { current: viewMode, loadAvailableTemplates } = useViewMode();
 const { fetchState: fetchAutoApprove, setFromWS } = useAutoApprove();
+const { add: addUserQuestion } = useUserQuestions();
 
 const authMode = ref<'loading' | 'local' | 'authenticated' | 'needs_auth'>('loading');
 const settingsOpen = ref(false);
@@ -42,6 +45,8 @@ function init(): void {
   onMessage((event) => {
     if (event.type === 'config:auto-approve') {
       setFromWS(event.data.enabled);
+    } else if (event.type === 'notification:question') {
+      addUserQuestion(event.data);
     }
   });
   loadInitialState(false);
@@ -92,5 +97,8 @@ function onAuthenticated(): void {
       v-if="settingsOpen"
       @close="settingsOpen = false"
     />
+
+    <!-- Floating toasts for explicit user questions from Claude -->
+    <UserQuestionToasts />
   </div>
 </template>

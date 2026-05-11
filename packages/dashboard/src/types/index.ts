@@ -162,8 +162,23 @@ export type ServerWSEvent =
   | { type: 'notification'; data: { sessionId: string; type: string; message: string } }
   | { type: 'config:auto-approve'; data: { enabled: boolean } }
   | { type: 'permission:auto-approved'; data: PendingPermission }
+  | { type: 'notification:question'; data: UserQuestionNotification }
   | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string; commandPreview?: string } }
   | { type: 'optimization:summary'; data: { sessionId: string } };
+
+export interface UserQuestionNotification {
+  id: string;
+  sessionId: string;
+  projectName?: string;
+  questionType: 'AskUserQuestion' | 'ExitPlanMode';
+  questions?: Array<{
+    question: string;
+    header?: string;
+    options: Array<{ label: string; description?: string }>;
+  }>;
+  plan?: string;
+  createdAt: string;
+}
 
 export type ClientWSEvent =
   | { type: 'permission:resolve'; data: { id: number; decision: 'approve' | 'deny' } };

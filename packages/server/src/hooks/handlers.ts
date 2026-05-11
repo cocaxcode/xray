@@ -68,6 +68,11 @@ export class HookHandlers {
     // Si llega un PreToolUse, cualquier permiso pendiente de esta sesion ya fue resuelto
     this.cleanupStalePermissions(payload.session_id);
 
+    // Si Claude esta haciendo una pregunta explicita al usuario, emitir
+    // notificacion flotante al dashboard. NO se puede responder desde xray
+    // (la respuesta va por stdin del terminal), solo notificar.
+    this.maybeBroadcastUserQuestion(payload);
+
     // Track active tool (in-memory for animated views)
     this.manager.setActiveTool(payload.session_id, {
       toolName: payload.tool_name,
@@ -446,6 +451,51 @@ export class HookHandlers {
       type: 'optimization:summary',
       data: { sessionId: summary.session_id },
     });
+  }
+
+  private maybeBroadcastUserQuestion(payload: PreToolUsePayload): void {
+    const tool = payload.tool_name;
+    if (tool !== 'AskUserQuestion' && tool !== 'ExitPlanMode') return;
+
+    const input = (payload.tool_input ?? {}) as Record<string, unknown>;
+    const session = this.manager.getSession(payload.session_id);
+
+    const base = {
+      id: `${payload.session_id}:${payload.tool_use_id ?? Date.now()}`,
+      sessionId: payload.session_id,
+      projectName: session?.projectName,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (tool === 'AskUserQuestion') {
+      const rawQuestions = Array.isArray(input.questions) ? input.questions : [];
+      const questions = rawQuestions.map((q) => {
+        const qq = q as Record<string, unknown>;
+        return {
+          question: String(qq.question ?? ''),
+          header: typeof qq.header === 'string' ? qq.header : undefined,
+          options: Array.isArray(qq.options)
+            ? (qq.options as Array<Record<string, unknown>>).map((o) => ({
+                label: String(o.label ?? ''),
+                description: typeof o.description === 'string' ? o.description : undefined,
+              }))
+            : [],
+        };
+      });
+      this.broadcast({
+        type: 'notification:question',
+        data: { ...base, questionType: 'AskUserQuestion', questions },
+      });
+    } else {
+      this.broadcast({
+        type: 'notification:question',
+        data: {
+          ...base,
+          questionType: 'ExitPlanMode',
+          plan: typeof input.plan === 'string' ? input.plan : '',
+        },
+      });
+    }
   }
 
   handleSessionEnd(sessionId: string): void {

@@ -224,8 +224,25 @@ export type ServerWSEvent =
   | { type: 'config:updated'; data: Record<string, unknown> }
   | { type: 'config:auto-approve'; data: { enabled: boolean } }
   | { type: 'permission:auto-approved'; data: PendingPermission }
+  | { type: 'notification:question'; data: UserQuestionNotification }
   | { type: 'optimization:event'; data: { sessionId: string; source: string; tokens: number; toolName: string; commandPreview?: string; shadowDelta?: number; turnId?: string } }
   | { type: 'optimization:summary'; data: { sessionId: string } };
+
+export interface UserQuestionNotification {
+  id: string;
+  sessionId: string;
+  projectName?: string;
+  questionType: 'AskUserQuestion' | 'ExitPlanMode';
+  /** Para AskUserQuestion: lista de preguntas con sus opciones. */
+  questions?: Array<{
+    question: string;
+    header?: string;
+    options: Array<{ label: string; description?: string }>;
+  }>;
+  /** Para ExitPlanMode: el texto del plan que Claude propone. */
+  plan?: string;
+  createdAt: string;
+}
 
 export type ClientWSEvent =
   | { type: 'permission:resolve'; data: { id: number; decision: 'approve' | 'deny' } };
