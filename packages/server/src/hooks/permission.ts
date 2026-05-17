@@ -183,23 +183,20 @@ export class PermissionHandler {
   }
 
   /**
-   * Limpia todos los permisos pendientes de una sesion.
-   * Limpia TANTO el Map en memoria COMO la base de datos.
+   * Limpia filas DB de permisos huérfanas de la sesion.
+   *
+   * Solo limpia entradas que NO tienen un deferred activo en memoria. Un
+   * deferred activo es un long-poll legítimo esperando la decisión del usuario
+   * en el dashboard; resolverlo equivale a auto-rechazar la petición (devolver
+   * `{}` a Claude Code = "sin decisión", que en subagentes es un deny directo).
+   * Con herramientas/subagentes en paralelo, un PreToolUse de otra herramienta
+   * no implica que el permiso pendiente ya se resolvió, así que nunca tocamos
+   * los long-polls vivos.
    */
   cleanupBySession(sessionId: string): void {
-    // 1. Limpiar del Map en memoria (deferred promises)
-    for (const [id, deferred] of this.pending) {
-      const perm = this.queries.getPendingPermission(id);
-      if (perm && perm.sessionId === sessionId) {
-        clearTimeout(deferred.timer);
-        this.pending.delete(id);
-        deferred.resolve({});
-      }
-    }
-
-    // 2. Limpiar de la DB — marcar como expired y notificar al dashboard
     const dbPending = this.queries.getPendingPermissionsBySession(sessionId);
     for (const perm of dbPending) {
+      if (this.pending.has(perm.id)) continue; // long-poll activo: no tocar
       this.queries.updatePermission(perm.id, 'expired');
       this.broadcast({ type: 'permission:resolved', data: { id: perm.id, decision: 'expired' } });
     }

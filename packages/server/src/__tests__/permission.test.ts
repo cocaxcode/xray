@@ -177,4 +177,33 @@ describe('Permission Cleanup', () => {
     const result = await resultPromise;
     expect(result).toEqual({}); // Empty = fallthrough
   });
+
+  it('cleanupBySession does NOT cancel an active long-poll permission', async () => {
+    const resultPromise = handler.handlePermissionRequest(
+      'sess-001',
+      'Edit',
+      { file_path: '/home/u/.claude/skills/foo/SKILL.md' },
+    );
+
+    await new Promise(r => setTimeout(r, 10));
+
+    const pendingData = broadcastedEvents.find(e => e.type === 'permission:pending')!.data as { id: number };
+
+    // A parallel PreToolUse triggers this — it must NOT resolve the live deferred.
+    handler.cleanupBySession('sess-001');
+
+    // Promise must still be pending: nothing resolved it.
+    let settled = false;
+    void resultPromise.then(() => { settled = true; });
+    await new Promise(r => setTimeout(r, 10));
+    expect(settled).toBe(false);
+
+    // The user can still approve it from the dashboard afterwards.
+    const resolved = handler.resolvePermission(pendingData.id, 'approve');
+    expect(resolved).toBe(true);
+
+    const result = await resultPromise;
+    const output = (result as { hookSpecificOutput: { decision: { behavior: string } } }).hookSpecificOutput;
+    expect(output.decision.behavior).toBe('allow');
+  });
 });
