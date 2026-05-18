@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
+import type Database from 'better-sqlite3';
 import type { Queries } from '../db/queries.js';
 import type { SessionManager } from '../sessions/manager.js';
 import type { PermissionHandler } from '../hooks/permission.js';
 import type { AuthState } from '../types.js';
+import { updateConfig } from '../db/config.js';
 import { validatePin, rotatePin } from '../auth/token.js';
 import { recordFailedPinAttempt, clearPinAttempts } from '../auth/middleware.js';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -19,6 +21,7 @@ export function registerApiRoutes(
   permissionHandler: PermissionHandler,
   authState: AuthState,
   broadcast?: (event: import('../types.js').ServerWSEvent) => void,
+  db?: Database.Database,
 ): void {
   // ── Projects (agrupados) ──
   fastify.get('/api/projects', async (request) => {
@@ -116,6 +119,10 @@ export function registerApiRoutes(
   fastify.post('/api/permissions/auto-approve', async (request) => {
     const { enabled } = request.body as { enabled: boolean };
     permissionHandler.autoApprove = !!enabled;
+    // Persistir en DB para que el toggle sobreviva a reinicios del servidor.
+    if (db) {
+      updateConfig(db, { permissions: { autoApproveEnabled: permissionHandler.autoApprove } });
+    }
     broadcast?.({ type: 'config:auto-approve', data: { enabled: permissionHandler.autoApprove } });
     return { enabled: permissionHandler.autoApprove };
   });

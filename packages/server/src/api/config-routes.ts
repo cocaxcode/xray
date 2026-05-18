@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type Database from 'better-sqlite3';
 import type { Queries } from '../db/queries.js';
+import type { PermissionHandler } from '../hooks/permission.js';
 import type { ServerWSEvent } from '../types.js';
 import { getConfig, updateConfig } from '../db/config.js';
 
@@ -9,6 +10,7 @@ export function registerConfigRoutes(
   db: Database.Database,
   queries: Queries,
   broadcast: (event: ServerWSEvent) => void,
+  permissionHandler?: PermissionHandler,
 ): void {
   // ── Get full config ──
   fastify.get('/api/config', async () => {
@@ -20,6 +22,11 @@ export function registerConfigRoutes(
     const updates = request.body as Record<string, unknown>;
     updateConfig(db, updates);
     const newConfig = getConfig(db);
+
+    // Sincronizar el PermissionHandler vivo con la config recién guardada.
+    if (permissionHandler) {
+      permissionHandler.autoApprove = newConfig.permissions.autoApproveEnabled;
+    }
 
     // Broadcast config update to all connected dashboards
     broadcast({ type: 'config:updated', data: newConfig as unknown as Record<string, unknown> });

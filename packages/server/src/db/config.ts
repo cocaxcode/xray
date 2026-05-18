@@ -19,6 +19,7 @@ export interface XrayConfig {
     mode: 'intercept' | 'observe';
     timeoutSeconds: number;
     autoApprove: string[];
+    autoApproveEnabled: boolean;
   };
   projects: {
     aliases: Record<string, string>;
@@ -46,7 +47,12 @@ const DEFAULTS: XrayConfig = {
   server: { domain: '' },
   dashboard: { theme: 'dark', compact: false, language: 'es' },
   sessions: { stalenessMinutes: 30, autoCleanupHours: 24, maxEvents: 500, truncateResponseBytes: 1024 },
-  permissions: { mode: 'intercept', timeoutSeconds: 120, autoApprove: [] },
+  permissions: {
+    mode: 'intercept',
+    timeoutSeconds: 120,
+    autoApprove: [],
+    autoApproveEnabled: false,
+  },
   projects: { aliases: {}, colors: {}, hidden: [] },
   display: { contextBar: true, tokens: true, mcps: true, skills: true, agents: true },
   data: { retentionEventsDays: 7, retentionSessionsHours: 24 },
@@ -89,6 +95,7 @@ export function getConfig(db: Database.Database): XrayConfig {
       mode: (stored['permissions.mode'] as XrayConfig['permissions']['mode']) || DEFAULTS.permissions.mode,
       timeoutSeconds: parseInt(stored['permissions.timeout_seconds'] || '') || DEFAULTS.permissions.timeoutSeconds,
       autoApprove: stored['permissions.auto_approve'] ? JSON.parse(stored['permissions.auto_approve']) : DEFAULTS.permissions.autoApprove,
+      autoApproveEnabled: stored['permissions.auto_approve_enabled'] === 'true',
     },
     projects: {
       aliases: stored['projects.aliases'] ? JSON.parse(stored['projects.aliases']) : DEFAULTS.projects.aliases,

@@ -96,39 +96,19 @@ export function registerHookRoutes(
     return {};
   });
 
-  // PermissionRequest — SINCRONO: mantiene conexion abierta para aprobar desde xray
-  // Limpieza de permisos stale via eventos (PreToolUse/Stop) — no via on('close')
+  // PermissionRequest — Xray responde al instante: aprueba (autoApprove ON) o
+  // se abstiene devolviendo {} (OFF) para que Claude Code pida permiso de forma nativa.
   fastify.post('/api/hook/permission-request', async (request) => {
     const payload = request.body as Record<string, unknown>;
     const sessionId = payload.session_id as string;
 
     try {
       ensureSession(payload);
-
       const toolName = payload.tool_name as string;
-      const willAutoApprove = permissionHandler.willAutoApprove(toolName);
-
-      // Skip waiting_permission state when this specific request will be auto-approved
-      if (!willAutoApprove) {
-        manager.transitionTo(sessionId, 'waiting_permission');
-        broadcast({ type: 'session:update', data: { id: sessionId, status: 'waiting_permission' } });
-      }
-
-      const response = await permissionHandler.handlePermissionRequest(
-        sessionId,
-        toolName,
-        (payload.tool_input as Record<string, unknown>) ?? {},
-      );
-
-      if (!willAutoApprove) {
-        manager.transitionTo(sessionId, 'active');
-        broadcast({ type: 'session:update', data: { id: sessionId, status: 'active' } });
-      }
-      return response;
+      const toolInput = (payload.tool_input as Record<string, unknown>) ?? {};
+      return await permissionHandler.handlePermissionRequest(sessionId, toolName, toolInput);
     } catch (e) {
       fastify.log.error(e, 'permission-request handler error');
-      permissionHandler.cleanupBySession(sessionId);
-      try { manager.transitionTo(sessionId, 'active'); } catch {}
       return {};
     }
   });

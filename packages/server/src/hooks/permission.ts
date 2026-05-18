@@ -7,11 +7,9 @@ interface DeferredPermission {
   permissionId: number;
 }
 
-const PERMISSION_TIMEOUT_MS = 540_000; // 9 minutos
-
 // Tools que representan preguntas explícitas al usuario sobre qué camino tomar.
-// Nunca deben auto-aprobarse aunque el toggle global esté activo: el sentido
-// de estos tools es justamente esperar la decisión humana.
+// Nunca se auto-aprueban aunque el toggle esté activo: Xray se abstiene y deja
+// que Claude Code los gestione de forma nativa.
 const NEVER_AUTO_APPROVE = new Set<string>([
   'AskUserQuestion',
   'ExitPlanMode',
@@ -23,9 +21,14 @@ export class PermissionHandler {
   private broadcast: (event: ServerWSEvent) => void;
   private _autoApprove = false;
 
-  constructor(queries: Queries, broadcast: (event: ServerWSEvent) => void) {
+  constructor(
+    queries: Queries,
+    broadcast: (event: ServerWSEvent) => void,
+    initialAutoApprove = false,
+  ) {
     this.queries = queries;
     this.broadcast = broadcast;
+    this._autoApprove = initialAutoApprove;
   }
 
   get autoApprove(): boolean { return this._autoApprove; }
@@ -40,19 +43,31 @@ export class PermissionHandler {
   }
 
   /**
-   * Maneja un PermissionRequest. Devuelve una Promise que se resuelve
-   * cuando el usuario responde o cuando expira el timeout.
+   * Maneja un PermissionRequest. Resuelve siempre de inmediato — Xray nunca
+   * rechaza por su cuenta:
+   *  - autoApprove ON  → aprueba (`behavior: 'allow'`).
+   *  - autoApprove OFF → se abstiene (`{}`); Claude Code muestra su prompt
+   *    nativo de permiso en la terminal.
+   * Los tools de NEVER_AUTO_APPROVE siempre se abstienen aunque el toggle esté ON.
    */
   async handlePermissionRequest(
     sessionId: string,
     toolName: string,
     toolInput: Record<string, unknown>
   ): Promise<PermissionResponse | Record<string, never>> {
+    console.log(`[xray] Permission request: tool=${toolName}, autoApprove=${this._autoApprove}`);
+
+    if (!this.willAutoApprove(toolName)) {
+      // Xray se abstiene: Claude Code pedirá el permiso de forma nativa.
+      return {};
+    }
+
     const permissionId = this.queries.insertPendingPermission(
       sessionId,
       toolName,
       JSON.stringify(toolInput)
     );
+    this.queries.updatePermission(permissionId, 'approved');
 
     const permission: PendingPermission = {
       id: permissionId,
@@ -62,44 +77,18 @@ export class PermissionHandler {
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
+    this.broadcast({ type: 'permission:auto-approved', data: permission });
+    console.log(`[xray] Auto-approving permission #${permissionId} for ${toolName}`);
 
-    // Auto-approve: resolve immediately without waiting
-    console.log(`[xray] Permission request: tool=${toolName}, autoApprove=${this._autoApprove}`);
-    if (this._autoApprove && NEVER_AUTO_APPROVE.has(toolName)) {
-      console.log(`[xray] Skipping auto-approve for ${toolName} — explicit user question`);
-    }
-    if (this.willAutoApprove(toolName)) {
-      console.log(`[xray] Auto-approving permission #${permissionId} for ${toolName}`);
-      this.queries.updatePermission(permissionId, 'approved');
-      this.broadcast({ type: 'permission:auto-approved', data: permission });
-      const response: PermissionResponse = {
-        hookSpecificOutput: {
-          hookEventName: 'PermissionRequest',
-          decision: {
-            behavior: 'allow',
-            updatedInput: toolInput,
-          },
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PermissionRequest',
+        decision: {
+          behavior: 'allow',
+          updatedInput: toolInput,
         },
-      };
-      console.log(`[xray] Returning auto-approve response:`, JSON.stringify(response));
-      return response;
-    }
-
-    // Broadcast al dashboard
-    this.broadcast({ type: 'permission:pending', data: permission });
-
-    // Crear deferred promise
-    return new Promise<PermissionResponse | Record<string, never>>((resolve) => {
-      const timer = setTimeout(() => {
-        // Timeout — limpiar y responder vacio
-        this.pending.delete(permissionId);
-        this.queries.updatePermission(permissionId, 'expired');
-        this.broadcast({ type: 'permission:resolved', data: { id: permissionId, decision: 'expired' } });
-        resolve({});
-      }, PERMISSION_TIMEOUT_MS);
-
-      this.pending.set(permissionId, { resolve, timer, permissionId });
-    });
+      },
+    };
   }
 
   /**

@@ -49,7 +49,12 @@ export async function startServer(options: CliOptions): Promise<void> {
 
   // Init managers
   const manager = new SessionManager(queries);
-  const permissionHandler = new PermissionHandler(queries, broadcast);
+  const xrayConfig = getFullConfig(db);
+  const permissionHandler = new PermissionHandler(
+    queries,
+    broadcast,
+    xrayConfig.permissions.autoApproveEnabled,
+  );
   const handlers = new HookHandlers(manager, queries, broadcast);
   handlers.setPermissionHandler(permissionHandler);
 
@@ -70,8 +75,8 @@ export async function startServer(options: CliOptions): Promise<void> {
 
   // Register routes
   registerHookRoutes(fastify, handlers, permissionHandler, manager, broadcast);
-  registerApiRoutes(fastify, queries, manager, permissionHandler, authState, broadcast);
-  registerConfigRoutes(fastify, db, queries, broadcast);
+  registerApiRoutes(fastify, queries, manager, permissionHandler, authState, broadcast, db);
+  registerConfigRoutes(fastify, db, queries, broadcast, permissionHandler);
   registerEngramRoutes(fastify);
 
   // Staleness check every 5 minutes
