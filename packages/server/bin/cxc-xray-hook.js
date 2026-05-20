@@ -55,8 +55,31 @@ async function main() {
         process.stdout.write(text);
       }
     }
-  } catch {
-    // Servidor caido, timeout, o cualquier error de red: ignorar silenciosamente.
+  } catch (err) {
+    // Servidor caido, timeout, o cualquier error de red.
+    //
+    // Crucial para `permission-request`: si fallamos en silencio, Claude Code
+    // recibe stdout vacio y lo interpreta como "sin decision" -> cae al deny por
+    // defecto en ediciones fuera del cwd (skills, agentes en ~/.claude/...).
+    // Eso confunde porque el usuario cree que xray esta auto-aprobando.
+    //
+    // Aviso por stderr (Claude Code lo muestra como nota del hook) para que el
+    // rechazo no sea misterioso. Seguimos saliendo con exit 0 para no romper la
+    // ejecucion del agente.
+    if (event === 'permission-request') {
+      const code = err && (err.cause?.code || err.code);
+      const reason =
+        code === 'ECONNREFUSED' ? `servidor xray no esta corriendo en :${port}` :
+        err?.name === 'TimeoutError' || code === 'UND_ERR_HEADERS_TIMEOUT' ? `timeout (${timeoutMs}ms) hablando con xray :${port}` :
+        `error de red contactando xray :${port} (${err?.message || code || 'desconocido'})`;
+      try {
+        process.stderr.write(
+          `[cxc-xray-hook] ${reason}. Sin respuesta del hook -> Claude Code aplicara su politica por defecto (puede rechazar edits fuera del cwd). Arranca xray con \`cxc-xray\`.\n`,
+        );
+      } catch {
+        // si stderr falla, no hay nada mas que hacer.
+      }
+    }
   }
 
   process.exit(0);
